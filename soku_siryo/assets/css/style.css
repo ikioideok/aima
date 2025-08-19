@@ -87,7 +87,7 @@
         /* Hero Section */
         .hero {
             background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
-            padding: 70px 20px 130px; /* slightly reduced top/bottom spacing */
+            padding: 40px 20px 130px; /* slightly reduced top/bottom spacing */
             position: relative;
             overflow: hidden;
         }
@@ -618,7 +618,7 @@
             .mobile-cta { display: block; }
             body { padding-bottom: 80px; }
 
-            .hero { padding: 80px 20px 120px; }
+            .hero { padding: 50px 20px 120px; }
             .hero-container {
                 flex-direction: column;
                 gap: 20px;
