@@ -6,7 +6,6 @@ import "./styles/globals.css";
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter basename="/media">
-  <BrowserRouter>
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/articles/:slug" element={<ArticlePage />} />
