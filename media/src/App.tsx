@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { SimpleHeader } from "./components/SimpleHeader";
 import { SimpleCard } from "./components/SimpleCard";
 import { CompactCard } from "./components/CompactCard";
@@ -36,7 +37,9 @@ export default function App() {
           <div className="lg:col-span-3 space-y-12">
             {/* Featured Article */}
             <section>
-              <SimpleCard {...featuredArticle} />
+              <Link to={`/articles/${featuredArticle.slug}`}>
+                <SimpleCard {...featuredArticle} />
+              </Link>
             </section>
 
             {/* Special Articles */}
@@ -52,8 +55,10 @@ export default function App() {
                 </Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {specialArticles.map((article, index) => (
-                  <SimpleCard key={index} {...article} />
+                {specialArticles.map((article) => (
+                  <Link to={`/articles/${article.slug}`} key={article.slug}>
+                    <SimpleCard {...article} />
+                  </Link>
                 ))}
               </div>
             </section>
@@ -71,8 +76,10 @@ export default function App() {
                 </Button>
               </div>
               <div className="space-y-4">
-                {recentArticles.map((article, index) => (
-                  <CompactCard key={index} {...article} />
+                {recentArticles.map((article) => (
+                  <Link to={`/articles/${article.slug}`} key={article.slug}>
+                    <CompactCard {...article} />
+                  </Link>
                 ))}
               </div>
             </section>
