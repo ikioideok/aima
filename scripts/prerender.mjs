@@ -6,7 +6,7 @@ import path from 'path'
 const routes = ['/', '/about', '/service', '/contact']
 
 // ViteのSSRローダを使う（ビルドは package.json 側で先に実施）
-const vite = await createServer({ server: { middlewareMode: true } })
+const vite = await createServer({ server: { middlewareMode: true, hmr: false } })
 const { render } = await vite.ssrLoadModule('/src/entry-server.tsx')
 
 // dist の index.html をテンプレに使う
