@@ -1,0 +1,47 @@
+[
+  {
+    "title": "Transformerアーキテクチャの基礎から実装まで",
+    "excerpt": "自然言語処理の革命をもたらしたTransformerモデルについて、基本的な仕組みからPyTorchを使った実装例まで段階的に説明します。",
+    "author": "鈴木 NLP研究者",
+    "publishDate": "2024年1月8日",
+    "readTime": "15分",
+    "category": "技術解説",
+    "imageUrl": "https://images.unsplash.com/photo-1555255707-c07966088b7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXVyYWwlMjBuZXR3b3JrfGVufDF8fHx8MTc1NjE4MzAxMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+  },
+  {
+    "title": "AutoMLツール比較：初心者向けガイド2024",
+    "excerpt": "機械学習の専門知識がなくても利用できるAutoMLツールが注目されています。主要なサービスの特徴と選び方のポイントを比較解説します。",
+    "author": "高橋 データサイエンティスト",
+    "publishDate": "2024年1月5日",
+    "readTime": "8分",
+    "category": "ツール紹介",
+    "imageUrl": "https://images.unsplash.com/photo-1518186285589-2f7649de83e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZXxlbnwxfHx8fDE3NTYxODMwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+  },
+  {
+    "title": "コンピュータビジョンによる製造業DX事例",
+    "excerpt": "AI技術を活用した製造業の品質管理自動化事例を紹介。画像認識技術がもたらす効率化と品質向上の実際について詳しく解説します。",
+    "author": "中村 産業AI専門家",
+    "publishDate": "2024年1月3日",
+    "readTime": "12分",
+    "category": "ビジネス事例",
+    "imageUrl": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW51ZmFjdHVyaW5nJTIwdGVjaG5vbG9neXxlbnwxfHx8fDE3NTYxODMwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+  },
+  {
+    "title": "深層学習による自然言語生成の最新手法",
+    "excerpt": "GPTシリーズから最新のLLaMAまで、言語生成モデルの進化と実用的な応用例について技術的な観点から詳しく解説します。",
+    "author": "林 研究開発者",
+    "publishDate": "2024年1月1日",
+    "readTime": "11分",
+    "category": "技術解説",
+    "imageUrl": "https://images.unsplash.com/photo-1676299081847-824916de030a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuYXR1cmFsJTIwbGFuZ3VhZ2UlMjBwcm9jZXNzaW5nfGVufDF8fHx8MTc1NjE4MzAxMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+  },
+  {
+    "title": "エッジAIの実装と性能最適化テクニック",
+    "excerpt": "IoTデバイスでのAI推論を効率化するためのモデル軽量化と最適化手法について、実際のプロジェクト事例を交えて解説します。",
+    "author": "森 エンジニア",
+    "publishDate": "2023年12月28日",
+    "readTime": "14分",
+    "category": "技術解説",
+    "imageUrl": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZGdlJTIwY29tcHV0aW5nfGVufDF8fHx8MTc1NjE4MzAxMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+  }
+]
