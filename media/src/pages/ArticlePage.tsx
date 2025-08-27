@@ -3,11 +3,12 @@ import { useParams } from 'react-router-dom';
 import featuredArticle from '../data/featuredArticle.json';
 import specialArticles from '../data/specialArticles.json';
 import recentArticles from '../data/recentArticles.json';
+import dummyArticle from '../data/dummyArticle.json'; // Import the new dummy article
 import { SimpleHeader } from '../components/SimpleHeader';
 import { SimpleFooter } from '../components/SimpleFooter';
 
 // Combine all articles into one array. Note: featuredArticle is an object, not an array.
-const allArticles = [featuredArticle, ...specialArticles, ...recentArticles];
+const allArticles = [featuredArticle, ...specialArticles, ...recentArticles, dummyArticle];
 
 const ArticlePage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -45,8 +46,11 @@ const ArticlePage = () => {
         <span>By {article.author}</span> | <span>{article.publishDate}</span> | <span>{article.readTime} read</span>
       </div>
       <div className="border-b my-4"></div>
-      <p className="text-lg text-foreground leading-relaxed">{article.excerpt}</p>
-      {/* If there were a 'body' field, it would be rendered here */}
+      <div className="prose prose-lg max-w-none text-foreground leading-relaxed space-y-4">
+        <p className="text-xl font-semibold">{article.excerpt}</p>
+        {/* Render the body if it exists, assuming it might contain HTML */}
+        {article.body && <div className="mt-4" dangerouslySetInnerHTML={{ __html: article.body }} />}
+      </div>
     </article>
   ) : (
     <div className="text-center py-16">
