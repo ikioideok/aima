@@ -5,7 +5,7 @@ import ArticlePage from "./pages/ArticlePage.tsx";
 import "./styles/globals.css";
 
 createRoot(document.getElementById("root")!).render(
-  <BrowserRouter>
+  <BrowserRouter basename="/media">
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/articles/:slug" element={<ArticlePage />} />
