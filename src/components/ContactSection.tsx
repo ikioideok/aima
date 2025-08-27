@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { motion, useInView } from 'motion/react';
+import { motion, useInView, AnimatePresence } from 'motion/react';
 import { useRef } from 'react';
-import { Send, MessageSquare } from 'lucide-react';
+import { Send, MessageSquare, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -15,6 +15,7 @@ export function ContactSection() {
     company: '',
     message: ''
   });
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   // Super fast, dynamic animations
   const containerVariants = {
@@ -67,9 +68,30 @@ export function ContactSection() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    setSubmissionStatus('submitting');
+
+    try {
+      const response = await fetch('https://formspree.io/f/mnnbnagl', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        setSubmissionStatus('success');
+        setFormData({ name: '', email: '', company: '', message: '' });
+      } else {
+        setSubmissionStatus('error');
+      }
+    } catch (error) {
+      console.error('An error occurred:', error);
+      setSubmissionStatus('error');
+    }
   };
 
   return (
@@ -187,111 +209,142 @@ export function ContactSection() {
                 whileInView={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 1, type: "spring", stiffness: 400, damping: 25 }}
               />
-
-              <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+              <AnimatePresence mode="wait">
+              {submissionStatus === 'success' ? (
                 <motion.div
-                  className="flex items-center mb-8"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-                  transition={{ delay: 0.6, duration: 0.3 }}
+                  key="success"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="text-center py-10 flex flex-col items-center"
+                >
+                  <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+                  <h3 className="text-2xl font-bold text-black mb-2">送信完了</h3>
+                  <p className="text-gray-600">お問い合わせいただきありがとうございます。<br/>内容を確認の上、担当者よりご連絡いたします。</p>
+                </motion.div>
+              ) : (
+                <motion.form
+                  key="form"
+                  onSubmit={handleSubmit}
+                  className="space-y-6 relative z-10"
+                  exit={{ opacity: 0, x: -20 }}
                 >
                   <motion.div
-                    whileHover={{ rotate: [0, -10, 10, 0] }}
-                    transition={{ duration: 0.6 }}
+                    className="flex items-center mb-8"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
+                    transition={{ delay: 0.6, duration: 0.3 }}
                   >
-                    <MessageSquare className="h-6 w-6 text-red-500 mr-3" />
+                    <motion.div
+                      whileHover={{ rotate: [0, -10, 10, 0] }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <MessageSquare className="h-6 w-6 text-red-500 mr-3" />
+                    </motion.div>
+                    <h3 className="text-2xl font-bold text-black tracking-tight">
+                      お問い合わせフォーム
+                    </h3>
                   </motion.div>
-                  <h3 className="text-2xl font-bold text-black tracking-tight">
-                    お問い合わせフォーム
-                  </h3>
-                </motion.div>
 
-                {[
-                  { name: 'name', label: 'お名前 *', type: 'text', placeholder: '山田太郎', required: true },
-                  { name: 'email', label: 'メールアドレス *', type: 'email', placeholder: 'contact@example.com', required: true },
-                  { name: 'company', label: '会社名', type: 'text', placeholder: '株式会社○○○', required: false }
-                ].map((field, index) => (
+                  {[
+                    { name: 'name', label: 'お名前 *', type: 'text', placeholder: '山田太郎', required: true },
+                    { name: 'email', label: 'メールアドレス *', type: 'email', placeholder: 'contact@example.com', required: true },
+                    { name: 'company', label: '会社名', type: 'text', placeholder: '株式会社○○○', required: false }
+                  ].map((field, index) => (
+                    <motion.div
+                      key={field.name}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.95 }}
+                      transition={{ delay: 0.8 + index * 0.1, type: "spring", stiffness: 400, damping: 25 }}
+                    >
+                      <label className="block text-sm font-medium text-black mb-2 tracking-wide">
+                        {field.label}
+                      </label>
+                      <motion.div
+                        whileFocus={{ scale: 1.02 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      >
+                        <Input
+                          type={field.type}
+                          name={field.name}
+                          value={formData[field.name as keyof typeof formData]}
+                          onChange={handleInputChange}
+                          className="w-full bg-white border-2 border-black/10 focus:border-red-500 rounded-none text-black placeholder-gray-400 transition-all duration-300"
+                          placeholder={field.placeholder}
+                          required={field.required}
+                          disabled={submissionStatus === 'submitting'}
+                        />
+                      </motion.div>
+                    </motion.div>
+                  ))}
+
                   <motion.div
-                    key={field.name}
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.95 }}
-                    transition={{ delay: 0.8 + index * 0.1, type: "spring", stiffness: 400, damping: 25 }}
+                    transition={{ delay: 1.1, type: "spring", stiffness: 400, damping: 25 }}
                   >
                     <label className="block text-sm font-medium text-black mb-2 tracking-wide">
-                      {field.label}
+                      お問い合わせ内容 *
                     </label>
                     <motion.div
-                      whileFocus={{ scale: 1.02 }}
+                      whileFocus={{ scale: 1.01 }}
                       transition={{ type: "spring", stiffness: 400, damping: 25 }}
                     >
-                      <Input
-                        type={field.type}
-                        name={field.name}
-                        value={formData[field.name as keyof typeof formData]}
+                      <Textarea
+                        name="message"
+                        value={formData.message}
                         onChange={handleInputChange}
-                        className="w-full bg-white border-2 border-black/10 focus:border-red-500 rounded-none text-black placeholder-gray-400 transition-all duration-300"
-                        placeholder={field.placeholder}
-                        required={field.required}
+                        rows={6}
+                        className="w-full bg-white border-2 border-black/10 focus:border-red-500 rounded-none text-black placeholder-gray-400 resize-none transition-all duration-300"
+                        placeholder="AIマーケティングについてのご相談内容をお聞かせください..."
+                        required
+                        disabled={submissionStatus === 'submitting'}
                       />
                     </motion.div>
                   </motion.div>
-                ))}
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.95 }}
-                  transition={{ delay: 1.1, type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <label className="block text-sm font-medium text-black mb-2 tracking-wide">
-                    お問い合わせ内容 *
-                  </label>
                   <motion.div
-                    whileFocus={{ scale: 1.01 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.9 }}
+                    transition={{ delay: 1.3, type: "spring", stiffness: 400, damping: 25 }}
                   >
-                    <Textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      rows={6}
-                      className="w-full bg-white border-2 border-black/10 focus:border-red-500 rounded-none text-black placeholder-gray-400 resize-none transition-all duration-300"
-                      placeholder="AIマーケティングについてのご相談内容をお聞かせください..."
-                      required
-                    />
-                  </motion.div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.9 }}
-                  transition={{ delay: 1.3, type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <Button
-                    type="submit"
-                    className="w-full bg-black hover:bg-red-500 text-white px-8 py-4 rounded-none border-0 group relative overflow-hidden transition-all duration-300"
-                  >
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600"
-                      initial={{ x: '-100%', skewX: -20 }}
-                      whileHover={{ x: 0, skewX: 0 }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
-                    />
-                    <motion.span 
-                      className="relative z-10 flex items-center justify-center gap-3 font-bold tracking-wider"
-                      whileHover={{ x: 5 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    <Button
+                      type="submit"
+                      className="w-full bg-black hover:bg-red-500 text-white px-8 py-4 rounded-none border-0 group relative overflow-hidden transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={submissionStatus === 'submitting'}
                     >
-                      送信する
                       <motion.div
-                        whileHover={{ rotate: 45, scale: 1.2 }}
+                        className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600"
+                        initial={{ x: '-100%', skewX: -20 }}
+                        whileHover={{ x: 0, skewX: 0 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                      />
+                      <motion.span
+                        className="relative z-10 flex items-center justify-center gap-3 font-bold tracking-wider"
+                        whileHover={{ x: submissionStatus !== 'submitting' ? 5 : 0 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
                       >
-                        <Send className="h-5 w-5" />
-                      </motion.div>
-                    </motion.span>
-                  </Button>
-                </motion.div>
-              </form>
+                        {submissionStatus === 'submitting' ? '送信中...' : '送信する'}
+                        {submissionStatus !== 'submitting' && (
+                          <motion.div
+                            whileHover={{ rotate: 45, scale: 1.2 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                          >
+                            <Send className="h-5 w-5" />
+                          </motion.div>
+                        )}
+                      </motion.span>
+                    </Button>
+                    {submissionStatus === 'error' && (
+                       <p className="text-red-500 text-sm mt-4 text-center flex items-center justify-center">
+                         <AlertTriangle className="h-4 w-4 mr-2" />
+                         送信に失敗しました。時間をおいて再度お試しください。
+                       </p>
+                    )}
+                  </motion.div>
+                </motion.form>
+              )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         </div>
