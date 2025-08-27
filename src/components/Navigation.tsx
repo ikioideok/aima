@@ -35,7 +35,8 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <motion.div
+          <motion.a
+            href="https://ai-and-marketing.jp/"
             whileHover={{ scale: 1.05 }}
             className="flex items-center group cursor-pointer"
           >
@@ -49,7 +50,7 @@ export function Navigation() {
                 style={{ width: '100%', originX: 0 }}
               />
             </div>
-          </motion.div>
+          </motion.a>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-12">
