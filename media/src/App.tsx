@@ -56,7 +56,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {specialArticles.map((article) => (
                   <Link to={`/articles/${article.slug}`} key={article.slug}>
-                    <SimpleCard {...article} title={`【ダミー】${article.title}`} />
+                    <SimpleCard {...article} />
                   </Link>
                 ))}
               </div>
@@ -77,7 +77,7 @@ export default function App() {
               <div className="space-y-4">
                 {recentArticles.map((article) => (
                   <Link to={`/articles/${article.slug}`} key={article.slug}>
-                    <CompactCard {...article} title={`【ダミー】${article.title}`} />
+                    <CompactCard {...article} />
                   </Link>
                 ))}
               </div>

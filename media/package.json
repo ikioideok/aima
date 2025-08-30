@@ -60,7 +60,7 @@
     "vite": "^4.5.14"
   },
   "scripts": {
-    "build": "vite build"
+    "build": "node --experimental-fetch fetch-articles.js && vite build"
   },
   "type": "module"
 }
