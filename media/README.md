@@ -1,7 +1,7 @@
 
-  # AIニュースメディアサイト
+# AI Marketing News
 
-  This is a code bundle for AIニュースメディアサイト. The original project is available at https://www.figma.com/design/eHycYmRZSLbTDQUAqz2Soj/AI%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9%E3%83%A1%E3%83%87%E3%82%A3%E3%82%A2%E3%82%B5%E3%82%A4%E3%83%88.
+マーケティングの最新ニュースと実務知見を届けるメディアです。SEO、広告、コンテンツ、SNS、CRM/MA、マーケティングAI活用までをカバーします。
 
   ## Running the code
 

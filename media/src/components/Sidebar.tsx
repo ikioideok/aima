@@ -7,36 +7,19 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 export function Sidebar() {
   const popularArticles = [
-    {
-      title: "ChatGPT-4の最新アップデートで変わること",
-      readTime: "5分",
-      views: "12.3k"
-    },
-    {
-      title: "画像生成AIの商用利用における注意点",
-      readTime: "8分", 
-      views: "9.8k"
-    },
-    {
-      title: "機械学習エンジニアのキャリアパス2024",
-      readTime: "12分",
-      views: "7.2k"
-    },
-    {
-      title: "AutoMLツール比較：初心者向けガイド",
-      readTime: "10分",
-      views: "6.1k"
-    }
+    { title: "CV向上のためのLP改善チェックリスト", readTime: "6分", views: "12.3k" },
+    { title: "Google広告の入札戦略を成果別に最適化する方法", readTime: "8分", views: "9.8k" },
+    { title: "BtoB向けコンテンツマーケのKPI設計", readTime: "9分", views: "7.2k" },
+    { title: "SEOに強い情報設計：サイト構造と内部リンク", readTime: "10分", views: "6.1k" }
   ];
 
   const categories = [
-    { name: "機械学習", count: 45 },
-    { name: "深層学習", count: 32 },
-    { name: "自然言語処理", count: 28 },
-    { name: "コンピュータビジョン", count: 24 },
-    { name: "データサイエンス", count: 38 },
-    { name: "AI倫理", count: 15 },
-    { name: "ビジネスAI", count: 22 }
+    { name: "コンテンツマーケティング", count: 45 },
+    { name: "SEO", count: 38 },
+    { name: "広告運用", count: 32 },
+    { name: "SNSマーケティング", count: 28 },
+    { name: "マーケティング戦略", count: 24 },
+    { name: "マーケティングAI/自動化", count: 22 }
   ];
 
   return (
@@ -48,7 +31,7 @@ export function Sidebar() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            AI技術の最新動向や深い洞察を週1回のニュースレターでお届けします。
+            マーケティングの最新トレンドと実務ノウハウを、週1回のニュースレターでお届けします。
           </p>
           <div className="space-y-3">
             <Input placeholder="メールアドレス" />
@@ -123,12 +106,12 @@ export function Sidebar() {
               <User className="h-6 w-6 text-muted-foreground" />
             </div>
             <div>
-              <h4 className="font-medium">田中 太郎</h4>
-              <p className="text-sm text-muted-foreground">AI研究者</p>
+              <h4 className="font-medium">佐藤 未来</h4>
+              <p className="text-sm text-muted-foreground">マーケティングストラテジスト</p>
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            機械学習とAI倫理を専門とする研究者。最新のAI技術動向と社会への影響について執筆しています。
+            BtoB/BtoCのグロース支援に従事。SEO・広告・CRMまでフルファネルで成果に直結する施策設計を得意とします。
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
@@ -152,8 +135,8 @@ export function Sidebar() {
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {[
-              "Python", "TensorFlow", "PyTorch", "OpenAI", "Hugging Face",
-              "Transformer", "CNN", "RNN", "GAN", "BERT", "GPT", "DALL-E"
+              "SEO", "コンテンツ戦略", "E-E-A-T", "Google広告", "Meta広告",
+              "LPO", "CVR改善", "CRM", "MAツール", "GA4", "SNS運用", "生成AI活用"
             ].map((tag, index) => (
               <Badge 
                 key={index}

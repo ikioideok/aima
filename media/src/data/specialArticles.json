@@ -1,42 +1,42 @@
 [
   {
-    "slug": "ml-engineer-career-path-2024",
-    "title": "機械学習エンジニアのキャリアパス2024年版",
-    "excerpt": "AI業界の急速な発展に伴い、機械学習エンジニアのキャリア選択肢も多様化しています。2024年現在の市場動向と将来性について分析します。",
-    "author": "佐藤 ML専門家",
+    "slug": "marketing-ai-practical-automation-playbook",
+    "title": "マーケティングAI実践：自動化プレイブック",
+    "excerpt": "生成AIとMAツールを組み合わせ、コンテンツ制作～配信～分析までを自動化。小さく始めて確実に効果を出す設計例。",
+    "author": "佐藤 マーケAI",
     "publishDate": "2024-01-12",
     "readTime": "12分",
-    "category": "キャリア",
-    "imageUrl": "https://images.unsplash.com/photo-1551434678-e076c223a692?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5JTIwcHJvZ3JhbW1pbmd8ZW58MXx8fHwxNzU2MTgzMDEwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "category": "マーケティングAI/自動化",
+    "imageUrl": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   },
   {
-    "slug": "legal-points-for-ai-image-generation",
-    "title": "画像生成AIの商用利用における法的注意点",
-    "excerpt": "MidjourneyやDALL-E 3などの画像生成AIツールをビジネスで活用する際の著作権や肖像権に関する重要なポイントを法的観点から解説します。",
-    "author": "山田 法務専門員",
+    "slug": "b2b-content-strategy-that-drives-pipeline",
+    "title": "商談創出につながるBtoBコンテンツ戦略",
+    "excerpt": "意思決定者の情報収集プロセスに合わせた企画設計、導入事例の構造化、ホワイトペーパーのリード獲得最適化まで。",
+    "author": "山田 コンテンツPL",
     "publishDate": "2024-01-10",
     "readTime": "10分",
-    "category": "法務・倫理",
-    "imageUrl": "https://images.unsplash.com/photo-1686191128892-4d9512e79e4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhaSUyMGFydCUyMGdlbmVyYXRpb258ZW58MXx8fHwxNzU2MTgzMDEwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "category": "コンテンツマーケティング",
+    "imageUrl": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   },
   {
-    "slug": "quantum-computing-and-ai-fusion",
-    "title": "量子コンピューティングとAIの融合：次世代技術の展望",
-    "excerpt": "量子コンピュータとAI技術の組み合わせが開く新たな可能性について解説。量子機械学習アルゴリズムの基礎から実用化への道筋まで詳しく紹介します。",
-    "author": "川口 量子研究者",
+    "slug": "brand-lift-measurement-for-multi-channel-campaigns",
+    "title": "マルチチャネル施策のブランドリフト測定ガイド",
+    "excerpt": "サーチリフト・指名検索・想起率の計測と因果推論の基本。媒体横断で効果を評価するための設計手順。",
+    "author": "川口 アナリティクス",
     "publishDate": "2024-01-09",
     "readTime": "16分",
-    "category": "先端技術",
-    "imageUrl": "https://images.unsplash.com/photo-1752451399417-eb6e072269bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxxdWFudHVtJTIwY29tcHV0aW5nJTIwdGVjaG5vbG9neXxlbnwxfHx8fDE3NTYxMTIzMjl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "category": "アナリティクス",
+    "imageUrl": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   },
   {
-    "slug": "ai-in-robotics-applications",
-    "title": "ロボティクスにおけるAI技術の革新的応用",
-    "excerpt": "産業用ロボットから家庭用アシスタントまで、AI技術がロボット工学にもたらしている変革について事例を交えて詳しく解説します。",
-    "author": "小林 ロボティクス専門家",
+    "slug": "google-ads-performance-max-structure",
+    "title": "P-MAXで成果を最大化する構造設計",
+    "excerpt": "アセットグループの切り方、フィード管理、除外の考え方、目標設定まで。スケールとCPAの両立を狙う。",
+    "author": "小林 パフォーマンス広告",
     "publishDate": "2024-01-07",
     "readTime": "13分",
-    "category": "ロボティクス",
-    "imageUrl": "https://images.unsplash.com/photo-1641312874336-6279a832a3dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyb2JvdGljcyUyMGF1dG9tYXRpb24lMjBhaXxlbnwxfHx8fDE3NTYxOTA0NjZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "category": "広告運用",
+    "imageUrl": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   }
 ]

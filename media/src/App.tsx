@@ -22,11 +22,11 @@ export default function App() {
         <section className="mb-12">
           <div className="text-center space-y-4 mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-foreground title-font">
-              <span className="text-red-accent">AI</span> Media Hub
+              AI Marketing News
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              人工知能の最新技術動向、研究成果、ビジネス応用まで、
-              AI分野の信頼できる情報をわかりやすくお届けします
+              マーケティングの最新ニュースと実務解説。SEO、広告、コンテンツ、
+              マーケティングAI活用まで、成長に直結するナレッジを発信します。
             </p>
           </div>
         </section>

@@ -1,12 +1,12 @@
 {
   "slug": "first-dummy-article",
-  "title": "これは最初の仮記事です",
-  "excerpt": "この記事は、サイトの表示確認のために作成された仮のものです。本文表示機能の実装テストも兼ねています。",
-  "author": "開発チーム",
+  "title": "今すぐ試したいCVR改善10のチェックポイント",
+  "excerpt": "LPO・フォーム最適化・CTA配置など、少ない工数で成果に直結する改善策を厳選。実務で使えるチェックリスト付き。",
+  "author": "編集部 AI Marketing News",
   "publishDate": "2025-08-27",
-  "readTime": "2分",
-  "category": "お知らせ",
+  "readTime": "6分",
+  "category": "コンバージョン最適化",
   "imageUrl": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2RlfGVufDF8fHx8MTc1NjE4MzAxMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   "featured": true,
-  "body": "<p>これは記事の本文です。このテキストは、新しく追加された本文表示機能が正しく動作するかどうかを確認するために使用されます。</p><p>今後、ここには実際の記事コンテンツがマークダウンやHTML形式で挿入されることになります。段落やリスト、画像などが含まれるかもしれません。</p><ul><li>リスト項目1</li><li>リスト項目2</li><li>リスト項目3</li></ul>"
+  "body": "<p>本記事では、CVRを短期間で底上げするための実装しやすい10の施策を紹介します。LPO、ファーストビューのメッセージ、CTA設計、フォーム項目の最適化、FAQの配置、ソーシャルプルーフの提示などを、実際の改善手順とともに解説します。</p><ul><li>直帰率を下げるファーストビューの作り方</li><li>CTAと価値提案の一貫性</li><li>フォームの離脱要因と削減テクニック</li></ul>"
 }

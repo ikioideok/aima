@@ -14,15 +14,13 @@ export function SimpleFooter() {
                 <span className="text-sm font-bold">AI</span>
               </div>
               <div>
-                <h3 className="font-bold title-font">
-                  <span className="text-red-accent">AI</span> Media Hub
-                </h3>
-                <div className="text-xs text-muted-foreground">人工知能情報メディア</div>
+                <h3 className="font-bold title-font">AI Marketing News</h3>
+                <div className="text-xs text-muted-foreground">マーケティング情報メディア</div>
               </div>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              人工知能の最新技術動向、研究成果、ビジネス応用まで、
-              AI分野の信頼できる情報をお届けします。
+              マーケティング戦略、SEO、広告運用、コンテンツ制作、
+              マーケティングAI活用まで、成果につながる実務知見をお届けします。
             </p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
@@ -40,18 +38,11 @@ export function SimpleFooter() {
             </div>
           </div>
 
-          {/* Content */}
+          {/* Articles */}
           <div className="space-y-4">
-            <h4 className="font-medium">コンテンツ</h4>
+            <h4 className="font-medium">記事</h4>
             <nav className="space-y-2">
-              {[
-                "最新記事",
-                "AI技術解説", 
-                "研究論文解説",
-                "ビジネス事例",
-                "ツール紹介",
-                "インタビュー"
-              ].map((item) => (
+              {["最新記事", "注目記事", "特集記事"].map((item) => (
                 <a 
                   key={item}
                   href="#" 
@@ -68,12 +59,12 @@ export function SimpleFooter() {
             <h4 className="font-medium">カテゴリー</h4>
             <nav className="space-y-2">
               {[
-                "機械学習",
-                "深層学習",
-                "自然言語処理",
-                "コンピュータビジョン",
-                "データサイエンス",
-                "AI倫理"
+                "コンテンツマーケティング",
+                "SEO",
+                "広告運用",
+                "SNSマーケティング",
+                "マーケティング戦略",
+                "マーケティングAI/自動化"
               ].map((item) => (
                 <a 
                   key={item}
@@ -114,7 +105,7 @@ export function SimpleFooter() {
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>© 2025 AI Media Hub</span>
+            <span>© 2025 AI Marketing News</span>
             <span>All rights reserved</span>
           </div>
           

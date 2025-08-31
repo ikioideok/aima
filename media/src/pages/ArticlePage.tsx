@@ -43,7 +43,7 @@ const ArticlePage = () => {
       <img src={article.imageUrl} alt={article.title} className="w-full h-auto max-h-96 object-cover rounded-lg mb-8" />
       <h1 className="text-4xl font-bold text-foreground">{article.title}</h1>
       <div className="text-muted-foreground">
-        <span>By {article.author}</span> | <span>{article.publishDate}</span> | <span>{article.readTime} read</span>
+        <span>By {article.author}</span> | <span>{article.publishDate}</span> | <span>{article.readTime}</span>
       </div>
       <div className="border-b my-4"></div>
       <div className="prose prose-lg max-w-none text-foreground leading-relaxed space-y-4">

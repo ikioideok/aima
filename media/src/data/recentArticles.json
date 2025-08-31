@@ -1,52 +1,52 @@
 [
   {
-    "slug": "transformer-architecture-from-basics-to-implementation",
-    "title": "Transformerアーキテクチャの基礎から実装まで",
-    "excerpt": "自然言語処理の革命をもたらしたTransformerモデルについて、基本的な仕組みからPyTorchを使った実装例まで段階的に説明します。",
-    "author": "鈴木 NLP研究者",
+    "slug": "ga4-kpi-setup-for-b2b-leadgen",
+    "title": "GA4で実現するBtoBリード獲得KPI設計",
+    "excerpt": "GA4のイベント設計と探索レポートで、商談化に繋がるKPIを可視化。リード獲得から受注までのボトルネック特定手順を解説。",
+    "author": "佐藤 デジタルマーケ",
     "publishDate": "2024-01-08",
-    "readTime": "15分",
-    "category": "技術解説",
-    "imageUrl": "https://images.unsplash.com/photo-1555255707-c07966088b7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXVyYWwlMjBuZXR3b3JrfGVufDF8fHx8MTc1NjE4MzAxMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "readTime": "10分",
+    "category": "アナリティクス",
+    "imageUrl": "https://images.unsplash.com/photo-1551434678-e076c223a692?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   },
   {
-    "slug": "automl-tools-comparison-for-beginners-2024",
-    "title": "AutoMLツール比較：初心者向けガイド2024",
-    "excerpt": "機械学習の専門知識がなくても利用できるAutoMLツールが注目されています。主要なサービスの特徴と選び方のポイントを比較解説します。",
-    "author": "高橋 データサイエンティスト",
+    "slug": "meta-ads-advantage-plus-best-practices",
+    "title": "Meta広告Advantage+を使いこなす運用ベストプラクティス",
+    "excerpt": "配信学習を活かす設計、除外設定、クリエイティブの検証手順まで。CPAを安定化させる運用の型を紹介。",
+    "author": "高橋 アドオペレーション",
     "publishDate": "2024-01-05",
     "readTime": "8分",
-    "category": "ツール紹介",
-    "imageUrl": "https://images.unsplash.com/photo-1518186285589-2f7649de83e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwc2NpZW5jZXxlbnwxfHx8fDE3NTYxODMwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "category": "広告運用",
+    "imageUrl": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   },
   {
-    "slug": "manufacturing-dx-use-cases-with-computer-vision",
-    "title": "コンピュータビジョンによる製造業DX事例",
-    "excerpt": "AI技術を活用した製造業の品質管理自動化事例を紹介。画像認識技術がもたらす効率化と品質向上の実際について詳しく解説します。",
-    "author": "中村 産業AI専門家",
+    "slug": "crm-nurturing-email-automation-templates",
+    "title": "CRMナーチャリングを加速するメール自動化テンプレート",
+    "excerpt": "スコアリング設計、リード属性に応じた分岐、配信タイミング最適化など、成果が出るシナリオの作り方を公開。",
+    "author": "中村 CRMコンサルタント",
     "publishDate": "2024-01-03",
-    "readTime": "12分",
-    "category": "ビジネス事例",
-    "imageUrl": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW51ZmFjdHVyaW5nJTIwdGVjaG5vbG9neXxlbnwxfHx8fDE3NTYxODMwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "readTime": "9分",
+    "category": "CRM/MA",
+    "imageUrl": "https://images.unsplash.com/photo-1529336953121-a0ce365f032f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   },
   {
-    "slug": "latest-methods-in-deep-learning-for-nlp",
-    "title": "深層学習による自然言語生成の最新手法",
-    "excerpt": "GPTシリーズから最新のLLaMAまで、言語生成モデルの進化と実用的な応用例について技術的な観点から詳しく解説します。",
-    "author": "林 研究開発者",
+    "slug": "eeat-content-roadmap-for-b2c-seo",
+    "title": "E-E-A-Tを意識したBtoC SEOコンテンツ設計",
+    "excerpt": "検索意図の棚卸しから、権威性と経験の示し方、内部リンク戦略まで。勝てるコンテンツのロードマップ。",
+    "author": "林 コンテンツマーケ",
     "publishDate": "2024-01-01",
     "readTime": "11分",
-    "category": "技術解説",
-    "imageUrl": "https://images.unsplash.com/photo-1676299081847-824916de030a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuYXR1cmFsJTIwbGFuZ3VhZ2UlMjBwcm9jZXNzaW5nfGVufDF8fHx8MTc1NjE4MzAxMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "category": "SEO",
+    "imageUrl": "https://images.unsplash.com/photo-1518186285589-2f7649de83e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   },
   {
-    "slug": "edge-ai-implementation-and-optimization-techniques",
-    "title": "エッジAIの実装と性能最適化テクニック",
-    "excerpt": "IoTデバイスでのAI推論を効率化するためのモデル軽量化と最適化手法について、実際のプロジェクト事例を交えて解説します。",
-    "author": "森 エンジニア",
+    "slug": "x-instagram-tiktok-creative-angles-that-win",
+    "title": "X/Instagram/TikTokで勝つクリエイティブの作り方",
+    "excerpt": "媒体別のランキングアルゴリズムと相性の良い見せ方、UGC活用、検証の進め方を解説。",
+    "author": "森 SNSプランナー",
     "publishDate": "2023-12-28",
-    "readTime": "14分",
-    "category": "技術解説",
-    "imageUrl": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZGdlJTIwY29tcHV0aW5nJ3xlbnwxfHx8fDE3NTYxODMwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    "readTime": "12分",
+    "category": "SNSマーケティング",
+    "imageUrl": "https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
   }
 ]
