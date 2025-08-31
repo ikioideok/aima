@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App.tsx";
 import ArticlePage from "./pages/ArticlePage.tsx";
+import Admin from "./pages/Admin.tsx";
 import "./styles/globals.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -9,6 +10,7 @@ createRoot(document.getElementById("root")!).render(
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/articles/:slug" element={<ArticlePage />} />
+      <Route path="/admin" element={<Admin />} />
     </Routes>
   </BrowserRouter>
 );
