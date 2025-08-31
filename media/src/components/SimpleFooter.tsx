@@ -10,11 +10,11 @@ export function SimpleFooter() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-accent text-red-accent bg-transparent">
                 <span className="text-sm font-bold">AI</span>
               </div>
               <div>
-                <h3 className="font-bold title-font">AI Marketing News</h3>
+                <h3 className="font-bold title-font"><span className="text-red-accent">AI</span> Marketing News</h3>
                 <div className="text-xs text-muted-foreground">マーケティング情報メディア</div>
               </div>
             </div>

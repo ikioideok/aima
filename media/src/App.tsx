@@ -22,7 +22,7 @@ export default function App() {
         <section className="mb-12">
           <div className="text-center space-y-4 mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-foreground title-font">
-              AI Marketing News
+              <span className="text-red-accent">AI</span> Marketing News
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               マーケティングの最新ニュースと実務解説。SEO、広告、コンテンツ、
