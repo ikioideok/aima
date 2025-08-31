@@ -1,5 +1,16 @@
 [
   {
+    "slug": "test",
+    "title": "test",
+    "excerpt": "test",
+    "author": "test",
+    "publishDate": "2025-08-31",
+    "readTime": "8分",
+    "category": "SEO",
+    "imageUrl": "test",
+    "body": "test"
+  },
+  {
     "slug": "ga4-kpi-setup-for-b2b-leadgen",
     "title": "GA4で実現するBtoBリード獲得KPI設計",
     "excerpt": "GA4のイベント設計と探索レポートで、商談化に繋がるKPIを可視化。リード獲得から受注までのボトルネック特定手順を解説。",
