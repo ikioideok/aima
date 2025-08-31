@@ -108,6 +108,91 @@
   }
 }
 
+/* Article prose styles (headings, tables, etc.) */
+@layer components {
+  .prose {
+    @apply text-foreground leading-relaxed;
+  }
+
+  .prose h1 {
+    @apply text-4xl font-bold mt-10 mb-4 title-font;
+  }
+
+  .prose h2 {
+    @apply text-3xl font-bold mt-10 mb-4 pb-2 border-b-2 border-red-accent/70;
+  }
+
+  .prose h3 {
+    @apply text-2xl font-semibold mt-8 mb-3;
+  }
+
+  .prose h4 {
+    @apply text-xl font-semibold mt-6 mb-2;
+  }
+
+  .prose p {
+    @apply my-4 text-[1.05rem];
+  }
+
+  .prose ul {
+    @apply my-4 list-disc pl-6 space-y-2;
+  }
+
+  .prose ol {
+    @apply my-4 list-decimal pl-6 space-y-2;
+  }
+
+  .prose li {
+    @apply leading-7;
+  }
+
+  .prose a {
+    @apply text-red-accent underline underline-offset-4 hover:opacity-80;
+  }
+
+  .prose blockquote {
+    @apply my-6 border-l-4 border-red-accent pl-4 italic text-muted-foreground bg-muted/40 py-3 rounded-md;
+  }
+
+  .prose hr {
+    @apply my-8 border-t border-border;
+  }
+
+  .prose img {
+    @apply rounded-lg shadow-sm my-6;
+  }
+
+  .prose code {
+    @apply px-1 py-0.5 rounded bg-muted text-foreground text-sm;
+  }
+
+  .prose pre {
+    @apply my-6 p-4 rounded-lg bg-[#0b0b0e] text-white text-sm overflow-x-auto;
+  }
+
+  /* Tables: modern, scrollable on small screens */
+  .prose table {
+    display: block;
+    @apply w-full my-6 overflow-x-auto border border-border rounded-lg;
+  }
+
+  .prose thead {
+    @apply bg-muted;
+  }
+
+  .prose th {
+    @apply text-left font-medium px-4 py-3 whitespace-nowrap;
+  }
+
+  .prose td {
+    @apply px-4 py-3 align-top border-t border-border whitespace-nowrap;
+  }
+
+  .prose tbody tr:hover {
+    @apply bg-muted/40;
+  }
+}
+
 /**
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
  */
