@@ -8,7 +8,7 @@ export function render(url: string) {
   // Note: In a real app, you'd need to handle data fetching for the components
   // being rendered. For now, the components fetch their own data from JSON.
   const html = renderToString(
-    <StaticRouter location={url}>
+    <StaticRouter location={url} basename="/media">
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/articles/:slug" element={<ArticlePage />} />

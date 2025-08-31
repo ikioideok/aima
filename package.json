@@ -59,6 +59,6 @@
   "scripts": {
     "dev": "vite",
     "build": "./node_modules/.bin/vite build && node scripts/prerender.mjs",
-    "postbuild": "cd media && npm ci && ../node_modules/.bin/vite build"
+    "postbuild": "cd media && npm ci && ../node_modules/.bin/vite build && node scripts/prerender.mjs"
   }
 }
