@@ -152,7 +152,7 @@
   }
 
   .prose blockquote {
-    @apply my-6 border-l-4 border-red-accent pl-4 italic text-muted-foreground bg-muted/40 py-3 rounded-md;
+    @apply my-6 border-l-4 border-red-accent pl-4 italic text-muted-foreground bg-muted py-3 rounded-md;
   }
 
   .prose hr {
@@ -190,7 +190,7 @@
   }
 
   .prose tbody tr:hover {
-    @apply bg-muted/40;
+    @apply bg-muted;
   }
 }
 
