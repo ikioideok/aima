@@ -531,5 +531,95 @@ app.post('/add-to/:list', requireAdmin, async (req, res) => {
   }
 })
 
+// List articles (recent or special)
+app.get('/list/:list', requireAdmin, async (req, res) => {
+  try {
+    const list = req.params.list
+    if (!['recent', 'special'].includes(list)) return res.status(400).json({ error: 'list must be recent or special' })
+    const path = list === 'recent' ? 'media/src/data/recentArticles.json' : 'media/src/data/specialArticles.json'
+    const { content } = await getFile(path)
+    const arr = content ? JSON.parse(content) : []
+    res.json({ ok: true, list: arr })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Failed to get list' })
+  }
+})
+
+// Get featured article
+app.get('/get-featured', requireAdmin, async (req, res) => {
+  try {
+    const path = 'media/src/data/featuredArticle.json'
+    const { content } = await getFile(path)
+    const obj = content ? JSON.parse(content) : null
+    res.json({ ok: true, article: obj })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Failed to get featured' })
+  }
+})
+
+// Update article in a list (match by slug or oldSlug)
+app.put('/update-in/:list', requireAdmin, async (req, res) => {
+  try {
+    const list = req.params.list
+    if (!['recent', 'special'].includes(list)) return res.status(400).json({ error: 'list must be recent or special' })
+    const article = req.body || {}
+    const err = validateArticle(article)
+    if (err) return res.status(400).json({ error: err })
+    const oldSlug = req.query.slug || article.oldSlug || article.slug
+    const path = list === 'recent' ? 'media/src/data/recentArticles.json' : 'media/src/data/specialArticles.json'
+    const { sha, content } = await getFile(path)
+    const arr = content ? JSON.parse(content) : []
+    const idx = arr.findIndex((a) => a.slug === oldSlug)
+    if (idx === -1) return res.status(404).json({ error: 'Article not found' })
+    arr[idx] = article
+    const out = JSON.stringify(arr, null, 2) + '\n'
+    await putFile(path, out, sha, `chore(cms): update ${oldSlug} in ${list}`)
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Failed to update article' })
+  }
+})
+
+// Remove article from a list
+app.delete('/remove-from/:list/:slug', requireAdmin, async (req, res) => {
+  try {
+    const list = req.params.list
+    const slug = req.params.slug
+    if (!['recent', 'special'].includes(list)) return res.status(400).json({ error: 'list must be recent or special' })
+    if (!slug) return res.status(400).json({ error: 'slug is required' })
+    const path = list === 'recent' ? 'media/src/data/recentArticles.json' : 'media/src/data/specialArticles.json'
+    const { sha, content } = await getFile(path)
+    const arr = content ? JSON.parse(content) : []
+    const next = arr.filter((a) => a.slug !== slug)
+    if (next.length === arr.length) return res.status(404).json({ error: 'Article not found' })
+    const out = JSON.stringify(next, null, 2) + '\n'
+    await putFile(path, out, sha, `chore(cms): remove ${slug} from ${list}`)
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Failed to remove article' })
+  }
+})
+
+// Clear featured by replacing with dummy
+app.post('/clear-featured', requireAdmin, async (req, res) => {
+  try {
+    const dummyPath = 'media/src/data/dummyArticle.json'
+    const { content: dummy } = await getFile(dummyPath)
+    if (!dummy) return res.status(500).json({ error: 'dummyArticle.json not found' })
+    const path = 'media/src/data/featuredArticle.json'
+    const { sha } = await getFile(path)
+    const out = JSON.stringify(JSON.parse(dummy), null, 2) + '\n'
+    await putFile(path, out, sha, 'chore(cms): clear featured (replace with dummy)')
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Failed to clear featured' })
+  }
+})
+
 const port = process.env.PORT || 3001
 app.listen(port, () => console.log(`CMS API listening on :${port}`))
