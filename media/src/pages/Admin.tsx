@@ -45,6 +45,10 @@ export default function Admin() {
   const [loadingOutline, setLoadingOutline] = useState(false)
   const [loadingArticle, setLoadingArticle] = useState(false)
   const [editOutline, setEditOutline] = useState(false)
+  // キーワードプランナー（簡易）
+  const [kpSeed, setKpSeed] = useState<string>('')
+  const [kpLoading, setKpLoading] = useState(false)
+  const [kpResult, setKpResult] = useState<any|null>(null)
   // 保存時の公開日上書きオプション
   const [publishToday, setPublishToday] = useState<boolean>(false)
   // 保存時の追加オプション
@@ -441,6 +445,90 @@ export default function Admin() {
           </div>
 
           <div>
+            {/* Keyword Planner */}
+            <div className="mb-6 p-4 border rounded">
+              <h2 className="text-xl font-semibold mb-3">キーワードプランナー（簡易）</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div className="md:col-span-2">
+                  <label className="block text-sm mb-1">種キーワード</label>
+                  <input className="w-full border rounded px-3 py-2 bg-input-background" value={kpSeed} onChange={(e)=>setKpSeed(e.target.value)} placeholder="例: LLMO SEO" />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">プロバイダ</label>
+                  <select className="w-full border rounded px-3 py-2 bg-input-background" value={providerOutline} onChange={(e)=>{
+                    const p = e.target.value as 'openai'|'gemini'
+                    setProviderOutline(p)
+                    setModelOutline(p==='openai' ? 'gpt-5' : 'gemini-2.5-pro')
+                  }}>
+                    <option value="openai">GPT-5 (OpenAI)</option>
+                    <option value="gemini">Gemini</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 mb-3">
+                <button className="px-3 py-2 rounded border" disabled={kpLoading || !kpSeed} onClick={async ()=>{
+                  try {
+                    if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+                    if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
+                    setKpLoading(true)
+                    const res = await fetch(CMS_BASE + '/keyword-planner', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
+                      body: JSON.stringify({ provider: providerOutline, model: modelOutline, seed: kpSeed, count: 20 })
+                    })
+                    const data = await res.json().catch(()=>null)
+                    if (!res.ok) throw new Error((data?.error || '生成に失敗しました') + (data?.detail ? ` (${data.detail})` : ''))
+                    setKpResult(data.plan)
+                  } catch(e:any) {
+                    setLog('失敗: ' + e.message)
+                  } finally {
+                    setKpLoading(false)
+                  }
+                }}>{kpLoading ? '生成中...' : '候補を生成'}</button>
+                {!!kpResult?.suggestions?.length && (
+                  <button className="px-3 py-2 rounded border" onClick={()=>{
+                    const rows = kpResult.suggestions.map((s:any)=> [s.keyword, s.intent, s.volume||'', s.difficulty||'', (s.variations||[]).join(' | '), (s.questions||[]).join(' | ')].join(','))
+                    const csv = ['keyword,intent,volume,difficulty,variations,questions', ...rows].join('\n')
+                    navigator.clipboard?.writeText(csv)
+                    setLog('コピーしました（CSV）')
+                  }}>CSVをコピー</button>
+                )}
+              </div>
+              {!!kpResult?.suggestions?.length && (
+                <div className="overflow-auto border rounded">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-2">キーワード</th>
+                        <th className="text-left p-2">意図</th>
+                        <th className="text-left p-2">相対ボリューム</th>
+                        <th className="text-left p-2">難易度(1-5)</th>
+                        <th className="text-left p-2">タイトル案</th>
+                        <th className="text-left p-2">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {kpResult.suggestions.map((s:any, i:number)=> (
+                        <tr key={i} className="border-t">
+                          <td className="p-2 whitespace-nowrap">{s.keyword}</td>
+                          <td className="p-2 whitespace-nowrap">{s.intent}</td>
+                          <td className="p-2 whitespace-nowrap">{s.volume||''}</td>
+                          <td className="p-2 whitespace-nowrap">{s.difficulty||''}</td>
+                          <td className="p-2">{s.title_idea||''}</td>
+                          <td className="p-2">
+                            <button className="text-xs px-2 py-1 border rounded" onClick={()=>{
+                              setOutline((o:any)=> ({...(o||{}), seo: { ...(o?.seo||{}), keywords: [...new Set([...(o?.seo?.keywords||[]), s.keyword])] }}))
+                              setLog('SEOキーワードに追加しました')
+                            }}>SEOに追加</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-semibold">{editOutline ? '構成案エディタ' : '構成案プレビュー'}</h2>
               {outline && (

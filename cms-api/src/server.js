@@ -531,6 +531,57 @@ app.post('/add-to/:list', requireAdmin, async (req, res) => {
   }
 })
 
+// --- Simple Keyword Planner ---
+// Generate related keywords and basic attributes via LLM (no real volume API)
+app.post('/keyword-planner', requireAdmin, async (req, res) => {
+  try {
+    const { provider = 'gemini', model } = req.body || {}
+    if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
+    const { seed, language = 'ja', count = 20, theme = '' } = req.body || {}
+    if (!seed || typeof seed !== 'string') return res.status(400).json({ error: 'seed is required' })
+
+    const schema = {
+      type: 'object',
+      required: ['seed', 'suggestions'],
+      additionalProperties: false,
+      properties: {
+        seed: { type: 'string' },
+        suggestions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['keyword', 'intent'],
+            properties: {
+              keyword: { type: 'string' },
+              intent: { type: 'string', enum: ['Informational','Commercial','Transactional','Navigational'] },
+              volume: { type: 'string' }, // e.g., low/medium/high (relative)
+              difficulty: { type: 'integer' }, // 1-5 (heuristic)
+              variations: { type: 'array', items: { type: 'string' } },
+              questions: { type: 'array', items: { type: 'string' } },
+              title_idea: { type: 'string' },
+              notes: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+
+    const system = 'あなたは日本語のSEOアナリストです。検索意図を分類し、重複を避けて実務的なキーワード候補を出します。'
+    const user = `前提\n- 言語: ${language}\n- 種キーワード: ${seed}\n- テーマ補足: ${theme || 'なし'}\n- 件数目安: ${count}\n\n要件\n- JSONのみ返す（seed, suggestions[]）。\n- suggestions[].intent は Informational / Commercial / Transactional / Navigational のいずれか。\n- volume は相対評価（low/medium/high）。difficulty は1-5（相対難易度）。\n- variations は同義/言い換え、questions はよくある質問（2-4件）。\n- title_idea は記事タイトル案（1つ）。\n- 重複・冗長を避け、ビジネスで使える粒度に。`
+
+    const json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: provider==='gemini'? 2048 : 1600, model })
+    const out = {
+      seed,
+      suggestions: Array.isArray(json?.suggestions) ? json.suggestions.slice(0, Number(count)||20) : []
+    }
+    res.json({ ok: true, plan: out })
+  } catch (e) {
+    console.error('keyword-planner error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to generate keyword plan', detail: String(e?.message || '') })
+  }
+})
+
 // List articles (recent or special)
 app.get('/list/:list', requireAdmin, async (req, res) => {
   try {
