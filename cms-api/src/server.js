@@ -366,12 +366,23 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
 
     let json
     try {
-      json = await llmChatJSON({ provider, system, user, schema, temperature: 0.6, max_tokens: 1200, model })
+      const firstMax = provider === 'gemini' ? 2048 : 1200
+      json = await llmChatJSON({ provider, system, user, schema, temperature: 0.6, max_tokens: firstMax, model })
     } catch (e) {
       const msg = String(e?.message || '')
       if (provider === 'gemini' && (msg.includes('MAX_TOKENS') || msg.includes('valid JSON'))) {
-        const compact = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n\nJSONのみ返す（短く簡潔に）。キー: title, slug, persona, target_audience, tone, word_count_target, seo{keywords(<=5),meta_description,cta}, h2[{title,h3(<=2)}]。h2は5個以内。各文字列は30文字以内。`
-        json = await llmChatJSON({ provider, system, user: compact, schema: undefined, temperature: 1, max_tokens: 800, model })
+        const compact = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n\nJSONのみ返す（短く簡潔に）。キー: title, slug, h2[{title,h3(<=1)}]。h2は最大4個。各文字列は20文字以内。説明やフェンスは禁止。`
+        try {
+          json = await llmChatJSON({ provider, system, user: compact, schema: undefined, temperature: 1, max_tokens: 800, model })
+        } catch (e2) {
+          const msg2 = String(e2?.message || '')
+          if (msg2.includes('MAX_TOKENS') || msg2.includes('valid JSON')) {
+            const ultra = `JSONのみ返す。キー: title, slug, h2[{title}]。h2は3個。各文字列は16文字以内。説明・余計な文字・フェンス禁止。キーワード:${keyword}`
+            json = await llmChatJSON({ provider, system, user: ultra, schema: undefined, temperature: 1, max_tokens: 400, model })
+          } else {
+            throw e2
+          }
+        }
       } else {
         throw e
       }
