@@ -45,8 +45,8 @@ export default function Admin() {
   // プロバイダ/モデルを「構成」と「本文」で分離
   const [providerOutline, setProviderOutline] = useState<'openai'|'gemini'>('gemini')
   const [modelOutline, setModelOutline] = useState<string>('gemini-2.5-pro')
-  const [providerArticle, setProviderArticle] = useState<'openai'|'gemini'>('openai')
-  const [modelArticle, setModelArticle] = useState<string>('gpt-5')
+  const [providerArticle, setProviderArticle] = useState<'openai'|'gemini'>('gemini')
+  const [modelArticle, setModelArticle] = useState<string>('gemini-2.5-pro')
   // 記事一覧管理用
   const [tab, setTab] = useState<'recent'|'special'|'featured'>('recent')
   const [recentList, setRecentList] = useState<Article[]>([])
