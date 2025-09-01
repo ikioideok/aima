@@ -41,8 +41,11 @@ export default function Admin() {
   const [outline, setOutline] = useState<any | null>(null)
   const [loadingOutline, setLoadingOutline] = useState(false)
   const [loadingArticle, setLoadingArticle] = useState(false)
-  const [provider, setProvider] = useState<'openai'|'gemini'>('gemini')
-  const [model, setModel] = useState<string>('gemini-2.5-pro')
+  // プロバイダ/モデルを「構成」と「本文」で分離
+  const [providerOutline, setProviderOutline] = useState<'openai'|'gemini'>('gemini')
+  const [modelOutline, setModelOutline] = useState<string>('gemini-2.5-pro')
+  const [providerArticle, setProviderArticle] = useState<'openai'|'gemini'>('gemini')
+  const [modelArticle, setModelArticle] = useState<string>('gemini-2.5-pro')
 
   const json = useMemo(() => JSON.stringify({ ...article, featured: target === 'featured' }, null, 2), [article, target])
 
@@ -82,23 +85,43 @@ export default function Admin() {
             <div className="p-4 border rounded">
               <h2 className="text-xl font-semibold mb-3">AIアシスト：構成案 → 記事作成</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                {/* 構成用プロバイダ/モデル */}
                 <div>
-                  <label className="block text-sm mb-1">プロバイダ</label>
+                  <label className="block text-sm mb-1">構成: プロバイダ</label>
                   <select className="w-full border rounded px-3 py-2 bg-input-background"
-                          value={provider}
+                          value={providerOutline}
                           onChange={(e)=>{
                             const p = e.target.value as 'openai'|'gemini'
-                            setProvider(p)
-                            setModel(p==='openai' ? 'gpt-5' : 'gemini-2.5-pro')
+                            setProviderOutline(p)
+                            setModelOutline(p==='openai' ? 'gpt-5' : 'gemini-2.5-pro')
                           }}>
                     <option value="openai">GPT-5 (OpenAI)</option>
                     <option value="gemini">Gemini</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm mb-1">モデルID</label>
-                  <input className="w-full border rounded px-3 py-2 bg-input-background" value={model}
-                         onChange={(e)=>setModel(e.target.value)} />
+                  <label className="block text-sm mb-1">構成: モデルID</label>
+                  <input className="w-full border rounded px-3 py-2 bg-input-background" value={modelOutline}
+                         onChange={(e)=>setModelOutline(e.target.value)} />
+                </div>
+                {/* 本文用プロバイダ/モデル */}
+                <div>
+                  <label className="block text-sm mb-1">本文: プロバイダ</label>
+                  <select className="w-full border rounded px-3 py-2 bg-input-background"
+                          value={providerArticle}
+                          onChange={(e)=>{
+                            const p = e.target.value as 'openai'|'gemini'
+                            setProviderArticle(p)
+                            setModelArticle(p==='openai' ? 'gpt-5' : 'gemini-2.5-pro')
+                          }}>
+                    <option value="openai">GPT-5 (OpenAI)</option>
+                    <option value="gemini">Gemini</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">本文: モデルID</label>
+                  <input className="w-full border rounded px-3 py-2 bg-input-background" value={modelArticle}
+                         onChange={(e)=>setModelArticle(e.target.value)} />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm mb-1">キーワード</label>
@@ -131,7 +154,7 @@ export default function Admin() {
                     const res = await fetch(CMS_BASE + '/generate-outline', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
-                      body: JSON.stringify({ provider, model, keyword, category: aiCategory, tone, target_audience: audience })
+                      body: JSON.stringify({ provider: providerOutline, model: modelOutline, keyword, category: aiCategory, tone, target_audience: audience })
                     })
                     const data = await res.json().catch(()=>null)
                     if (!res.ok) throw new Error((data?.error || '生成に失敗しました') + (data?.detail ? ` (${data.detail})` : ''))
@@ -155,7 +178,7 @@ export default function Admin() {
                     const res = await fetch(CMS_BASE + '/generate-article', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
-                      body: JSON.stringify({ provider, model, outline, category: aiCategory })
+                      body: JSON.stringify({ provider: providerArticle, model: modelArticle, outline, category: aiCategory })
                     })
                     const data = await res.json().catch(()=>null)
                     if (!res.ok) throw new Error((data?.error || '生成に失敗しました') + (data?.detail ? ` (${data.detail})` : ''))
