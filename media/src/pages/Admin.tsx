@@ -29,6 +29,9 @@ const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || ''
 
 export default function Admin() {
   const [article, setArticle] = useState<Article>(initial)
+  // 保存先オプション: 基本は最新(recent)へ、必要に応じて特集/注目にも追加
+  const [alsoAddSpecial, setAlsoAddSpecial] = useState<boolean>(false)
+  const [alsoSetFeatured, setAlsoSetFeatured] = useState<boolean>(false)
   const [target, setTarget] = useState<'featured' | 'recent' | 'special'>('recent')
   const [log, setLog] = useState<string>('')
 
@@ -60,7 +63,7 @@ export default function Admin() {
   const [selectedList, setSelectedList] = useState<'recent'|'special'|'featured'|null>(null)
   const [selectedSlug, setSelectedSlug] = useState<string>('')
 
-  const json = useMemo(() => JSON.stringify({ ...article, featured: target === 'featured' }, null, 2), [article, target])
+  const json = useMemo(() => JSON.stringify({ ...article }, null, 2), [article])
 
   function onChange<K extends keyof Article>(k: K, v: Article[K]) {
     setArticle((a) => ({ ...a, [k]: v }))
@@ -198,7 +201,6 @@ export default function Admin() {
     setLog('送信中...')
     try {
       if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
-      const endpoint = target === 'featured' ? '/set-featured' : `/add-to/${target}`
       let toSave: Article = { ...article }
       if (publishToday) toSave.publishDate = new Date().toISOString().slice(0, 10)
       if (autoSlug) {
@@ -209,17 +211,45 @@ export default function Admin() {
       if (autoReadTime) {
         toSave.readTime = estimateReadTimeFromHtml(toSave.body)
       }
-      const res = await fetch(CMS_BASE + endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Token': ADMIN_TOKEN,
-        },
-        body: JSON.stringify(toSave)
-      })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(data?.error || 'エラーが発生しました')
-      setLog('保存に成功しました。mainへコミット済み → 自動ビルドが走ります。')
+      // 基本: 最新(recent)に追加
+      let recentOk = false
+      try {
+        const r = await fetch(CMS_BASE + '/add-to/recent', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN }, body: JSON.stringify(toSave)
+        })
+        const j = await r.json().catch(()=>null)
+        if (!r.ok && r.status !== 409) throw new Error(j?.error || '最新記事への追加に失敗しました')
+        recentOk = r.ok || r.status === 409 // 409: 既に存在 → 許容
+      } catch(e:any) {
+        // 最新へ失敗しても、特集/注目の処理は続行可能
+      }
+
+      // 必要なら特集に追加
+      let specialOk = true
+      if (alsoAddSpecial) {
+        try {
+          const r = await fetch(CMS_BASE + '/add-to/special', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN }, body: JSON.stringify(toSave)
+          })
+          const j = await r.json().catch(()=>null)
+          if (!r.ok && r.status !== 409) throw new Error(j?.error || '特集への追加に失敗しました')
+        } catch(e:any) { specialOk = false }
+      }
+
+      // 必要なら注目に設定（置換）
+      let featuredOk = true
+      if (alsoSetFeatured) {
+        try {
+          const r = await fetch(CMS_BASE + '/set-featured', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN }, body: JSON.stringify({ ...toSave, featured: true })
+          })
+          const j = await r.json().catch(()=>null)
+          if (!r.ok) throw new Error(j?.error || '注目記事の設定に失敗しました')
+        } catch(e:any) { featuredOk = false }
+      }
+
+      const parts = [recentOk ? '最新に追加' : null, alsoAddSpecial ? (specialOk ? '特集に追加' : '特集に追加失敗') : null, alsoSetFeatured ? (featuredOk ? '注目に設定' : '注目に設定失敗') : null].filter(Boolean)
+      setLog((parts.length>0 ? parts.join(' / ') + '。' : '') + 'mainへコミット済み → 自動ビルドが走ります。')
     } catch (e: any) {
       setLog('失敗: ' + e.message)
     }
@@ -353,17 +383,19 @@ export default function Admin() {
               {/* 構成案プレビューは右カラムへ移動 */}
             </div>
 
+            {/* 保存先（基本は最新に追加。必要に応じて特集/注目も） */}
             <div>
-              <label className="block text-sm mb-1">記事タイプ</label>
+              <label className="block text-sm mb-1">保存先</label>
               <div className="flex gap-4 text-sm">
-                {['featured','recent','special'].map((t) => (
-                  <label key={t} className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="target" value={t}
-                      checked={target===t}
-                      onChange={() => setTarget(t as any)} />
-                    {t==='featured'?'注目（置換）':t==='recent'?'最新（追加）':'特集（追加）'}
-                  </label>
-                ))}
+                <span className="text-muted-foreground">基本: 最新（自動追加）</span>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={alsoAddSpecial} onChange={(e)=>setAlsoAddSpecial(e.target.checked)} />
+                  特集にも追加
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={alsoSetFeatured} onChange={(e)=>setAlsoSetFeatured(e.target.checked)} />
+                  注目に設定
+                </label>
               </div>
             </div>
             {([
