@@ -103,18 +103,10 @@ export function SimpleFooter() {
 
         <Separator className="my-8" />
 
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>© 2025 AI Marketing News</span>
-            <span>All rights reserved</span>
-          </div>
-          
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Made with ❤️ for AI community</span>
-            <Button variant="outline" size="sm" className="h-8">
-              <Mail className="h-3 w-3 mr-1" />
-              Newsletter
-            </Button>
+        <div className="flex justify-center items-center">
+          <div className="text-center text-sm text-muted-foreground">
+            <div>© 2025 AI Marketing News</div>
+            <div>All rights reserved</div>
           </div>
         </div>
       </div>
