@@ -47,11 +47,111 @@ export default function Admin() {
   const [modelOutline, setModelOutline] = useState<string>('gemini-2.5-pro')
   const [providerArticle, setProviderArticle] = useState<'openai'|'gemini'>('openai')
   const [modelArticle, setModelArticle] = useState<string>('gpt-5')
+  // 記事一覧管理用
+  const [tab, setTab] = useState<'recent'|'special'|'featured'>('recent')
+  const [recentList, setRecentList] = useState<Article[]>([])
+  const [specialList, setSpecialList] = useState<Article[]>([])
+  const [featuredItem, setFeaturedItem] = useState<Article | null>(null)
+  const [selectedList, setSelectedList] = useState<'recent'|'special'|'featured'|null>(null)
+  const [selectedSlug, setSelectedSlug] = useState<string>('')
 
   const json = useMemo(() => JSON.stringify({ ...article, featured: target === 'featured' }, null, 2), [article, target])
 
   function onChange<K extends keyof Article>(k: K, v: Article[K]) {
     setArticle((a) => ({ ...a, [k]: v }))
+  }
+
+  async function loadLists() {
+    if (!CMS_BASE || !ADMIN_TOKEN) return
+    try {
+      const [r1, r2, r3] = await Promise.all([
+        fetch(CMS_BASE + '/list/recent', { headers: { 'X-Admin-Token': ADMIN_TOKEN } }),
+        fetch(CMS_BASE + '/list/special', { headers: { 'X-Admin-Token': ADMIN_TOKEN } }),
+        fetch(CMS_BASE + '/get-featured', { headers: { 'X-Admin-Token': ADMIN_TOKEN } }),
+      ])
+      const [j1, j2, j3] = await Promise.all([r1.json(), r2.json(), r3.json()])
+      if (j1?.list) setRecentList(j1.list)
+      if (j2?.list) setSpecialList(j2.list)
+      if (j3?.article) setFeaturedItem(j3.article)
+    } catch (_) {}
+  }
+
+  React.useEffect(()=>{ loadLists() }, [])
+
+  function selectForEdit(list: 'recent'|'special'|'featured', slug?: string) {
+    if (list === 'featured' && featuredItem) {
+      setArticle({ ...(featuredItem as Article) })
+      setTarget('featured')
+      setSelectedList('featured')
+      setSelectedSlug(featuredItem.slug)
+      return
+    }
+    const arr = list === 'recent' ? recentList : specialList
+    const item = arr.find(a => a.slug === slug)
+    if (item) {
+      setArticle({ ...item })
+      setTarget(list)
+      setSelectedList(list)
+      setSelectedSlug(item.slug)
+    }
+  }
+
+  async function updateSelected() {
+    try {
+      if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+      if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
+      if (!selectedList) throw new Error('対象が未選択です')
+      setLog('更新中...')
+      if (selectedList === 'featured') {
+        const r = await fetch(CMS_BASE + '/set-featured', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
+          body: JSON.stringify(article)
+        })
+        const d = await r.json().catch(()=>null)
+        if (!r.ok) throw new Error(d?.error || '更新に失敗しました')
+      } else {
+        const r = await fetch(CMS_BASE + `/update-in/${selectedList}?slug=${encodeURIComponent(selectedSlug)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
+          body: JSON.stringify(article)
+        })
+        const d = await r.json().catch(()=>null)
+        if (!r.ok) throw new Error(d?.error || '更新に失敗しました')
+      }
+      await loadLists()
+      setLog('更新しました。')
+    } catch(e:any) {
+      setLog('失敗: ' + e.message)
+    }
+  }
+
+  async function deleteSelected() {
+    try {
+      if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+      if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
+      if (!selectedList) throw new Error('対象が未選択です')
+      setLog('削除中...')
+      if (selectedList === 'featured') {
+        const r = await fetch(CMS_BASE + '/clear-featured', {
+          method: 'POST',
+          headers: { 'X-Admin-Token': ADMIN_TOKEN }
+        })
+        const d = await r.json().catch(()=>null)
+        if (!r.ok) throw new Error(d?.error || '削除に失敗しました')
+      } else {
+        const r = await fetch(CMS_BASE + `/remove-from/${selectedList}/${encodeURIComponent(selectedSlug)}`, {
+          method: 'DELETE',
+          headers: { 'X-Admin-Token': ADMIN_TOKEN }
+        })
+        const d = await r.json().catch(()=>null)
+        if (!r.ok) throw new Error(d?.error || '削除に失敗しました')
+      }
+      await loadLists()
+      setLog('削除しました。')
+    } catch(e:any) {
+      setLog('失敗: ' + e.message)
+    }
   }
 
   async function submit() {
@@ -347,6 +447,61 @@ export default function Admin() {
 
             <h2 className="text-xl font-semibold mb-2">生成されるJSON</h2>
             <pre className="p-4 bg-muted rounded overflow-auto text-sm" style={{maxHeight:'32rem'}}>{json}</pre>
+            {/* 記事一覧管理 */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-semibold">記事一覧（管理）</h2>
+                <button className="text-sm underline" onClick={loadLists}>再読み込み</button>
+              </div>
+              <div className="flex gap-2 mb-3 text-sm">
+                {(['recent','special','featured'] as const).map(t => (
+                  <button key={t} className={`px-2 py-1 border rounded ${tab===t?'bg-muted':''}`} onClick={()=>setTab(t)}>
+                    {t==='recent'?'最新':t==='special'?'特集':'注目'}
+                  </button>
+                ))}
+              </div>
+
+              {tab==='featured' ? (
+                <div className="space-y-2 text-sm">
+                  {featuredItem ? (
+                    <div className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <div className="font-medium">{featuredItem.title}</div>
+                        <div className="text-xs text-muted-foreground">{featuredItem.slug}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="text-xs px-2 py-1 border rounded" onClick={()=>selectForEdit('featured')}>編集</button>
+                        <button className="text-xs px-2 py-1 border rounded" onClick={()=>{ setSelectedList('featured'); setSelectedSlug(featuredItem.slug); deleteSelected(); }}>削除（ダミーに置換）</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground">注目記事が見つかりません。</div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {(tab==='recent'?recentList:specialList).map((a)=> (
+                    <div key={a.slug} className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <div className="font-medium">{a.title}</div>
+                        <div className="text-xs text-muted-foreground">{a.slug}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="text-xs px-2 py-1 border rounded" onClick={()=>selectForEdit(tab as any, a.slug)}>編集</button>
+                        <button className="text-xs px-2 py-1 border rounded" onClick={()=>{ setSelectedList(tab as any); setSelectedSlug(a.slug); deleteSelected(); }}>削除</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(selectedList) && (
+                <div className="mt-3 flex gap-2">
+                  <button className="px-3 py-2 rounded border" onClick={updateSelected}>この内容で更新</button>
+                  <button className="px-3 py-2 rounded border" onClick={deleteSelected}>削除</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
