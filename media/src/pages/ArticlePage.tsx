@@ -14,6 +14,53 @@ const ArticlePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const article = allArticles.find(a => a.slug === slug);
 
+  // Build TOC and ensure headings have IDs
+  const [processedHtml, setProcessedHtml] = React.useState<string | null>(null);
+  const [toc, setToc] = React.useState<Array<{ id: string; text: string; level: 2 | 3 }>>([]);
+
+  React.useEffect(() => {
+    if (!article?.body) {
+      setProcessedHtml(null);
+      setToc([]);
+      return;
+    }
+    const slugify = (s: string) => {
+      return String(s || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    };
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(article.body, 'text/html');
+      const headings = Array.from(doc.querySelectorAll('h2, h3')) as HTMLElement[];
+      const seen = new Map<string, number>();
+      const localToc: Array<{ id: string; text: string; level: 2 | 3 }> = [];
+      headings.forEach((el) => {
+        const level = el.tagName.toLowerCase() === 'h3' ? 3 : 2;
+        const text = el.textContent || '';
+        let id = el.getAttribute('id') || slugify(text);
+        if (!id) return;
+        // ensure unique ids
+        const count = seen.get(id) || 0;
+        if (count > 0) id = `${id}-${count + 1}`;
+        seen.set(id, count + 1);
+        el.setAttribute('id', id);
+        localToc.push({ id, text, level: level as 2 | 3 });
+      });
+      setToc(localToc);
+      setProcessedHtml(doc.body.innerHTML);
+    } catch {
+      // Fallback to raw HTML on parse error
+      setProcessedHtml(article.body);
+      setToc([]);
+    }
+  }, [article?.body]);
+
   const generateStructuredData = () => {
     if (!article) return null;
 
@@ -48,8 +95,23 @@ const ArticlePage = () => {
       <div className="border-b my-4"></div>
       <div className="prose prose-lg max-w-none text-foreground leading-relaxed space-y-4">
         <p className="text-xl font-semibold">{article.excerpt}</p>
-        {/* Render the body if it exists, assuming it might contain HTML */}
-        {article.body && <div className="mt-4" dangerouslySetInnerHTML={{ __html: article.body }} />}
+        {/* TOC */}
+        {toc.length > 0 && (
+          <nav className="rounded-md border p-4 bg-card/50">
+            <div className="text-sm font-semibold mb-2">目次</div>
+            <ul className="text-sm m-0">
+              {toc.map((item, idx) => (
+                <li key={idx} className={item.level === 3 ? 'ml-4 list-[circle]' : 'ml-0 list-disc'}>
+                  <a href={`#${item.id}`} className="hover:underline">
+                    {item.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+        {/* Render the body (with injected heading ids) */}
+        {processedHtml && <div className="mt-4" dangerouslySetInnerHTML={{ __html: processedHtml }} />}
       </div>
     </article>
   ) : (
