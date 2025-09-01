@@ -9,3 +9,8 @@
 
   Run `npm run dev` to start the development server.
   
+  ## Admin UI
+  - Access: `/media/admin`
+  - Env: `VITE_CMS_API_BASE` (CMS API URL), `VITE_ADMIN_TOKEN`
+  - Features: AI outline generation and article drafting (requires CMS API with `OPENAI_API_KEY`).
+  
