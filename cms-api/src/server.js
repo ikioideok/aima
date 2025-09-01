@@ -366,7 +366,7 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
 
     let json
     try {
-      const firstMax = provider === 'gemini' ? 4096 : 1200
+      const firstMax = provider === 'gemini' ? 4096 : 4096
       json = await llmChatJSON({ provider, system, user, schema, temperature: 0.6, max_tokens: firstMax, model })
     } catch (e) {
       const msg = String(e?.message || '')
@@ -445,7 +445,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
     }
     const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- カテゴリ: ${category || outline.category || 'SEO'}\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。<p>を主体に、各セクションは段落から始める。\n- 箇条書きは必要な場合のみ。各<h2>セクションで<ul>は最大1回、3〜5項目まで。連続した<ul>は禁止。\n- 各<h2>は少なくとも2つの<p>を含む。各<h3>も少なくとも1つの<p>を含む。\n- 導入で期待値を提示し、各見出しでは段落で解説→必要なら要点を<ul>で補足。最後はまとめの段落で締める。\n- 根拠のない断定や最新情報の言い切りは避ける。`
 
-    let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 8192, model })
+    let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 16384, model })
 
     // Normalize article fields (handle nesting/aliases)
     let candidate = json?.article || json?.data || json?.result || json
@@ -457,7 +457,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
     if (!title || !body) {
       const strictUser = `以下の見出し構成に基づき、JSONのみを返してください。\n- 返すキーは title, excerpt, body の3つのみ。\n- bodyは有効なHTML文字列で、<h2>/<h3>/<p>/<ul>/<li>のみ使用。\n- コードフェンスや追加の説明は禁止。\n\n見出し構成:\n${outlineText}`
       try {
-        json = await llmChatJSON({ provider, system, user: strictUser, schema: undefined, temperature: 0.7, max_tokens: 8192, model })
+        json = await llmChatJSON({ provider, system, user: strictUser, schema: undefined, temperature: 0.7, max_tokens: 16384, model })
         candidate = json?.article || json?.data || json?.result || json
         title = candidate?.title || title
         body = candidate?.body || candidate?.html || candidate?.content || body
@@ -570,7 +570,7 @@ app.post('/keyword-planner', requireAdmin, async (req, res) => {
     const system = 'あなたは日本語のSEOアナリストです。検索意図を分類し、重複を避けて実務的なキーワード候補を出します。'
     const user = `前提\n- 言語: ${language}\n- 種キーワード: ${seed}\n- テーマ補足: ${theme || 'なし'}\n- 件数目安: ${count}\n\n要件\n- JSONのみ返す（seed, suggestions[]）。\n- suggestions[].intent は Informational / Commercial / Transactional / Navigational のいずれか。\n- volume は相対評価（low/medium/high）。difficulty は1-5（相対難易度）。\n- variations は同義/言い換え、questions はよくある質問（2-4件）。\n- title_idea は記事タイトル案（1つ）。\n- 重複・冗長を避け、ビジネスで使える粒度に。`
 
-    const firstMax = provider === 'gemini' ? 8192 : 1600
+    const firstMax = provider === 'gemini' ? 8192 : 4096
     let json
     try {
       json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: firstMax, model })
