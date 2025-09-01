@@ -360,30 +360,22 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     }
 
     const system = 'あなたは日本語のコンテンツストラテジストです。AIMAのマーケティング記事の構成を、MECEで実務的に作成します。冗長・重複は避け、見出しは検索意図を網羅し、具体的な価値提案を含めます。'
-    const example = {
-      title: 'B2BのSEOで成果を出すコンテンツ戦略ガイド',
-      slug: 'b2b-seo-content-strategy-guide',
-      persona: 'デマンドジェン担当マネージャー',
-      target_audience: 'B2Bのマーケティング担当者/事業責任者',
-      tone: '実務的・検証済みの示唆',
-      word_count_target: 2200,
-      seo: {
-        keywords: ['B2B SEO', 'コンテンツ戦略', 'E-E-A-T', '検索意図', 'トピッククラスター'],
-        meta_description: 'B2Bでパイプラインを伸ばすためのSEO/コンテンツ戦略。検索意図の分解、トピッククラスター、E-E-A-T強化、計測までを網羅。',
-        cta: '無料の戦略チェックリストをダウンロード'
-      },
-      h2: [
-        { title: '検索意図の分解と優先順位付け', h3: ['情報/比較/取引の意図', 'ビジネスインパクト評価'] },
-        { title: 'トピッククラスターと内部リンク設計', h3: ['ハブ/スポーク設計', '重複回避'] },
-        { title: 'E-E-A-Tを満たす執筆要件', h3: ['一次情報と引用', '専門家監修'] },
-        { title: '制作プロセスとレビューフロー', h3: ['ブリーフ作成', '査読と更新'] },
-        { title: '計測設計と継続改善', h3: ['KPI/指標', '更新の優先度付け'] },
-        { title: '成功事例と落とし穴', h3: [] }
-      ]
-    }
-    const user = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n要件\n- 出力はJSONのみ。説明や注釈は不要。\n- 見出しは重複禁止、MECE、実務に役立つ順序。\n- h2は5〜7個、各h2に0〜4個のh3を付与。\n- slugは英小文字のケバブケース。\n- seo.meta_descriptionは120〜160文字。\n\n良い例（参考。内容は上記前提に合わせて再生成すること）:\n${JSON.stringify(example, null, 2)}`
+    const userOpenAI = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n要件\n- JSONのみを返す。説明や注釈は不要。\n- 見出しは重複禁止、MECE、実務に役立つ順序。\n- h2は5〜7個、各h2に0〜4個のh3を付与。\n- slugは英小文字のケバブケース。\n- seo.meta_descriptionは120〜160文字。`
+    const userGemini = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":string,"h3":string[]}] }\n制約:\n- h2は6個以内、各h3は最大2個、各文字列は40文字以内\n- 説明文やコードフェンス禁止。JSON以外の出力禁止。`
+    const user = provider === 'gemini' ? userGemini : userOpenAI
 
-    const json = await llmChatJSON({ provider, system, user, schema, temperature: 0.6, max_tokens: 1200, model })
+    let json
+    try {
+      json = await llmChatJSON({ provider, system, user, schema, temperature: 0.6, max_tokens: 1200, model })
+    } catch (e) {
+      const msg = String(e?.message || '')
+      if (provider === 'gemini' && (msg.includes('MAX_TOKENS') || msg.includes('valid JSON'))) {
+        const compact = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n\nJSONのみ返す（短く簡潔に）。キー: title, slug, persona, target_audience, tone, word_count_target, seo{keywords(<=5),meta_description,cta}, h2[{title,h3(<=2)}]。h2は5個以内。各文字列は30文字以内。`
+        json = await llmChatJSON({ provider, system, user: compact, schema: undefined, temperature: 1, max_tokens: 800, model })
+      } else {
+        throw e
+      }
+    }
     const outline = normalizeOutlineData(json, { keyword, category, tone, target_audience, word_count_target })
     res.json({ ok: true, outline })
   } catch (e) {
