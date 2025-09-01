@@ -110,16 +110,18 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
     return JSON.parse(content)
   }
 
+  const isGpt5 = /gpt-5/i.test(OPENAI_MODEL || '')
   const base = {
     model: OPENAI_MODEL,
     messages: [
       system ? { role: 'system', content: system } : null,
       { role: 'user', content: user },
     ].filter(Boolean),
-    temperature,
+    // gpt-5: temperature はデフォルト(1)以外未サポート → 送信しない
+    ...(isGpt5 ? {} : { temperature }),
   }
 
-  const preferMaxCompletion = /gpt-5/i.test(OPENAI_MODEL || '')
+  const preferMaxCompletion = isGpt5
 
   function buildBody(useSchema, useMaxCompletion) {
     const tokenField = useMaxCompletion
