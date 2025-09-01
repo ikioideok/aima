@@ -109,6 +109,8 @@ export default function Admin() {
               <div className="flex gap-3">
                 <button disabled={loadingOutline || !keyword} onClick={async ()=>{
                   try {
+                    if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+                    if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
                     setLoadingOutline(true)
                     setLog('構成案を生成中...')
                     const res = await fetch(CMS_BASE + '/generate-outline', {
@@ -131,6 +133,8 @@ export default function Admin() {
                 </button>
                 <button disabled={loadingArticle || !outline} onClick={async ()=>{
                   try {
+                    if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+                    if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
                     setLoadingArticle(true)
                     setLog('記事を生成中...')
                     const res = await fetch(CMS_BASE + '/generate-article', {
