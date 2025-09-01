@@ -20,7 +20,7 @@ Environment variables
 - `OPENAI_MODEL`: Model ID (default `gpt-5`).
 - `OPENAI_API_BASE`: API base (default `https://api.openai.com/v1`).
 - `GEMINI_API_KEY`: Google Generative Language API key.
-- `GEMINI_MODEL`: Model ID (default `gemini-1.5-pro`).
+- `GEMINI_MODEL`: Model ID (default `gemini-2.5-pro`).
 - `GEMINI_API_BASE`: API base (default `https://generativelanguage.googleapis.com/v1beta`).
 
 Start

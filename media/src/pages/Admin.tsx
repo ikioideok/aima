@@ -41,8 +41,8 @@ export default function Admin() {
   const [outline, setOutline] = useState<any | null>(null)
   const [loadingOutline, setLoadingOutline] = useState(false)
   const [loadingArticle, setLoadingArticle] = useState(false)
-  const [provider, setProvider] = useState<'openai'|'gemini'>('openai')
-  const [model, setModel] = useState<string>('gpt-5')
+  const [provider, setProvider] = useState<'openai'|'gemini'>('gemini')
+  const [model, setModel] = useState<string>('gemini-2.5-pro')
 
   const json = useMemo(() => JSON.stringify({ ...article, featured: target === 'featured' }, null, 2), [article, target])
 
@@ -89,7 +89,7 @@ export default function Admin() {
                           onChange={(e)=>{
                             const p = e.target.value as 'openai'|'gemini'
                             setProvider(p)
-                            setModel(p==='openai' ? 'gpt-5' : 'gemini-1.5-pro')
+                            setModel(p==='openai' ? 'gpt-5' : 'gemini-2.5-pro')
                           }}>
                     <option value="openai">GPT-5 (OpenAI)</option>
                     <option value="gemini">Gemini</option>

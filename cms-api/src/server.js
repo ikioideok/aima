@@ -15,7 +15,7 @@ const {
   OPENAI_MODEL = 'gpt-5',
   OPENAI_API_BASE = 'https://api.openai.com/v1',
   GEMINI_API_KEY,
-  GEMINI_MODEL = 'gemini-1.5-pro',
+  GEMINI_MODEL = 'gemini-2.5-pro',
   GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta',
 } = process.env
 
@@ -304,7 +304,7 @@ function normalizeOutlineData(input, { keyword, category, tone, target_audience,
 // --- AI: Generate Outline ---
 app.post('/generate-outline', requireAdmin, async (req, res) => {
   try {
-    const { provider = 'openai', model } = req.body || {}
+    const { provider = 'gemini', model } = req.body || {}
     if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
     const {
       keyword,
@@ -399,7 +399,7 @@ function slugify(str) {
 // --- AI: Generate Full Article from outline ---
 app.post('/generate-article', requireAdmin, async (req, res) => {
   try {
-    const { provider = 'openai', model } = req.body || {}
+    const { provider = 'gemini', model } = req.body || {}
     if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
     const { outline, author = 'AIMA編集部', imageUrl = '', category } = req.body || {}
     if (!outline?.title || !Array.isArray(outline?.h2)) {
