@@ -41,6 +41,7 @@ export default function Admin() {
   const [outline, setOutline] = useState<any | null>(null)
   const [loadingOutline, setLoadingOutline] = useState(false)
   const [loadingArticle, setLoadingArticle] = useState(false)
+  const [editOutline, setEditOutline] = useState(false)
   // プロバイダ/モデルを「構成」と「本文」で分離
   const [providerOutline, setProviderOutline] = useState<'openai'|'gemini'>('gemini')
   const [modelOutline, setModelOutline] = useState<string>('gemini-2.5-pro')
@@ -242,29 +243,104 @@ export default function Admin() {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold mb-2">構成案プレビュー</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-semibold">{editOutline ? '構成案エディタ' : '構成案プレビュー'}</h2>
+              {outline && (
+                <button className="text-sm underline" onClick={()=>setEditOutline(e=>!e)}>
+                  {editOutline ? 'プレビューに切替' : '編集する'}
+                </button>
+              )}
+            </div>
             {outline ? (
-              <div className="p-4 mb-6 border rounded text-sm bg-card">
-                <div className="mb-2"><span className="font-semibold">候補タイトル:</span> {outline.title}</div>
-                <div className="mb-2"><span className="font-semibold">スラッグ:</span> {outline.slug}</div>
-                <div className="mb-2"><span className="font-semibold">トーン/読者:</span> {outline.tone} / {outline.target_audience}</div>
-                <div className="mb-2"><span className="font-semibold">SEOキーワード:</span> {(outline.seo?.keywords||[]).join(', ')}</div>
-                <div>
-                  <div className="font-semibold mb-1">見出し構成</div>
-                  <ul className="list-disc ml-5">
-                    {outline.h2?.map((s:any, idx:number)=> (
-                      <li key={idx} className="mb-1">
-                        <span className="font-medium">{s.title}</span>
-                        {Array.isArray(s.h3) && s.h3.length>0 && (
-                          <ul className="list-[circle] ml-5 mt-1">
-                            {s.h3.map((t:string, i:number)=> <li key={i}>{t}</li>)}
-                          </ul>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+              editOutline ? (
+                <div className="p-4 mb-6 border rounded text-sm bg-card space-y-3">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="block text-xs mb-1">タイトル</label>
+                      <input className="w-full border rounded px-3 py-2 bg-input-background" value={outline.title||''}
+                             onChange={(e)=> setOutline((o:any)=> ({...o, title: e.target.value}))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">スラッグ</label>
+                      <input className="w-full border rounded px-3 py-2 bg-input-background" value={outline.slug||''}
+                             onChange={(e)=> setOutline((o:any)=> ({...o, slug: e.target.value}))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs mb-1">トーン</label>
+                        <input className="w-full border rounded px-3 py-2 bg-input-background" value={outline.tone||''}
+                               onChange={(e)=> setOutline((o:any)=> ({...o, tone: e.target.value}))} />
+                      </div>
+                      <div>
+                        <label className="block text-xs mb-1">想定読者</label>
+                        <input className="w-full border rounded px-3 py-2 bg-input-background" value={outline.target_audience||''}
+                               onChange={(e)=> setOutline((o:any)=> ({...o, target_audience: e.target.value}))} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">SEOキーワード（カンマ区切り）</label>
+                      <input className="w-full border rounded px-3 py-2 bg-input-background"
+                             value={(outline.seo?.keywords||[]).join(', ')}
+                             onChange={(e)=> setOutline((o:any)=> ({...o, seo: { ...(o?.seo||{}), keywords: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }}))} />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-semibold">見出し構成（H2/H3）</div>
+                      <button className="text-xs px-2 py-1 border rounded" onClick={()=> setOutline((o:any)=> ({...o, h2: [...(o?.h2||[]), { title: '新しいセクション', h3: [] }]}))}>H2を追加</button>
+                    </div>
+                    <div className="space-y-3">
+                      {(outline.h2||[]).map((sec:any, idx:number)=> (
+                        <div key={idx} className="p-2 border rounded">
+                          <div className="flex items-center gap-2 mb-2">
+                            <input className="flex-1 border rounded px-2 py-1 bg-input-background" value={sec.title||''}
+                                   onChange={(e)=> setOutline((o:any)=> { const h2=[...(o?.h2||[])]; h2[idx] = { ...h2[idx], title: e.target.value }; return { ...o, h2 } })} />
+                            <button className="text-xs px-2 py-1 border rounded" onClick={()=> setOutline((o:any)=> { const h2=[...(o?.h2||[])]; h2.splice(idx,1); return { ...o, h2 } })}>H2削除</button>
+                          </div>
+                          <div className="ml-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-xs text-muted-foreground">H3（小見出し）</div>
+                              <button className="text-xs px-2 py-1 border rounded" onClick={()=> setOutline((o:any)=> { const h2=[...(o?.h2||[])]; const list=[...(h2[idx]?.h3||[])]; list.push('新しいポイント'); h2[idx] = { ...h2[idx], h3: list }; return { ...o, h2 } })}>H3追加</button>
+                            </div>
+                            <div className="space-y-1">
+                              {(sec.h3||[]).map((t:string, j:number)=> (
+                                <div key={j} className="flex items-center gap-2">
+                                  <input className="flex-1 border rounded px-2 py-1 bg-input-background" value={t}
+                                         onChange={(e)=> setOutline((o:any)=> { const h2=[...(o?.h2||[])]; const list=[...(h2[idx]?.h3||[])]; list[j] = e.target.value; h2[idx] = { ...h2[idx], h3: list }; return { ...o, h2 } })} />
+                                  <button className="text-xs px-2 py-1 border rounded" onClick={()=> setOutline((o:any)=> { const h2=[...(o?.h2||[])]; const list=[...(h2[idx]?.h3||[])]; list.splice(j,1); h2[idx] = { ...h2[idx], h3: list }; return { ...o, h2 } })}>削除</button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-4 mb-6 border rounded text-sm bg-card">
+                  <div className="mb-2"><span className="font-semibold">候補タイトル:</span> {outline.title}</div>
+                  <div className="mb-2"><span className="font-semibold">スラッグ:</span> {outline.slug}</div>
+                  <div className="mb-2"><span className="font-semibold">トーン/読者:</span> {outline.tone} / {outline.target_audience}</div>
+                  <div className="mb-2"><span className="font-semibold">SEOキーワード:</span> {(outline.seo?.keywords||[]).join(', ')}</div>
+                  <div>
+                    <div className="font-semibold mb-1">見出し構成</div>
+                    <ul className="list-disc ml-5">
+                      {outline.h2?.map((s:any, idx:number)=> (
+                        <li key={idx} className="mb-1">
+                          <span className="font-medium">{s.title}</span>
+                          {Array.isArray(s.h3) && s.h3.length>0 && (
+                            <ul className="list-[circle] ml-5 mt-1">
+                              {s.h3.map((t:string, i:number)=> <li key={i}>{t}</li>)}
+                            </ul>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )
             ) : (
               <div className="p-4 mb-6 border rounded text-sm text-muted-foreground">構成案を生成するとここに表示されます。</div>
             )}
