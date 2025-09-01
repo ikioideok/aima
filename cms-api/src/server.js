@@ -360,7 +360,7 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     }
 
     const system = 'あなたは日本語のコンテンツストラテジストです。AIMAのマーケティング記事の構成を、MECEで実務的に作成します。冗長・重複は避け、見出しは検索意図を網羅し、具体的な価値提案を含めます。'
-    const userOpenAI = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n要件\n- JSONのみを返す。説明や注釈は不要。\n- 見出しは重複禁止、MECE、実務に役立つ順序。\n- h2は5〜7個、各h2に0〜4個のh3を付与。\n- slugは英小文字のケバブケース。\n- seo.meta_descriptionは120〜160文字。`
+    const userOpenAI = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":string,"h3":string[]}] }\n\n注意:\n- JSON以外のテキスト（説明、注釈、コードフェンスなど）は絶対に出力しないでください。`
     const userGemini = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":string,"h3":string[]}] }\n注意:\n- 説明文やコードフェンスは禁止。JSON以外の出力は禁止。`
     const user = provider === 'gemini' ? userGemini : userOpenAI
 
