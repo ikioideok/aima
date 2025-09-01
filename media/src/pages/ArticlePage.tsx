@@ -110,8 +110,13 @@ const ArticlePage = () => {
             </ul>
           </nav>
         )}
-        {/* Render the body (with injected heading ids) */}
-        {processedHtml && <div className="mt-4" dangerouslySetInnerHTML={{ __html: processedHtml }} />}
+        {/* Render the body (SSR fallback to original HTML) */}
+        {((processedHtml ?? article.body) as string) && (
+          <div
+            className="mt-4"
+            dangerouslySetInnerHTML={{ __html: (processedHtml ?? article.body) as string }}
+          />
+        )}
       </div>
     </article>
   ) : (
