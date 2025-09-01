@@ -44,6 +44,9 @@ export default function Admin() {
   const [editOutline, setEditOutline] = useState(false)
   // 保存時の公開日上書きオプション
   const [publishToday, setPublishToday] = useState<boolean>(false)
+  // 保存時の追加オプション
+  const [autoSlug, setAutoSlug] = useState<boolean>(false)
+  const [autoReadTime, setAutoReadTime] = useState<boolean>(false)
   // プロバイダ/モデルを「構成」と「本文」で分離
   const [providerOutline, setProviderOutline] = useState<'openai'|'gemini'>('gemini')
   const [modelOutline, setModelOutline] = useState<string>('gemini-2.5-pro')
@@ -61,6 +64,31 @@ export default function Admin() {
 
   function onChange<K extends keyof Article>(k: K, v: Article[K]) {
     setArticle((a) => ({ ...a, [k]: v }))
+  }
+
+  function slugify(input: string): string {
+    try {
+      return String(input || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+    } catch {
+      return ''
+    }
+  }
+
+  function estimateReadTimeFromHtml(html?: string): string {
+    const text = String(html || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    // おおよそ600文字/分で計算（最低1分）
+    const minutes = Math.max(1, Math.ceil(text.length / 600))
+    return `${minutes}分`
   }
 
   async function loadLists() {
@@ -104,9 +132,16 @@ export default function Admin() {
       if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
       if (!selectedList) throw new Error('対象が未選択です')
       setLog('更新中...')
-      const toSave = publishToday
-        ? { ...article, publishDate: new Date().toISOString().slice(0, 10) }
-        : article
+      let toSave: Article = { ...article }
+      if (publishToday) toSave.publishDate = new Date().toISOString().slice(0, 10)
+      if (autoSlug) {
+        const s = slugify(toSave.title)
+        if (s) toSave.slug = s
+        else if (!toSave.slug) toSave.slug = `post-${new Date().toISOString().slice(0,10)}`
+      }
+      if (autoReadTime) {
+        toSave.readTime = estimateReadTimeFromHtml(toSave.body)
+      }
       if (selectedList === 'featured') {
         const r = await fetch(CMS_BASE + '/set-featured', {
           method: 'POST',
@@ -164,9 +199,16 @@ export default function Admin() {
     try {
       if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
       const endpoint = target === 'featured' ? '/set-featured' : `/add-to/${target}`
-      const toSave = publishToday
-        ? { ...article, publishDate: new Date().toISOString().slice(0, 10) }
-        : article
+      let toSave: Article = { ...article }
+      if (publishToday) toSave.publishDate = new Date().toISOString().slice(0, 10)
+      if (autoSlug) {
+        const s = slugify(toSave.title)
+        if (s) toSave.slug = s
+        else if (!toSave.slug) toSave.slug = `post-${new Date().toISOString().slice(0,10)}`
+      }
+      if (autoReadTime) {
+        toSave.readTime = estimateReadTimeFromHtml(toSave.body)
+      }
       const res = await fetch(CMS_BASE + endpoint, {
         method: 'POST',
         headers: {
@@ -346,12 +388,22 @@ export default function Admin() {
                 value={article.body || ''}
                 onChange={(e) => onChange('body', e.target.value)} />
             </div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={publishToday} onChange={(e)=>setPublishToday(e.target.checked)} />
-                保存時に公開日を今日に更新
-              </label>
-              <button onClick={submit} className="px-4 py-2 rounded bg-red-accent text-red-accent-foreground">保存する</button>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={publishToday} onChange={(e)=>setPublishToday(e.target.checked)} />
+                  公開日を今日に更新
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={autoSlug} onChange={(e)=>setAutoSlug(e.target.checked)} />
+                  スラッグをタイトルから自動生成
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={autoReadTime} onChange={(e)=>setAutoReadTime(e.target.checked)} />
+                  読了時間を自動計算
+                </label>
+              </div>
+              <button onClick={submit} className="px-4 py-2 rounded bg-red-accent text-red-accent-foreground self-start">保存する</button>
             </div>
             <div className="text-sm text-muted-foreground">{log}</div>
           </div>
