@@ -119,7 +119,7 @@ export default function Admin() {
                       body: JSON.stringify({ keyword, category: aiCategory, tone, target_audience: audience, word_count_target: words })
                     })
                     const data = await res.json().catch(()=>null)
-                    if (!res.ok) throw new Error(data?.error || '生成に失敗しました')
+                    if (!res.ok) throw new Error((data?.error || '生成に失敗しました') + (data?.detail ? ` (${data.detail})` : ''))
                     setOutline(data.outline)
                     setLog('構成案を生成しました。内容を確認してください。')
                   } catch(e:any) {
@@ -143,7 +143,7 @@ export default function Admin() {
                       body: JSON.stringify({ outline, category: aiCategory })
                     })
                     const data = await res.json().catch(()=>null)
-                    if (!res.ok) throw new Error(data?.error || '生成に失敗しました')
+                    if (!res.ok) throw new Error((data?.error || '生成に失敗しました') + (data?.detail ? ` (${data.detail})` : ''))
                     setArticle((a)=>({
                       ...a,
                       ...data.article,

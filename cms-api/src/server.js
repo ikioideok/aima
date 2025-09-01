@@ -83,33 +83,60 @@ function ensureOpenAI(res) {
 
 async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tokens = 2048 }) {
   const url = `${OPENAI_API_BASE}/chat/completions`
-  const body = {
+
+  async function call(body) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+    const text = await r.text().catch(() => '')
+    if (!r.ok) {
+      const msg = `OpenAI error ${r.status}: ${text}`
+      const err = new Error(msg)
+      // @ts-ignore
+      err.status = r.status
+      // @ts-ignore
+      err.body = text
+      throw err
+    }
+    // parse json from text (already fetched)
+    let data
+    try { data = JSON.parse(text) } catch { data = null }
+    const content = data?.choices?.[0]?.message?.content || '{}'
+    return JSON.parse(content)
+  }
+
+  const base = {
     model: OPENAI_MODEL,
     messages: [
       system ? { role: 'system', content: system } : null,
       { role: 'user', content: user },
     ].filter(Boolean),
     temperature,
-    response_format: schema
-      ? { type: 'json_schema', json_schema: { name: 'response', schema, strict: true } }
-      : { type: 'json_object' },
     max_tokens,
   }
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-  if (!r.ok) {
-    const text = await r.text().catch(() => '')
-    throw new Error(`OpenAI error ${r.status}: ${text}`)
+
+  // Try strict json_schema first, then gracefully fall back to json_object if unsupported
+  if (schema) {
+    try {
+      return await call({
+        ...base,
+        response_format: { type: 'json_schema', json_schema: { name: 'response', schema, strict: true } },
+      })
+    } catch (e) {
+      const msg = String(e?.message || '')
+      if (msg.includes('response_format') || msg.includes('json_schema') || e?.status === 400) {
+        // Fallback
+        return await call({ ...base, response_format: { type: 'json_object' } })
+      }
+      throw e
+    }
   }
-  const data = await r.json()
-  const content = data?.choices?.[0]?.message?.content || '{}'
-  return JSON.parse(content)
+  return await call({ ...base, response_format: { type: 'json_object' } })
 }
 
 // --- AI: Generate Outline ---
@@ -184,8 +211,8 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
       keyword,
     } })
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Failed to generate outline' })
+    console.error('generate-outline error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to generate outline', detail: String(e?.message || '') })
   }
 })
 
@@ -252,8 +279,8 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
 
     res.json({ ok: true, article: out })
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Failed to generate article' })
+    console.error('generate-article error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to generate article', detail: String(e?.message || '') })
   }
 })
 
