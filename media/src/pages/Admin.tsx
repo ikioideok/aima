@@ -44,8 +44,8 @@ export default function Admin() {
   // プロバイダ/モデルを「構成」と「本文」で分離
   const [providerOutline, setProviderOutline] = useState<'openai'|'gemini'>('gemini')
   const [modelOutline, setModelOutline] = useState<string>('gemini-2.5-pro')
-  const [providerArticle, setProviderArticle] = useState<'openai'|'gemini'>('gemini')
-  const [modelArticle, setModelArticle] = useState<string>('gemini-2.5-pro')
+  const [providerArticle, setProviderArticle] = useState<'openai'|'gemini'>('openai')
+  const [modelArticle, setModelArticle] = useState<string>('gpt-5')
 
   const json = useMemo(() => JSON.stringify({ ...article, featured: target === 'featured' }, null, 2), [article, target])
 
