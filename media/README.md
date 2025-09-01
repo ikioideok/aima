@@ -12,5 +12,6 @@
   ## Admin UI
   - Access: `/media/admin`
   - Env: `VITE_CMS_API_BASE` (CMS API URL), `VITE_ADMIN_TOKEN`
-  - Features: AI outline generation and article drafting (requires CMS API with `OPENAI_API_KEY`).
+  - Features: AI outline generation and article drafting (requires CMS API with `OPENAI_API_KEY` or `GEMINI_API_KEY`).
+  - Provider select: Choose `GPT-5 (OpenAI)` or `Gemini`. You can also override the model ID per request.
   

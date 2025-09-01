@@ -14,6 +14,9 @@ const {
   OPENAI_API_KEY,
   OPENAI_MODEL = 'gpt-5',
   OPENAI_API_BASE = 'https://api.openai.com/v1',
+  GEMINI_API_KEY,
+  GEMINI_MODEL = 'gemini-1.5-pro',
+  GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta',
 } = process.env
 
 if (!GITHUB_TOKEN || !GITHUB_REPO_OWNER || !GITHUB_REPO_NAME) {
@@ -72,7 +75,7 @@ function validateArticle(a) {
 
 app.get('/health', (req, res) => res.json({ ok: true }))
 
-// --- OpenAI helpers ---
+// --- LLM helpers ---
 function ensureOpenAI(res) {
   if (!OPENAI_API_KEY) {
     res.status(500).json({ error: 'OPENAI_API_KEY is not set on server' })
@@ -81,7 +84,15 @@ function ensureOpenAI(res) {
   return true
 }
 
-async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tokens = 2048 }) {
+function ensureGemini(res) {
+  if (!GEMINI_API_KEY) {
+    res.status(500).json({ error: 'GEMINI_API_KEY is not set on server' })
+    return false
+  }
+  return true
+}
+
+async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tokens = 2048, model }) {
   const url = `${OPENAI_API_BASE}/chat/completions`
 
   async function call(body) {
@@ -128,9 +139,10 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
     return parsed
   }
 
-  const isGpt5 = /gpt-5/i.test(OPENAI_MODEL || '')
+  const modelId = model || OPENAI_MODEL
+  const isGpt5 = /gpt-5/i.test(modelId || '')
   const base = {
-    model: OPENAI_MODEL,
+    model: modelId,
     messages: [
       system ? { role: 'system', content: system } : null,
       { role: 'user', content: user },
@@ -180,6 +192,53 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
     }
     throw e
   }
+}
+
+async function geminiChatJSON({ system, user, temperature = 1, max_tokens = 2048, model }) {
+  const modelId = model || GEMINI_MODEL
+  const url = `${GEMINI_API_BASE}/models/${encodeURIComponent(modelId)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`
+  const text = [system, user].filter(Boolean).join('\n\n')
+  const body = {
+    contents: [
+      { role: 'user', parts: [{ text }] }
+    ],
+    generationConfig: {
+      // For JSON-only responses
+      response_mime_type: 'application/json',
+      maxOutputTokens: max_tokens,
+      temperature,
+    }
+  }
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  const raw = await r.text().catch(() => '')
+  if (!r.ok) {
+    throw new Error(`Gemini error ${r.status}: ${raw}`)
+  }
+  let data
+  try { data = JSON.parse(raw) } catch { data = null }
+  const candidates = data?.candidates || []
+  const contentText = candidates?.[0]?.content?.parts?.[0]?.text || ''
+  const stripFences = (s) => s.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '').trim()
+  const tryParse = (s) => { try { return JSON.parse(s) } catch { return null } }
+  let parsed = tryParse(contentText) || tryParse(stripFences(contentText))
+  if (!parsed) {
+    const start = contentText.indexOf('{')
+    const end = contentText.lastIndexOf('}')
+    if (start !== -1 && end !== -1 && end > start) parsed = tryParse(contentText.slice(start, end + 1))
+  }
+  if (!parsed) throw new Error('Model did not return valid JSON content')
+  return parsed
+}
+
+async function llmChatJSON({ provider = 'openai', ...opts }) {
+  if (provider === 'gemini') {
+    return await geminiChatJSON(opts)
+  }
+  return await openaiChatJSON(opts)
 }
 
 // Shared helpers
@@ -245,7 +304,8 @@ function normalizeOutlineData(input, { keyword, category, tone, target_audience,
 // --- AI: Generate Outline ---
 app.post('/generate-outline', requireAdmin, async (req, res) => {
   try {
-    if (!ensureOpenAI(res)) return
+    const { provider = 'openai', model } = req.body || {}
+    if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
     const {
       keyword,
       category = 'SEO',
@@ -316,7 +376,7 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     }
     const user = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n要件\n- 出力はJSONのみ。説明や注釈は不要。\n- 見出しは重複禁止、MECE、実務に役立つ順序。\n- h2は5〜7個、各h2に0〜4個のh3を付与。\n- slugは英小文字のケバブケース。\n- seo.meta_descriptionは120〜160文字。\n\n良い例（参考。内容は上記前提に合わせて再生成すること）:\n${JSON.stringify(example, null, 2)}`
 
-    const json = await openaiChatJSON({ system, user, schema, temperature: 0.6, max_tokens: 1200 })
+    const json = await llmChatJSON({ provider, system, user, schema, temperature: 0.6, max_tokens: 1200, model })
     const outline = normalizeOutlineData(json, { keyword, category, tone, target_audience, word_count_target })
     res.json({ ok: true, outline })
   } catch (e) {
@@ -339,7 +399,8 @@ function slugify(str) {
 // --- AI: Generate Full Article from outline ---
 app.post('/generate-article', requireAdmin, async (req, res) => {
   try {
-    if (!ensureOpenAI(res)) return
+    const { provider = 'openai', model } = req.body || {}
+    if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
     const { outline, author = 'AIMA編集部', imageUrl = '', category } = req.body || {}
     if (!outline?.title || !Array.isArray(outline?.h2)) {
       return res.status(400).json({ error: 'outline with title and h2[] is required' })
@@ -374,7 +435,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
     }
     const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- カテゴリ: ${category || outline.category || 'SEO'}\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>を適切に使用。\n- 導入で期待値を提示し、各見出しに具体例/手順/チェックリストを含める。結論/CTAで締める。\n- 根拠のない断定や最新情報の言い切りは避ける。\n\n形式の例（参考。内容は上記前提に合わせて再生成）:\n${JSON.stringify(exampleArticle, null, 2)}`
 
-    let json = await openaiChatJSON({ system, user, schema, temperature: 0.7, max_tokens: 4000 })
+    let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 4000, model })
 
     // Normalize article fields (handle nesting/aliases)
     let candidate = json?.article || json?.data || json?.result || json
@@ -386,7 +447,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
     if (!title || !body) {
       const strictUser = `以下の見出し構成に基づき、JSONのみを返してください。\n- 返すキーは title, excerpt, body の3つのみ。\n- bodyは有効なHTML文字列で、<h2>/<h3>/<p>/<ul>/<li>のみ使用。\n- コードフェンスや追加の説明は禁止。\n\n見出し構成:\n${outlineText}`
       try {
-        json = await openaiChatJSON({ system, user: strictUser, schema: undefined, temperature: 0.7, max_tokens: 4000 })
+        json = await llmChatJSON({ provider, system, user: strictUser, schema: undefined, temperature: 0.7, max_tokens: 4000, model })
         candidate = json?.article || json?.data || json?.result || json
         title = candidate?.title || title
         body = candidate?.body || candidate?.html || candidate?.content || body
