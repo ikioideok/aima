@@ -205,7 +205,8 @@ async function geminiChatJSON({ system, user, schema, temperature = 1, max_token
     generationConfig: {
       // JSON-only response enforcement
       responseMimeType: 'application/json',
-      ...(schema ? { responseSchema: schema } : {}),
+      // Do not send responseSchema because Gemini Schema differs from JSON Schema
+      // and causes 400 for common JSON Schema features (e.g., additionalProperties)
       maxOutputTokens: max_tokens,
       temperature,
     }
