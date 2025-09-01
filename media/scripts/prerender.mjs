@@ -40,7 +40,7 @@ const templatePath = path.join(outDir, 'index.html')
 const template = fs.readFileSync(templatePath, 'utf-8')
 
 const articles = collectArticles()
-const routes = ['/media/', ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}`)]
+const routes = ['/media/', ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`)]
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://ai-and-marketing.jp'
 
