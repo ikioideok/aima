@@ -194,17 +194,18 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
   }
 }
 
-async function geminiChatJSON({ system, user, temperature = 1, max_tokens = 2048, model }) {
+async function geminiChatJSON({ system, user, schema, temperature = 1, max_tokens = 2048, model }) {
   const modelId = model || GEMINI_MODEL
   const url = `${GEMINI_API_BASE}/models/${encodeURIComponent(modelId)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`
-  const text = [system, user].filter(Boolean).join('\n\n')
   const body = {
     contents: [
-      { role: 'user', parts: [{ text }] }
+      { role: 'user', parts: [{ text: String(user || '') }] }
     ],
+    ...(system ? { systemInstruction: { role: 'system', parts: [{ text: String(system) }] } } : {}),
     generationConfig: {
-      // For JSON-only responses
-      response_mime_type: 'application/json',
+      // JSON-only response enforcement
+      responseMimeType: 'application/json',
+      ...(schema ? { responseSchema: schema } : {}),
       maxOutputTokens: max_tokens,
       temperature,
     }
@@ -221,7 +222,9 @@ async function geminiChatJSON({ system, user, temperature = 1, max_tokens = 2048
   let data
   try { data = JSON.parse(raw) } catch { data = null }
   const candidates = data?.candidates || []
-  const contentText = candidates?.[0]?.content?.parts?.[0]?.text || ''
+  const parts = candidates?.[0]?.content?.parts || []
+  const texts = parts.map((p) => p?.text).filter(Boolean)
+  const contentText = texts.join('\n').trim()
   const stripFences = (s) => s.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '').trim()
   const tryParse = (s) => { try { return JSON.parse(s) } catch { return null } }
   let parsed = tryParse(contentText) || tryParse(stripFences(contentText))
@@ -230,7 +233,10 @@ async function geminiChatJSON({ system, user, temperature = 1, max_tokens = 2048
     const end = contentText.lastIndexOf('}')
     if (start !== -1 && end !== -1 && end > start) parsed = tryParse(contentText.slice(start, end + 1))
   }
-  if (!parsed) throw new Error('Model did not return valid JSON content')
+  if (!parsed) {
+    const reason = data?.promptFeedback?.blockReason || candidates?.[0]?.finishReason || 'unknown'
+    throw new Error(`Model did not return valid JSON content (reason: ${reason})`)
+  }
   return parsed
 }
 
