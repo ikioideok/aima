@@ -164,6 +164,66 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
   }
 }
 
+// Shared helpers
+// slugify is defined above (shared helpers)
+
+function normalizeOutlineData(input, { keyword, category, tone, target_audience, word_count_target }) {
+  const title = String(input?.title || keyword || '').slice(0, 160) || `${keyword}のガイド`
+  const slug = slugify(input?.slug || title)
+  const persona = input?.persona || 'マーケター'
+  const seo = input?.seo && typeof input.seo === 'object' ? input.seo : {}
+  const ta = input?.target_audience || target_audience
+  const tn = input?.tone || tone
+  const wc = Number(input?.word_count_target || word_count_target)
+
+  let rawSections = input?.h2
+  if (!Array.isArray(rawSections) || rawSections.length === 0) {
+    rawSections = input?.sections || input?.headings || input?.outline || []
+  }
+  let h2 = []
+  if (Array.isArray(rawSections)) {
+    h2 = rawSections.map((s) => {
+      if (!s) return null
+      if (typeof s === 'string') return { title: s, h3: [] }
+      if (typeof s === 'object') {
+        const t = s.title || s.heading || s.name || ''
+        let h3 = []
+        const rawH3 = s.h3 || s.children || s.subheadings || []
+        if (Array.isArray(rawH3)) {
+          h3 = rawH3.map((x) => (typeof x === 'string' ? x : (x?.title || x?.heading || ''))).filter(Boolean)
+        }
+        return t ? { title: t, h3 } : null
+      }
+      return null
+    }).filter(Boolean)
+  }
+
+  if (!h2 || h2.length === 0) {
+    h2 = [
+      { title: 'イントロダクション', h3: [] },
+      { title: `${keyword}の基礎`, h3: ['定義', '重要性', '適用領域'] },
+      { title: `${keyword}の実務活用`, h3: ['手順', 'テンプレート', 'チェックリスト'] },
+      { title: '成功事例とベストプラクティス', h3: [] },
+      { title: '計測とKPI設定', h3: ['指標', 'レポート例'] },
+      { title: 'よくある落とし穴と対策', h3: [] },
+      { title: 'まとめ・次のアクション', h3: [] },
+    ]
+  }
+
+  return {
+    title,
+    slug,
+    persona,
+    target_audience: ta,
+    tone: tn,
+    word_count_target: wc,
+    seo,
+    h2,
+    category,
+    keyword,
+  }
+}
+
 // --- AI: Generate Outline ---
 app.post('/generate-outline', requireAdmin, async (req, res) => {
   try {
@@ -218,23 +278,8 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     const user = `キーワード: ${keyword}\nカテゴリ: ${category}\nトーン: ${tone}\n想定読者: ${target_audience}\n目標文字数: ${word_count_target}\n\n出力要件:\n- JSONのみを出力。説明文は不要。\n- titleは魅力的に。slugは英小文字のケバブケース。\n- h2見出しは論理順で3-6本。各h2に必要ならh3を含める。\n- seo.keywordsは5-10個。meta_descriptionは120-160文字。ctaは短く。`
 
     const json = await openaiChatJSON({ system, user, schema, temperature: 0.6, max_tokens: 1200 })
-
-    if (!json?.title || !json?.slug || !Array.isArray(json?.h2)) {
-      return res.status(502).json({ error: 'Invalid outline response from model' })
-    }
-
-    res.json({ ok: true, outline: {
-      title: json.title,
-      slug: json.slug,
-      persona: json.persona || 'マーケター',
-      target_audience: json.target_audience || target_audience,
-      tone: json.tone || tone,
-      word_count_target: json.word_count_target || word_count_target,
-      seo: json.seo || {},
-      h2: json.h2,
-      category,
-      keyword,
-    } })
+    const outline = normalizeOutlineData(json, { keyword, category, tone, target_audience, word_count_target })
+    res.json({ ok: true, outline })
   } catch (e) {
     console.error('generate-outline error:', e?.message || e)
     res.status(500).json({ error: 'Failed to generate outline', detail: String(e?.message || '') })
