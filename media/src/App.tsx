@@ -37,7 +37,7 @@ export default function App() {
           <div className="lg:col-span-3 space-y-12">
             {/* Featured Article */}
             <section>
-              <Link to={`/articles/${featuredArticle.slug}`}>
+              <Link to={`/articles/${featuredArticle.slug}/`}>
                 <SimpleCard {...featuredArticle} />
               </Link>
             </section>
@@ -56,7 +56,7 @@ export default function App() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {specialArticles.map((article) => (
-                  <Link to={`/articles/${article.slug}`} key={article.slug}>
+                  <Link to={`/articles/${article.slug}/`} key={article.slug}>
                     <SimpleCard {...article} />
                   </Link>
                 ))}
@@ -77,7 +77,7 @@ export default function App() {
               </div>
               <div className="space-y-4">
                 {recentArticles.map((article) => (
-                  <Link to={`/articles/${article.slug}`} key={article.slug}>
+                  <Link to={`/articles/${article.slug}/`} key={article.slug}>
                     <CompactCard {...article} />
                   </Link>
                 ))}
