@@ -117,26 +117,49 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
       { role: 'user', content: user },
     ].filter(Boolean),
     temperature,
-    max_tokens,
   }
 
-  // Try strict json_schema first, then gracefully fall back to json_object if unsupported
-  if (schema) {
-    try {
-      return await call({
-        ...base,
-        response_format: { type: 'json_schema', json_schema: { name: 'response', schema, strict: true } },
-      })
-    } catch (e) {
-      const msg = String(e?.message || '')
-      if (msg.includes('response_format') || msg.includes('json_schema') || e?.status === 400) {
-        // Fallback
-        return await call({ ...base, response_format: { type: 'json_object' } })
-      }
-      throw e
-    }
+  const preferMaxCompletion = /gpt-5/i.test(OPENAI_MODEL || '')
+
+  function buildBody(useSchema, useMaxCompletion) {
+    const tokenField = useMaxCompletion
+      ? { max_completion_tokens: max_tokens }
+      : { max_tokens }
+    const rf = schema && useSchema
+      ? { type: 'json_schema', json_schema: { name: 'response', schema, strict: true } }
+      : { type: 'json_object' }
+    return { ...base, ...tokenField, response_format: rf }
   }
-  return await call({ ...base, response_format: { type: 'json_object' } })
+
+  // Try schema + preferred token param first, then fallbacks
+  try {
+    return await call(buildBody(true, preferMaxCompletion))
+  } catch (e) {
+    const msg = String(e?.message || '')
+    // Fallback for unsupported token field
+    if (msg.includes('max_tokens')) {
+      try { return await call(buildBody(true, true)) } catch (_) {}
+    }
+    if (msg.includes('max_completion_tokens')) {
+      try { return await call(buildBody(true, false)) } catch (_) {}
+    }
+    // Fallback for response_format/json_schema issues
+    if (msg.includes('response_format') || msg.includes('json_schema') || e?.status === 400) {
+      try {
+        return await call(buildBody(false, preferMaxCompletion))
+      } catch (e2) {
+        const msg2 = String(e2?.message || '')
+        if (msg2.includes('max_tokens')) {
+          return await call(buildBody(false, true))
+        }
+        if (msg2.includes('max_completion_tokens')) {
+          return await call(buildBody(false, false))
+        }
+        throw e2
+      }
+    }
+    throw e
+  }
 }
 
 // --- AI: Generate Outline ---
