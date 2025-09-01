@@ -106,8 +106,26 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
     // parse json from text (already fetched)
     let data
     try { data = JSON.parse(text) } catch { data = null }
-    const content = data?.choices?.[0]?.message?.content || '{}'
-    return JSON.parse(content)
+    let content = data?.choices?.[0]?.message?.content || '{}'
+    // Tolerate code fences or stray text around JSON
+    const stripFences = (s) => s.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '').trim()
+    const tryParse = (s) => { try { return JSON.parse(s) } catch { return null } }
+    let parsed = tryParse(content)
+    if (!parsed) {
+      parsed = tryParse(stripFences(content))
+    }
+    if (!parsed) {
+      // naive extraction of first JSON object
+      const start = content.indexOf('{')
+      const end = content.lastIndexOf('}')
+      if (start !== -1 && end !== -1 && end > start) {
+        parsed = tryParse(content.slice(start, end + 1))
+      }
+    }
+    if (!parsed) {
+      throw new Error('Model did not return valid JSON content')
+    }
+    return parsed
   }
 
   const isGpt5 = /gpt-5/i.test(OPENAI_MODEL || '')
@@ -274,8 +292,29 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
       }
     }
 
-    const system = 'あなたは日本語のコンテンツストラテジストです。AIMAのマーケティング記事の構成を作ります。'
-    const user = `キーワード: ${keyword}\nカテゴリ: ${category}\nトーン: ${tone}\n想定読者: ${target_audience}\n目標文字数: ${word_count_target}\n\n出力要件:\n- JSONのみを出力。説明文は不要。\n- titleは魅力的に。slugは英小文字のケバブケース。\n- h2見出しは論理順で3-6本。各h2に必要ならh3を含める。\n- seo.keywordsは5-10個。meta_descriptionは120-160文字。ctaは短く。`
+    const system = 'あなたは日本語のコンテンツストラテジストです。AIMAのマーケティング記事の構成を、MECEで実務的に作成します。冗長・重複は避け、見出しは検索意図を網羅し、具体的な価値提案を含めます。'
+    const example = {
+      title: 'B2BのSEOで成果を出すコンテンツ戦略ガイド',
+      slug: 'b2b-seo-content-strategy-guide',
+      persona: 'デマンドジェン担当マネージャー',
+      target_audience: 'B2Bのマーケティング担当者/事業責任者',
+      tone: '実務的・検証済みの示唆',
+      word_count_target: 2200,
+      seo: {
+        keywords: ['B2B SEO', 'コンテンツ戦略', 'E-E-A-T', '検索意図', 'トピッククラスター'],
+        meta_description: 'B2Bでパイプラインを伸ばすためのSEO/コンテンツ戦略。検索意図の分解、トピッククラスター、E-E-A-T強化、計測までを網羅。',
+        cta: '無料の戦略チェックリストをダウンロード'
+      },
+      h2: [
+        { title: '検索意図の分解と優先順位付け', h3: ['情報/比較/取引の意図', 'ビジネスインパクト評価'] },
+        { title: 'トピッククラスターと内部リンク設計', h3: ['ハブ/スポーク設計', '重複回避'] },
+        { title: 'E-E-A-Tを満たす執筆要件', h3: ['一次情報と引用', '専門家監修'] },
+        { title: '制作プロセスとレビューフロー', h3: ['ブリーフ作成', '査読と更新'] },
+        { title: '計測設計と継続改善', h3: ['KPI/指標', '更新の優先度付け'] },
+        { title: '成功事例と落とし穴', h3: [] }
+      ]
+    }
+    const user = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n要件\n- 出力はJSONのみ。説明や注釈は不要。\n- 見出しは重複禁止、MECE、実務に役立つ順序。\n- h2は5〜7個、各h2に0〜4個のh3を付与。\n- slugは英小文字のケバブケース。\n- seo.meta_descriptionは120〜160文字。\n\n良い例（参考。内容は上記前提に合わせて再生成すること）:\n${JSON.stringify(example, null, 2)}`
 
     const json = await openaiChatJSON({ system, user, schema, temperature: 0.6, max_tokens: 1200 })
     const outline = normalizeOutlineData(json, { keyword, category, tone, target_audience, word_count_target })
@@ -327,24 +366,34 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
       return `${i + 1}. ${sec.title}${h3 ? `\n${h3}` : ''}`
     }).join('\n')
 
-    const system = 'あなたは日本語のプロ編集者・ライターです。専門的で実務に役立つ記事をHTMLで執筆します。'
-    const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- カテゴリ: ${category || outline.category || 'SEO'}\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n執筆要件:\n- 出力はJSONのみ。bodyはHTML。\n- h2/h3を見出しとして使用し、論理的な段落で構成。\n- コードブロック不要。箇条書きは<ul><li>を用いる。\n- 導入で期待値を提示し、結論/CTAで締める。\n- 事実ベースで、誇張表現は避ける。`
+    const system = 'あなたは日本語のプロ編集者・ライターです。専門的で実務に役立つ記事を、検証可能な情報と具体例で執筆します。冗長・誇張を避け、読みやすいHTML構造で書きます。'
+    const exampleArticle = {
+      title: 'B2BのSEOで成果を出すコンテンツ戦略ガイド',
+      excerpt: 'B2B企業がパイプラインを伸ばすためのSEO/コンテンツ戦略。検索意図、トピッククラスター、E-E-A-T、計測まで実務視点で解説。',
+      body: '<p>導入...</p>\n<h2>検索意図の分解と優先順位付け</h2>\n<p>...</p>\n<h3>情報/比較/取引の意図</h3>\n<ul><li>...</li></ul>\n<h2>まとめ・次のアクション</h2>\n<p>...</p>'
+    }
+    const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- カテゴリ: ${category || outline.category || 'SEO'}\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>を適切に使用。\n- 導入で期待値を提示し、各見出しに具体例/手順/チェックリストを含める。結論/CTAで締める。\n- 根拠のない断定や最新情報の言い切りは避ける。\n\n形式の例（参考。内容は上記前提に合わせて再生成）:\n${JSON.stringify(exampleArticle, null, 2)}`
 
     const json = await openaiChatJSON({ system, user, schema, temperature: 0.7, max_tokens: 4000 })
-    if (!json?.title || !json?.body) {
-      return res.status(502).json({ error: 'Invalid article response from model' })
+
+    // Normalize article fields
+    const title = json?.title || outline.title
+    const body = json?.body || json?.html || json?.content || ''
+    const excerpt = json?.excerpt || ''
+    if (!title || !body) {
+      return res.status(502).json({ error: 'Invalid article response from model', detail: 'Missing title/body' })
     }
 
     const out = {
       slug,
-      title: json.title,
-      excerpt: json.excerpt || '',
+      title,
+      excerpt,
       author,
       publishDate,
       readTime: `${readTimeMin}分`,
       category: category || outline.category || 'SEO',
       imageUrl,
-      body: json.body,
+      body,
     }
 
     res.json({ ok: true, article: out })
