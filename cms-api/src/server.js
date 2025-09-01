@@ -445,7 +445,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
     }
     const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- カテゴリ: ${category || outline.category || 'SEO'}\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>を適切に使用。\n- 導入で期待値を提示し、各見出しに具体例/手順/チェックリストを含める。結論/CTAで締める。\n- 根拠のない断定や最新情報の言い切りは避ける。\n\n形式の例（参考。内容は上記前提に合わせて再生成）:\n${JSON.stringify(exampleArticle, null, 2)}`
 
-    let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 4000, model })
+    let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 8192, model })
 
     // Normalize article fields (handle nesting/aliases)
     let candidate = json?.article || json?.data || json?.result || json
@@ -457,7 +457,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
     if (!title || !body) {
       const strictUser = `以下の見出し構成に基づき、JSONのみを返してください。\n- 返すキーは title, excerpt, body の3つのみ。\n- bodyは有効なHTML文字列で、<h2>/<h3>/<p>/<ul>/<li>のみ使用。\n- コードフェンスや追加の説明は禁止。\n\n見出し構成:\n${outlineText}`
       try {
-        json = await llmChatJSON({ provider, system, user: strictUser, schema: undefined, temperature: 0.7, max_tokens: 4000, model })
+        json = await llmChatJSON({ provider, system, user: strictUser, schema: undefined, temperature: 0.7, max_tokens: 8192, model })
         candidate = json?.article || json?.data || json?.result || json
         title = candidate?.title || title
         body = candidate?.body || candidate?.html || candidate?.content || body
