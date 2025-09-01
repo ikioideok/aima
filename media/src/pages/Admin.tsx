@@ -37,7 +37,7 @@ export default function Admin() {
   const [aiCategory, setAiCategory] = useState<string>('SEO')
   const [tone, setTone] = useState<string>('実務的で明快')
   const [audience, setAudience] = useState<string>('マーケ担当者・事業責任者')
-  const [words, setWords] = useState<number>(1800)
+  // 文字数指定は撤廃
   const [outline, setOutline] = useState<any | null>(null)
   const [loadingOutline, setLoadingOutline] = useState(false)
   const [loadingArticle, setLoadingArticle] = useState(false)
@@ -120,11 +120,6 @@ export default function Admin() {
                   <input className="w-full border rounded px-3 py-2 bg-input-background" value={audience}
                          onChange={(e)=>setAudience(e.target.value)} />
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">目標文字数</label>
-                  <input type="number" className="w-full border rounded px-3 py-2 bg-input-background" value={words}
-                         onChange={(e)=>setWords(Number(e.target.value)||0)} />
-                </div>
               </div>
               <div className="flex gap-3">
                 <button disabled={loadingOutline || !keyword} onClick={async ()=>{
@@ -136,7 +131,7 @@ export default function Admin() {
                     const res = await fetch(CMS_BASE + '/generate-outline', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
-                      body: JSON.stringify({ provider, model, keyword, category: aiCategory, tone, target_audience: audience, word_count_target: words })
+                      body: JSON.stringify({ provider, model, keyword, category: aiCategory, tone, target_audience: audience })
                     })
                     const data = await res.json().catch(()=>null)
                     if (!res.ok) throw new Error((data?.error || '生成に失敗しました') + (data?.detail ? ` (${data.detail})` : ''))
@@ -181,29 +176,7 @@ export default function Admin() {
                 </button>
               </div>
 
-              {outline && (
-                <div className="mt-4 text-sm">
-                  <div className="mb-2"><span className="font-semibold">候補タイトル:</span> {outline.title}</div>
-                  <div className="mb-2"><span className="font-semibold">スラッグ:</span> {outline.slug}</div>
-                  <div className="mb-2"><span className="font-semibold">トーン/読者/文字数:</span> {outline.tone} / {outline.target_audience} / 約{outline.word_count_target}文字</div>
-                  <div className="mb-2"><span className="font-semibold">SEOキーワード:</span> {(outline.seo?.keywords||[]).join(', ')}</div>
-                  <div>
-                    <div className="font-semibold mb-1">見出し構成</div>
-                    <ul className="list-disc ml-5">
-                      {outline.h2?.map((s:any, idx:number)=> (
-                        <li key={idx} className="mb-1">
-                          <span className="font-medium">{s.title}</span>
-                          {Array.isArray(s.h3) && s.h3.length>0 && (
-                            <ul className="list-[circle] ml-5 mt-1">
-                              {s.h3.map((t:string, i:number)=> <li key={i}>{t}</li>)}
-                            </ul>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
+              {/* 構成案プレビューは右カラムへ移動 */}
             </div>
 
             <div>
@@ -246,6 +219,33 @@ export default function Admin() {
           </div>
 
           <div>
+            <h2 className="text-xl font-semibold mb-2">構成案プレビュー</h2>
+            {outline ? (
+              <div className="p-4 mb-6 border rounded text-sm bg-card">
+                <div className="mb-2"><span className="font-semibold">候補タイトル:</span> {outline.title}</div>
+                <div className="mb-2"><span className="font-semibold">スラッグ:</span> {outline.slug}</div>
+                <div className="mb-2"><span className="font-semibold">トーン/読者:</span> {outline.tone} / {outline.target_audience}</div>
+                <div className="mb-2"><span className="font-semibold">SEOキーワード:</span> {(outline.seo?.keywords||[]).join(', ')}</div>
+                <div>
+                  <div className="font-semibold mb-1">見出し構成</div>
+                  <ul className="list-disc ml-5">
+                    {outline.h2?.map((s:any, idx:number)=> (
+                      <li key={idx} className="mb-1">
+                        <span className="font-medium">{s.title}</span>
+                        {Array.isArray(s.h3) && s.h3.length>0 && (
+                          <ul className="list-[circle] ml-5 mt-1">
+                            {s.h3.map((t:string, i:number)=> <li key={i}>{t}</li>)}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 mb-6 border rounded text-sm text-muted-foreground">構成案を生成するとここに表示されます。</div>
+            )}
+
             <h2 className="text-xl font-semibold mb-2">生成されるJSON</h2>
             <pre className="p-4 bg-muted rounded overflow-auto text-sm" style={{maxHeight:'32rem'}}>{json}</pre>
           </div>
