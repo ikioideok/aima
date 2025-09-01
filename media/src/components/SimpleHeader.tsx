@@ -1,6 +1,6 @@
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Link } from "react-router-dom";
+// use a plain anchor to ensure trailing slash in the URL
 import { Search, Menu } from "lucide-react";
 
 export function SimpleHeader() {
@@ -16,7 +16,7 @@ export function SimpleHeader() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="w-full max-w-[95vw] mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <a href="/media/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="text-sm font-bold">AI</span>
           </div>
@@ -26,7 +26,7 @@ export function SimpleHeader() {
             </h1>
             <div className="text-xs text-muted-foreground">マーケティング情報メディア</div>
           </div>
-        </Link>
+        </a>
 
         {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
