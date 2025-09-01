@@ -570,7 +570,7 @@ app.post('/keyword-planner', requireAdmin, async (req, res) => {
     const system = 'あなたは日本語のSEOアナリストです。検索意図を分類し、重複を避けて実務的なキーワード候補を出します。'
     const user = `前提\n- 言語: ${language}\n- 種キーワード: ${seed}\n- テーマ補足: ${theme || 'なし'}\n- 件数目安: ${count}\n\n要件\n- JSONのみ返す（seed, suggestions[]）。\n- suggestions[].intent は Informational / Commercial / Transactional / Navigational のいずれか。\n- volume は相対評価（low/medium/high）。difficulty は1-5（相対難易度）。\n- variations は同義/言い換え、questions はよくある質問（2-4件）。\n- title_idea は記事タイトル案（1つ）。\n- 重複・冗長を避け、ビジネスで使える粒度に。`
 
-    const firstMax = provider === 'gemini' ? 4096 : 1600
+    const firstMax = provider === 'gemini' ? 8192 : 1600
     let json
     try {
       json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: firstMax, model })
