@@ -69,6 +69,9 @@ const routes = [
   '/media/latest/',
   '/media/featured/',
   '/media/special/',
+  '/media/privacy/',
+  '/media/terms/',
+  '/media/ads/',
   '/media/categories/',
   ...categoryRoutes,
   ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`),
@@ -109,6 +112,22 @@ function applyHeadMeta(template, url, opts = {}) {
   if (url === '/media/categories/') {
     title = `カテゴリー｜AI Marketing News`
     canonical = `${SITE_ORIGIN}/media/categories/`
+    ogUrl = canonical
+  }
+  // static legal pages
+  if (url === '/media/privacy/') {
+    title = `プライバシーポリシー｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/privacy/`
+    ogUrl = canonical
+  }
+  if (url === '/media/terms/') {
+    title = `利用規約｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/terms/`
+    ogUrl = canonical
+  }
+  if (url === '/media/ads/') {
+    title = `広告掲載について｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/ads/`
     ogUrl = canonical
   }
   // category pages
@@ -222,6 +241,9 @@ try {
     `${SITE_ORIGIN}/media/latest/`,
     `${SITE_ORIGIN}/media/featured/`,
     `${SITE_ORIGIN}/media/special/`,
+    `${SITE_ORIGIN}/media/privacy/`,
+    `${SITE_ORIGIN}/media/terms/`,
+    `${SITE_ORIGIN}/media/ads/`,
     `${SITE_ORIGIN}/media/categories/`,
     ...categoryRoutes.map((p) => `${SITE_ORIGIN}${p}`)
   ]
