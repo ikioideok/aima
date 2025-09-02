@@ -9,7 +9,7 @@ export function SimpleHeader() {
     { name: "注目記事", href: "/media/featured/" },
     { name: "特集記事", href: "/media/special/" },
     { name: "カテゴリー", href: "/media/categories/" },
-    { name: "このサイトについて", href: "/media/" }
+    { name: "お問い合わせ", href: "https://ai-and-marketing.jp/#contact" }
   ];
 
   return (
