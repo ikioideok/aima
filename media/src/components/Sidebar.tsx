@@ -45,6 +45,28 @@ export function Sidebar() {
 
   return (
     <aside className="space-y-6">
+      {/* Newsletter Signup */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">最新情報をお届け</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            マーケティングの最新トレンドと実務ノウハウを、週1回のニュースレターでお届けします。
+          </p>
+          <div className="space-y-3">
+            <Input placeholder="メールアドレス" />
+            <Button className="w-full">
+              <Mail className="h-4 w-4 mr-2" />
+              購読する
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            いつでも配信停止できます
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Editorial Picks */}
       <Card>
         <CardHeader>
@@ -84,47 +106,6 @@ export function Sidebar() {
           })()}
         </CardContent>
       </Card>
-      {/* Newsletter Signup */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">最新情報をお届け</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            マーケティングの最新トレンドと実務ノウハウを、週1回のニュースレターでお届けします。
-          </p>
-          <div className="space-y-3">
-            <Input placeholder="メールアドレス" />
-            <Button className="w-full">
-              <Mail className="h-4 w-4 mr-2" />
-              購読する
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            いつでも配信停止できます
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Resources CTA */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">無料テンプレート・資料</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            記事ブリーフ雛形、チェックリスト、プロンプト例など、すぐ使える実務テンプレを配布中。資料請求・ダウンロードのご相談はお気軽に。
-          </p>
-          <div className="flex gap-2">
-            <Button asChild className="flex-1">
-              <a href="/media/resources/">テンプレ一覧を見る</a>
-            </Button>
-            <Button asChild variant="outline" className="flex-1">
-              <a href="https://ai-and-marketing.jp/#contact" rel="noopener noreferrer">問い合わせる</a>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Popular Articles */}
       <Card>
@@ -153,25 +134,22 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      {/* Categories */}
+      {/* Resources CTA */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">カテゴリー</CardTitle>
+          <CardTitle className="text-lg">無料テンプレート・資料</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <a
-                key={category.slug}
-                href={`/media/category/${category.slug}/`}
-                className="flex items-center justify-between py-1 hover:text-primary transition-colors"
-              >
-                <span className="text-sm">{category.name}</span>
-                <Badge variant="secondary" className="text-xs">
-                  {category.count}
-                </Badge>
-              </a>
-            ))}
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            記事ブリーフ雛形、チェックリスト、プロンプト例など、すぐ使える実務テンプレを配布中。資料請求・ダウンロードのご相談はお気軽に。
+          </p>
+          <div className="flex gap-2">
+            <Button asChild className="flex-1">
+              <a href="/media/resources/">テンプレ一覧を見る</a>
+            </Button>
+            <Button asChild variant="outline" className="flex-1">
+              <a href="https://ai-and-marketing.jp/#contact" rel="noopener noreferrer">問い合わせる</a>
+            </Button>
           </div>
         </CardContent>
       </Card>
