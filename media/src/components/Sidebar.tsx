@@ -67,6 +67,28 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
+      {/* Categories with counts */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">カテゴリー</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {categories.map((c) => (
+              <li key={c.slug} className="flex items-center justify-between text-sm">
+                <a href={`/media/category/${c.slug}/`} className="hover:underline">
+                  {c.name}
+                </a>
+                <Badge variant="secondary">{c.count}</Badge>
+              </li>
+            ))}
+          </ul>
+          <div className="text-right mt-3">
+            <a href="/media/categories/" className="text-xs underline">カテゴリー一覧 →</a>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Editorial Picks */}
       <Card>
         <CardHeader>
