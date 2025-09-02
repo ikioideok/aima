@@ -2,7 +2,6 @@ import React from 'react';
 import { motion, useInView } from 'motion/react';
 import { useRef } from 'react';
 import { ArrowUpRight, Quote, Play, ExternalLink, TrendingUp } from 'lucide-react';
-import featuredArticle from '../../media/src/data/featuredArticle.json';
 import recentArticles from '../../media/src/data/recentArticles.json';
 
 export function MediaSection() {
@@ -57,8 +56,9 @@ export function MediaSection() {
     },
   };
 
+  // 最新記事の最新3件を表示
   const mediaItems = (() => {
-    const src = [featuredArticle, ...(recentArticles as any[]).slice(0, 2)].filter(Boolean) as any[]
+    const src = (recentArticles as any[]).slice(0, 3).filter(Boolean) as any[]
     return src.map((a) => ({
       type: 'press' as const,
       title: a.title,
@@ -66,7 +66,8 @@ export function MediaSection() {
       description: a.excerpt,
       date: a.publishDate,
       category: a.category || 'News',
-      href: `/media/articles/${a.slug}/`
+      href: `/media/articles/${a.slug}/`,
+      thumb: a.imageUrl || '/media/ogp.png'
     }))
   })();
 
@@ -142,6 +143,12 @@ export function MediaSection() {
               }}
               className="group relative bg-white border border-black/10 overflow-hidden transition-all duration-300 hover:border-red-500 hover:shadow-2xl"
             >
+              {/* Eyecatch */}
+              <div className="w-full aspect-[16/9] bg-gray-100 overflow-hidden">
+                {/* item.thumb is absolute (/media/...) or URL */}
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <img src={(item as any).thumb} className="w-full h-full object-cover" loading="lazy" />
+              </div>
               {/* Category Badge */}
               <motion.div
                 className={`absolute top-0 right-0 ${getCategoryColor(item.category)} text-white px-4 py-2 text-xs font-bold tracking-wider z-20`}
