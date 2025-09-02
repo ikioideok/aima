@@ -18,6 +18,7 @@ const ArticlePage = () => {
   // Build TOC and ensure headings have IDs
   const [processedHtml, setProcessedHtml] = React.useState<string | null>(null);
   const [toc, setToc] = React.useState<Array<{ id: string; text: string; level: 2 | 3 }>>([]);
+  const [tocOpen, setTocOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!article?.body) {
@@ -89,6 +90,7 @@ const ArticlePage = () => {
         '@type': 'Person',
         'name': article.author
       }],
+      ...(article.reviewer ? { reviewedBy: [{ '@type': 'Person', name: article.reviewer }] } : {}),
       'description': article.excerpt,
     };
 
@@ -122,25 +124,46 @@ const ArticlePage = () => {
         )
       })()}
       <h1 className="text-4xl font-bold text-foreground">{article.title}</h1>
-      <div className="text-muted-foreground">
-        <span>By {article.author}</span> | <span>{article.publishDate}</span> | <span>{article.readTime}</span>
+      <div className="text-muted-foreground flex flex-wrap gap-2 items-center">
+        <span>By {article.author}</span>
+        <span className="opacity-50">|</span>
+        <span>{article.publishDate}</span>
+        <span className="opacity-50">|</span>
+        <span>{article.readTime}</span>
+        {article.reviewer && (
+          <>
+            <span className="opacity-50">|</span>
+            <span>監修者: {article.reviewer}</span>
+          </>
+        )}
       </div>
       <div className="border-b my-4"></div>
       <div className="prose prose-lg max-w-none text-foreground leading-relaxed space-y-4">
         <p className="text-xl font-semibold">{article.excerpt}</p>
         {/* TOC */}
         {toc.length > 0 && (
-          <nav className="rounded-md border p-4 bg-card/50">
-            <div className="text-sm font-semibold mb-2">目次</div>
-            <ul className="text-sm m-0">
-              {toc.map((item, idx) => (
-                <li key={idx} className={item.level === 3 ? 'ml-4 list-[circle]' : 'ml-0 list-disc'}>
-                  <a href={`#${item.id}`} className="hover:underline">
-                    {item.text}
-                  </a>
-                </li>
-              ))}
-            </ul>
+          <nav className="rounded-md border p-0 bg-card/50">
+            <button
+              type="button"
+              onClick={() => setTocOpen(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-accent/50"
+              aria-expanded={tocOpen}
+              aria-controls="toc-content"
+            >
+              <span>目次</span>
+              <span className="text-xs text-muted-foreground">{tocOpen ? '閉じる' : '開く'}</span>
+            </button>
+            {tocOpen && (
+              <ul id="toc-content" className="text-sm m-0 px-4 pb-4">
+                {toc.map((item, idx) => (
+                  <li key={idx} className={item.level === 3 ? 'ml-4 list-[circle]' : 'ml-0 list-disc'}>
+                    <a href={`#${item.id}`} className="hover:underline" onClick={() => setTocOpen(false)}>
+                      {item.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </nav>
         )}
         {/* Render the body (SSR fallback to original HTML) */}

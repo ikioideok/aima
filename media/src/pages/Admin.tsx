@@ -5,6 +5,7 @@ type Article = {
   title: string
   excerpt: string
   author: string
+  reviewer?: string
   publishDate: string
   readTime: string
   category: string
@@ -17,6 +18,7 @@ const initial: Article = {
   title: '',
   excerpt: '',
   author: '',
+  reviewer: '',
   publishDate: new Date().toISOString().slice(0, 10),
   readTime: '8分',
   category: 'SEO',
@@ -312,7 +314,7 @@ export default function Admin() {
             {/* AI Assist */}
             <div className="p-4 border rounded">
               <h2 className="text-xl font-semibold mb-3">AIアシスト：構成案 → 記事作成</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 {/* 構成用プロバイダ/モデル */}
                 <div>
                   <label className="block text-sm mb-1">構成: プロバイダ</label>
@@ -360,6 +362,11 @@ export default function Admin() {
                   <label className="block text-sm mb-1">カテゴリ</label>
                   <input className="w-full border rounded px-3 py-2 bg-input-background" value={aiCategory}
                          onChange={(e)=>setAiCategory(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">監修者（任意）</label>
+                  <input className="w-full border rounded px-3 py-2 bg-input-background" value={article.reviewer||''}
+                         onChange={(e)=>onChange('reviewer', e.target.value)} placeholder="例: 山田 太郎" />
                 </div>
                 <div>
                   <label className="block text-sm mb-1">トーン</label>
