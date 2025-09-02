@@ -537,10 +537,19 @@ app.post('/keyword-planner', requireAdmin, async (req, res) => {
   try {
     const { provider = 'gemini', model } = req.body || {}
     if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
-    const { seed, language = 'ja', count = 20, theme = '' } = req.body || {}
+    const { seed, language = 'ja', count = 20, theme = '', keywords_only = false } = req.body || {}
     if (!seed || typeof seed !== 'string') return res.status(400).json({ error: 'seed is required' })
 
-    const schema = {
+    const schemaKeywordsOnly = {
+      type: 'object',
+      required: ['seed', 'suggestions'],
+      additionalProperties: false,
+      properties: {
+        seed: { type: 'string' },
+        suggestions: { type: 'array', items: { type: 'string' } }
+      }
+    }
+    const schemaFull = {
       type: 'object',
       required: ['seed', 'suggestions'],
       additionalProperties: false,
@@ -567,24 +576,32 @@ app.post('/keyword-planner', requireAdmin, async (req, res) => {
       }
     }
 
-    const system = 'あなたは日本語のSEOアナリストです。検索意図を分類し、重複を避けて実務的なキーワード候補を出します。'
-    const user = `前提\n- 言語: ${language}\n- 種キーワード: ${seed}\n- テーマ補足: ${theme || 'なし'}\n- 件数目安: ${count}\n\n要件\n- JSONのみ返す（seed, suggestions[]）。\n- suggestions[].intent は Informational / Commercial / Transactional / Navigational のいずれか。\n- volume は相対評価（low/medium/high）。difficulty は1-5（相対難易度）。\n- variations は同義/言い換え、questions はよくある質問（2-4件）。\n- title_idea は記事タイトル案（1つ）。\n- 重複・冗長を避け、ビジネスで使える粒度に。`
+    const system = keywords_only
+      ? 'あなたは日本語のSEOアナリストです。重複を避け、実務的なキーワード候補のみを短く返します。'
+      : 'あなたは日本語のSEOアナリストです。検索意図を分類し、重複を避けて実務的なキーワード候補を出します。'
+    const user = keywords_only
+      ? `前提\n- 言語: ${language}\n- 種キーワード: ${seed}\n- テーマ補足: ${theme || 'なし'}\n- 件数目安: ${count}\n\n要件\n- JSONのみ返す（seed, suggestions[]）。\n- suggestions[] は文字列（キーワード）のみ。\n- 重複・冗長・長すぎるフレーズは避け、ビジネスで使える粒度に。`
+      : `前提\n- 言語: ${language}\n- 種キーワード: ${seed}\n- テーマ補足: ${theme || 'なし'}\n- 件数目安: ${count}\n\n要件\n- JSONのみ返す（seed, suggestions[]）。\n- suggestions[].intent は Informational / Commercial / Transactional / Navigational のいずれか。\n- volume は相対評価（low/medium/high）。difficulty は1-5（相対難易度）。\n- variations は同義/言い換え、questions はよくある質問（2-4件）。\n- title_idea は記事タイトル案（1つ）。\n- 重複・冗長を避け、ビジネスで使える粒度に。`
 
     const firstMax = provider === 'gemini' ? 8192 : 4096
     let json
     try {
-      json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: firstMax, model })
+      json = await llmChatJSON({ provider, system, user, schema: keywords_only ? schemaKeywordsOnly : schemaFull, temperature: 0.7, max_tokens: firstMax, model })
     } catch (e) {
       const msg = String(e?.message || '')
       if (provider === 'gemini' && (msg.includes('MAX_TOKENS') || msg.includes('valid JSON'))) {
         // Compact fallback: reduce fields and count, relax schema
-        const compact = `前提\n- 種キーワード: ${seed}\n- 件数: ${Math.min(Number(count)||20, 12)}\n\n出力（JSONのみ）：{"seed":string,"suggestions":[{"keyword":string,"intent":"Informational"|"Commercial"|"Transactional"|"Navigational","volume":string,"difficulty":integer,"title_idea":string}] }\n制約:\n- suggestionsは短く簡潔に（各文字列<=32）。\n- variations/questionsは省略可。説明・フェンス禁止。`
+        const compact = keywords_only
+          ? `前提\n- 種キーワード: ${seed}\n- 件数: ${Math.min(Number(count)||20, 12)}\n\n出力（JSONのみ）：{"seed":string,"suggestions":string[]}\n制約:\n- suggestionsの各文字列は短く簡潔に（<=20）。説明・フェンス禁止。`
+          : `前提\n- 種キーワード: ${seed}\n- 件数: ${Math.min(Number(count)||20, 12)}\n\n出力（JSONのみ）：{"seed":string,"suggestions":[{"keyword":string,"intent":"Informational"|"Commercial"|"Transactional"|"Navigational","volume":string,"difficulty":integer,"title_idea":string}] }\n制約:\n- suggestionsは短く簡潔に（各文字列<=32）。\n- variations/questionsは省略可。説明・フェンス禁止。`
         try {
           json = await llmChatJSON({ provider, system, user: compact, schema: undefined, temperature: 0.7, max_tokens: 2048, model })
         } catch (e2) {
           const msg2 = String(e2?.message || '')
           if (msg2.includes('MAX_TOKENS') || msg2.includes('valid JSON')) {
-            const ultra = `JSONのみ返す。キー: seed, suggestions[{keyword,intent}](~8件)。説明・余計な文字・フェンス禁止。seed:${seed}`
+            const ultra = keywords_only
+              ? `JSONのみ返す。キー: seed, suggestions[string](~8件)。説明・余計な文字・フェンス禁止。seed:${seed}`
+              : `JSONのみ返す。キー: seed, suggestions[{keyword,intent}](~8件)。説明・余計な文字・フェンス禁止。seed:${seed}`
             json = await llmChatJSON({ provider, system, user: ultra, schema: undefined, temperature: 0.7, max_tokens: 1024, model })
           } else {
             throw e2
@@ -595,10 +612,11 @@ app.post('/keyword-planner', requireAdmin, async (req, res) => {
       }
     }
 
-    const out = {
-      seed,
-      suggestions: Array.isArray(json?.suggestions) ? json.suggestions.slice(0, Number(count)||20) : []
+    let suggestions = Array.isArray(json?.suggestions) ? json.suggestions.slice(0, Number(count)||20) : []
+    if (keywords_only) {
+      suggestions = suggestions.map((s) => typeof s === 'string' ? s : (s?.keyword || '')).filter(Boolean)
     }
+    const out = { seed, suggestions }
     res.json({ ok: true, plan: out })
   } catch (e) {
     console.error('keyword-planner error:', e?.message || e)

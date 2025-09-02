@@ -491,7 +491,7 @@ export default function Admin() {
                     const res = await fetch(CMS_BASE + '/keyword-planner', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
-                      body: JSON.stringify({ provider: providerOutline, model: modelOutline, seed: kpSeed, count: 20 })
+                      body: JSON.stringify({ provider: providerOutline, model: modelOutline, seed: kpSeed, count: 20, keywords_only: true })
                     })
                     const data = await res.json().catch(()=>null)
                     if (!res.ok) throw new Error((data?.error || '生成に失敗しました') + (data?.detail ? ` (${data.detail})` : ''))
@@ -538,29 +538,23 @@ export default function Admin() {
                     <thead className="bg-muted">
                       <tr>
                         <th className="text-left p-2">キーワード</th>
-                        <th className="text-left p-2">意図</th>
-                        <th className="text-left p-2">相対ボリューム</th>
-                        <th className="text-left p-2">難易度(1-5)</th>
-                        <th className="text-left p-2">タイトル案</th>
                         <th className="text-left p-2">操作</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {kpResult.suggestions.map((s:any, i:number)=> (
+                      {kpResult.suggestions.map((s:any, i:number)=> {
+                        const kw = typeof s === 'string' ? s : s.keyword
+                        return (
                         <tr key={i} className="border-t">
-                          <td className="p-2 whitespace-nowrap">{s.keyword}</td>
-                          <td className="p-2 whitespace-nowrap">{s.intent}</td>
-                          <td className="p-2 whitespace-nowrap">{s.volume||''}</td>
-                          <td className="p-2 whitespace-nowrap">{s.difficulty||''}</td>
-                          <td className="p-2">{s.title_idea||''}</td>
+                          <td className="p-2 whitespace-nowrap">{kw}</td>
                           <td className="p-2">
                             <button className="text-xs px-2 py-1 border rounded" onClick={()=>{
-                              setOutline((o:any)=> ({...(o||{}), seo: { ...(o?.seo||{}), keywords: [...new Set([...(o?.seo?.keywords||[]), s.keyword])] }}))
+                              setOutline((o:any)=> ({...(o||{}), seo: { ...(o?.seo||{}), keywords: [...new Set([...(o?.seo?.keywords||[]), kw])] }}))
                               setLog('SEOキーワードに追加しました')
                             }}>SEOに追加</button>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>
@@ -594,8 +588,11 @@ export default function Admin() {
                           <td className="p-2">{r.notes||''}</td>
                           <td className="p-2 whitespace-nowrap flex gap-2">
                             <button className="text-xs px-2 py-1 border rounded" onClick={()=>{
-                              const rows = (r.suggestions||[]).map((s:any)=> [s.keyword, s.intent, s.volume||'', s.difficulty||'', (s.variations||[]).join(' | '), (s.questions||[]).join(' | ')].join(','))
-                              const csv = ['keyword,intent,volume,difficulty,variations,questions', ...rows].join('\n')
+                              const rows = (r.suggestions||[]).map((s:any)=> {
+                                const kw = typeof s === 'string' ? s : s.keyword
+                                return kw
+                              })
+                              const csv = ['keyword', ...rows].join('\n')
                               navigator.clipboard?.writeText(csv)
                               setLog('コピーしました（CSV）')
                             }}>CSV</button>
