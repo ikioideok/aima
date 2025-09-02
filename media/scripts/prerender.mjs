@@ -87,6 +87,8 @@ function applyHeadMeta(template, url, opts = {}) {
   let description = 'AI Marketing News｜マーケティングの最新ニュースと実務解説。'
   let canonical = `${SITE_ORIGIN}/media/`
   let ogUrl = `${SITE_ORIGIN}/media/`
+  let ogType = 'website'
+  let ogImage = `${SITE_ORIGIN}/media/ogp.png`
   const siteName = 'AI Marketing News'
   const locale = 'ja_JP'
   const twitterSite = '@ai_marketing_news'
@@ -100,6 +102,9 @@ function applyHeadMeta(template, url, opts = {}) {
       description = (a.excerpt || description).slice(0, 160)
       canonical = `${SITE_ORIGIN}/media/articles/${slug}/`
       ogUrl = canonical
+      ogType = 'article'
+      const img = (a.imageUrl || '/media/ogp.png')
+      ogImage = /^https?:\/\//.test(img) ? img : `${SITE_ORIGIN}${img}`
     }
   }
   // search page (shell) — add noindex
@@ -175,11 +180,19 @@ function applyHeadMeta(template, url, opts = {}) {
   out = out.replace(/<meta property=\"og:description\" content=\"[^\"]*\"\s*\/>/, `<meta property=\"og:description\" content=\"${description.replace(/"/g, '&quot;')}\">`)
   out = out.replace(/<meta property=\"og:url\" content=\"[^\"]*\"\s*\/>/, `<meta property=\"og:url\" content=\"${ogUrl}\">`)
   out = out.replace(/<link rel=\"canonical\" href=\"[^\"]*\"\s*\/>/, `<link rel=\"canonical\" href=\"${canonical}\">`)
+  // og:type, og:image (article pages), keep website for others
+  out = out.replace(/<meta property=\"og:type\" content=\"[^\"]*\"\s*\/>/, `<meta property=\"og:type\" content=\"${ogType}\">`)
+  out = out.replace(/<meta property=\"og:image\" content=\"[^\"]*\"\s*\/>/, `<meta property=\"og:image\" content=\"${ogImage}\">`)
   // Inject site-wide metas if missing
   const injectIfMissing = (html, needleRegex, tag) => needleRegex.test(html) ? html : html.replace('</head>', `${tag}\n</head>`)
   out = injectIfMissing(out, /<meta property=\"og:site_name\"[^>]*>/, `<meta property=\"og:site_name\" content=\"${siteName}\">`)
   out = injectIfMissing(out, /<meta property=\"og:locale\"[^>]*>/, `<meta property=\"og:locale\" content=\"${locale}\">`)
   out = injectIfMissing(out, /<meta name=\"twitter:site\"[^>]*>/, `<meta name=\"twitter:site\" content=\"${twitterSite}\">`)
+  // Twitter image fallback
+  out = injectIfMissing(out, /<meta name=\"twitter:image\"[^>]*>/, `<meta name=\"twitter:image\" content=\"${ogImage}\">`)
+  // Optional: image dimensions for OG
+  out = injectIfMissing(out, /<meta property=\"og:image:width\"[^>]*>/, `<meta property=\"og:image:width\" content=\"1600\">`)
+  out = injectIfMissing(out, /<meta property=\"og:image:height\"[^>]*>/, `<meta property=\"og:image:height\" content=\"900\">`)
   if (url === '/media/search/') {
     out = injectIfMissing(out, /<meta name=\"robots\"[^>]*>/, `<meta name=\"robots\" content=\"noindex, nofollow\">`)
   }
