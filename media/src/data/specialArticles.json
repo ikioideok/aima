@@ -1,15 +1,5 @@
 [
   {
-    "slug": "b2b-content-strategy-that-drives-pipeline",
-    "title": "商談創出につながるBtoBコンテンツ戦略",
-    "excerpt": "意思決定者の情報収集プロセスに合わせた企画設計、導入事例の構造化、ホワイトペーパーのリード獲得最適化まで。",
-    "author": "山田 コンテンツPL",
-    "publishDate": "2024-01-10",
-    "readTime": "10分",
-    "category": "コンテンツマーケティング",
-    "imageUrl": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-  },
-  {
     "slug": "brand-lift-measurement-for-multi-channel-campaigns",
     "title": "マルチチャネル施策のブランドリフト測定ガイド",
     "excerpt": "サーチリフト・指名検索・想起率の計測と因果推論の基本。媒体横断で効果を評価するための設計手順。",
