@@ -4,6 +4,7 @@ import featuredArticle from '../data/featuredArticle.json';
 import specialArticles from '../data/specialArticles.json';
 import recentArticles from '../data/recentArticles.json';
 import dummyArticle from '../data/dummyArticle.json'; // Import the new dummy article
+import siteOwner from '../data/siteOwner.json';
 import { SimpleHeader } from '../components/SimpleHeader';
 import { SimpleFooter } from '../components/SimpleFooter';
 import { CompactCard } from '../components/CompactCard';
@@ -80,6 +81,7 @@ const ArticlePage = () => {
   const generateStructuredData = () => {
     if (!article) return null;
 
+    const reviewerName = (article.reviewer || '').trim() || (siteOwner?.name || '')
     const data = {
       '@context': 'https://schema.org',
       '@type': 'NewsArticle',
@@ -90,7 +92,7 @@ const ArticlePage = () => {
         '@type': 'Person',
         'name': article.author
       }],
-      ...(article.reviewer ? { reviewedBy: [{ '@type': 'Person', name: article.reviewer }] } : {}),
+      ...(reviewerName ? { reviewedBy: [{ '@type': 'Person', name: reviewerName }] } : {}),
       'description': article.excerpt,
     };
 
@@ -130,12 +132,15 @@ const ArticlePage = () => {
         <span>{article.publishDate}</span>
         <span className="opacity-50">|</span>
         <span>{article.readTime}</span>
-        {article.reviewer && (
-          <>
-            <span className="opacity-50">|</span>
-            <span>監修者: {article.reviewer}</span>
-          </>
-        )}
+        {(() => {
+          const reviewerName = (article.reviewer || '').trim() || (siteOwner?.name || '')
+          return reviewerName ? (
+            <>
+              <span className="opacity-50">|</span>
+              <span>監修者: {reviewerName}</span>
+            </>
+          ) : null
+        })()}
       </div>
       <div className="border-b my-4"></div>
       <div className="prose prose-lg max-w-none text-foreground leading-relaxed space-y-4">

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import siteOwner from '../data/siteOwner.json'
 
 type Article = {
   slug: string
@@ -18,7 +19,7 @@ const initial: Article = {
   title: '',
   excerpt: '',
   author: '',
-  reviewer: '',
+  reviewer: (siteOwner?.name || ''),
   publishDate: new Date().toISOString().slice(0, 10),
   readTime: '8分',
   category: 'SEO',
