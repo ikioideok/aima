@@ -8,7 +8,7 @@ import specialArticles from '../data/specialArticles.json'
 import recentArticles from '../data/recentArticles.json'
 import siteOwner from '../data/siteOwner.json'
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { CompactCard } from "./CompactCard";
+// simplified list for editorial picks
 import recommendedSlugs from '../data/recommended.json'
 
 export function Sidebar() {
@@ -50,19 +50,37 @@ export function Sidebar() {
         <CardHeader>
           <CardTitle className="text-lg">編集部おすすめ</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           {(() => {
             const pool = [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[]
             const bySlug = new Map(pool.map((a) => [a.slug, a]))
-            const picks = (recommendedSlugs as string[])
+            const fromConfig = (recommendedSlugs as string[])
               .map((s) => bySlug.get(s))
               .filter(Boolean) as any[]
-            const fallback = picks.length ? picks : specialArticles.slice(0, 3)
-            return fallback.slice(0, 3).map((a) => (
-              <a key={a.slug} href={`/media/articles/${a.slug}/`}>
-                <CompactCard {...a} />
-              </a>
-            ))
+            // half-automatic: featured -> special by date -> recent by date
+            const sortByDateDesc = (arr: any[]) => arr.slice().sort((a,b)=> String(b.publishDate||'').localeCompare(String(a.publishDate||'')))
+            const auto = [
+              ...(featuredArticle?.slug ? [featuredArticle] : []),
+              ...sortByDateDesc(specialArticles),
+              ...sortByDateDesc(recentArticles)
+            ]
+            const unique = [] as any[]
+            const seen = new Set<string>()
+            for (const a of (fromConfig.length ? fromConfig : auto)) {
+              if (!a?.slug || seen.has(a.slug)) continue
+              seen.add(a.slug)
+              unique.push(a)
+              if (unique.length >= 3) break
+            }
+            return (
+              <ul className="space-y-2">
+                {unique.map((a) => (
+                  <li key={a.slug} className="text-sm">
+                    <a className="hover:underline" href={`/media/articles/${a.slug}/`}>{a.title}</a>
+                  </li>
+                ))}
+              </ul>
+            )
           })()}
         </CardContent>
       </Card>
@@ -97,9 +115,14 @@ export function Sidebar() {
           <p className="text-sm text-muted-foreground">
             記事ブリーフ雛形、チェックリスト、プロンプト例など、すぐ使える実務テンプレを配布中。資料請求・ダウンロードのご相談はお気軽に。
           </p>
-          <Button asChild className="w-full">
-            <a href="https://ai-and-marketing.jp/#contact" rel="noopener noreferrer">資料について相談する</a>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild className="flex-1">
+              <a href="/media/resources/">テンプレ一覧を見る</a>
+            </Button>
+            <Button asChild variant="outline" className="flex-1">
+              <a href="https://ai-and-marketing.jp/#contact" rel="noopener noreferrer">問い合わせる</a>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

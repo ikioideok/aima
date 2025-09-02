@@ -69,6 +69,7 @@ const routes = [
   '/media/latest/',
   '/media/featured/',
   '/media/special/',
+  '/media/resources/',
   '/media/search/',
   '/media/privacy/',
   '/media/terms/',
@@ -105,6 +106,11 @@ function applyHeadMeta(template, url, opts = {}) {
   if (url === '/media/search/') {
     title = `検索｜AI Marketing News`
     canonical = `${SITE_ORIGIN}/media/search/`
+    ogUrl = canonical
+  }
+  if (url === '/media/resources/') {
+    title = `無料テンプレート・資料｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/resources/`
     ogUrl = canonical
   }
   // pagination pages
@@ -251,6 +257,7 @@ try {
     `${SITE_ORIGIN}/media/latest/`,
     `${SITE_ORIGIN}/media/featured/`,
     `${SITE_ORIGIN}/media/special/`,
+    `${SITE_ORIGIN}/media/resources/`,
     `${SITE_ORIGIN}/media/privacy/`,
     `${SITE_ORIGIN}/media/terms/`,
     `${SITE_ORIGIN}/media/ads/`,
