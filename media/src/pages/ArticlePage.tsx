@@ -102,20 +102,25 @@ const ArticlePage = () => {
 
   const pageContent = article ? (
     <article className="space-y-4">
-      {article.imageUrl ? (
-        <div className="w-full aspect-[16/9] rounded-lg mb-8 overflow-hidden bg-white" style={{ backgroundColor: '#ffffff' }}>
-          <img
-            src={article.imageUrl}
-            alt={article.title}
-            decoding="async"
-            loading="eager"
-            fetchPriority="high"
-            width={1600}
-            height={900}
-            className="w-full h-full object-contain"
-          />
-        </div>
-      ) : null}
+      {(() => {
+        const hero = article.imageUrl && article.imageUrl.trim() !== ''
+          ? article.imageUrl
+          : '/media/ogp.png'
+        return (
+          <div className="w-full aspect-[16/9] rounded-lg mb-8 overflow-hidden bg-white" style={{ backgroundColor: '#ffffff' }}>
+            <img
+              src={hero}
+              alt={article.title}
+              decoding="async"
+              loading="eager"
+              fetchPriority="high"
+              width={1600}
+              height={900}
+              className="w-full h-full object-contain"
+            />
+          </div>
+        )
+      })()}
       <h1 className="text-4xl font-bold text-foreground">{article.title}</h1>
       <div className="text-muted-foreground">
         <span>By {article.author}</span> | <span>{article.publishDate}</span> | <span>{article.readTime}</span>
