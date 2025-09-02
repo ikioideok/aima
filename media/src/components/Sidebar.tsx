@@ -6,6 +6,7 @@ import { TrendingUp, User, Mail, Twitter, Github, Linkedin } from "lucide-react"
 import featuredArticle from '../data/featuredArticle.json'
 import specialArticles from '../data/specialArticles.json'
 import recentArticles from '../data/recentArticles.json'
+import siteOwner from '../data/siteOwner.json'
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 export function Sidebar() {
@@ -114,34 +115,47 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      {/* Author Profile */}
+      {/* Owner/Supervisor Profile */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">執筆者について</CardTitle>
+          <CardTitle className="text-lg">監修者について</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              <User className="h-6 w-6 text-muted-foreground" />
-            </div>
+            {siteOwner.avatarUrl ? (
+              <img src={siteOwner.avatarUrl} alt={siteOwner.name} width={48} height={48} className="w-12 h-12 rounded-full object-cover" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <User className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
             <div>
-              <h4 className="font-medium">佐藤 未来</h4>
-              <p className="text-sm text-muted-foreground">マーケティングストラテジスト</p>
+              <h4 className="font-medium">{siteOwner.name || '（要入力）'}</h4>
+              <p className="text-sm text-muted-foreground">{siteOwner.title || '代表'}</p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            BtoB/BtoCのグロース支援に従事。SEO・広告・CRMまでフルファネルで成果に直結する施策設計を得意とします。
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Twitter className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm">
-              <Github className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm">
-              <Linkedin className="h-4 w-4" />
-            </Button>
+          <p className="text-sm text-muted-foreground">{siteOwner.bio}</p>
+          <div className="flex flex-wrap gap-2">
+            {siteOwner.links?.site && (
+              <Button asChild variant="outline" size="sm">
+                <a href={siteOwner.links.site} rel="noopener noreferrer">公式サイト</a>
+              </Button>
+            )}
+            {siteOwner.links?.twitter && (
+              <Button asChild variant="outline" size="sm">
+                <a href={siteOwner.links.twitter} rel="noopener noreferrer"><Twitter className="h-4 w-4" /></a>
+              </Button>
+            )}
+            {siteOwner.links?.github && (
+              <Button asChild variant="outline" size="sm">
+                <a href={siteOwner.links.github} rel="noopener noreferrer"><Github className="h-4 w-4" /></a>
+              </Button>
+            )}
+            {siteOwner.links?.linkedin && (
+              <Button asChild variant="outline" size="sm">
+                <a href={siteOwner.links.linkedin} rel="noopener noreferrer"><Linkedin className="h-4 w-4" /></a>
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
