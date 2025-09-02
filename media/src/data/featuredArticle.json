@@ -1,12 +1,12 @@
 {
-  "slug": "what-is-llmo-and-how-to-measure",
-  "title": "LLMOとは？AI検索時代の新常識を徹底解説【SEOとの違い・対策手法・効果測定】",
-  "excerpt": "AI検索時代に不可欠なLLMO（大規模言語モデル最適化）を基礎から解説。SEOとの違い、実践手法、効果測定まで具体的に紹介します。",
+  "slug": "first-dummy-article",
+  "title": "はじめてのAI活用型コンテンツ制作フロー",
+  "excerpt": "企画ブリーフから構成案、下書き、校正まで。生成AIを編集ワークフローに組み込む実践ステップを紹介。",
   "author": "編集部 AI Marketing News",
-  "publishDate": "2025-08-31",
-  "readTime": "12分",
-  "category": "SEO",
-  "imageUrl": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "featured": true,
-  "body": "<h2>1. 導入：なぜ今、LLMOが重要なのか？</h2><p>検索体験はキーワード入力からAIへの対話へと急速にシフトしています。GoogleのAI Overviewなどにより、AIがWeb上の情報を要約し結果の最上部に提示するため、ゼロクリックの増加が予測されます。SEOだけでは届きにくくなる文脈で、AIに引用・参照されるための最適化＝LLMOが重要になります。</p><h2>2. LLMO（大規模言語モデル最適化）とは？</h2><p>LLMOは、ChatGPTやAI検索に自社情報を正確に学習・参照・推奨してもらうための施策群です。狙いは、(1) 回答内の引用による流入、(2) ブランド言及による認知向上、(3) 正確性の担保による信頼維持です。</p><h3>SEOとの違い（概要）</h3><table><thead><tr><th>項目</th><th>SEO</th><th>LLMO</th></tr></thead><tbody><tr><td>目的</td><td>順位/CTR向上</td><td>回答での引用・言及</td></tr><tr><td>対象</td><td>検索エンジン</td><td>LLM（生成AI）</td></tr><tr><td>施策</td><td>キーワード/被リンク/技術</td><td>構造化/網羅性/E-E-A-T</td></tr><tr><td>指標</td><td>順位/CTR/CVR</td><td>引用頻度/表示位置/正確性</td></tr></tbody></table><h2>3. 実践手法：AIに選ばれるコンテンツ</h2><ul><li><b>明確な定義文</b>：冒頭で主題を一文で定義</li><li><b>結論ファースト</b>：PREPで簡潔に構成</li><li><b>Q&amp;A形式</b>：FAQで問いと答えを明示</li><li><b>E‑E‑A‑T</b>：著者・根拠・一次情報を明記</li><li><b>用語統一</b>：表記の一貫性を担保</li></ul><h3>テクニカル施策</h3><ul><li>構造化データ（Article/FAQなど）</li><li>表示速度最適化</li><li>llms.txtの検討</li></ul><h3>ブランディング施策</h3><ul><li>サイテーション（引用/言及）を増やす</li><li>オープンプラットフォームでの一貫発信</li></ul><h2>4. 効果測定</h2><ul><li>GA4でAI由来の傾向を推測（Q&amp;A流入、長文クエリ）</li><li>AI回答への引用/言及の確認（手動・ツール）</li><li>指名検索の増加をモニタリング</li><li>AI可視性スコア/関連性指数など新指標</li></ul><h2>5. 導入ステップ</h2><ol><li>現状分析と目標設定（網羅性・信頼性・検索意図）</li><li>優先順位付けと実行計画（ローコスト高効果から）</li></ol><h2>6. 結論</h2><p>LLMOは一過性ではなく、AI時代の情報流通の前提です。SEOと両輪で、AIとユーザー双方への価値提供を高めることが勝ち筋です。まずは顧客になりきってAIに質問し、現状を把握することから始めましょう。</p>"
+  "publishDate": "2025-08-27",
+  "readTime": "7分",
+  "category": "コンテンツマーケティング",
+  "imageUrl": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2RlfGVufDF8fHx8MTc1NjE4MzAxMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  "featured": false,
+  "body": "<p>本記事では、生成AIを用いた編集フローの具体的な手順を公開します。企画ブリーフの作り方、検索意図を踏まえた見出し設計、下書き生成と事実確認、トーンの整え方、内部リンクの設計までを網羅。</p><ul><li>ブリーフの要件定義テンプレート</li><li>見出し案の評価観点</li><li>ファクトチェックのチェックリスト</li></ul>"
 }
