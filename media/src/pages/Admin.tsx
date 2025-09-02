@@ -79,6 +79,11 @@ export default function Admin() {
   const [featuredItem, setFeaturedItem] = useState<Article | null>(null)
   const [selectedList, setSelectedList] = useState<'recent'|'special'|'featured'|null>(null)
   const [selectedSlug, setSelectedSlug] = useState<string>('')
+  // 画像アップロード
+  const [upFile, setUpFile] = useState<File|null>(null)
+  const [upPreview, setUpPreview] = useState<string>('')
+  const [upUploading, setUpUploading] = useState(false)
+  const [upUrl, setUpUrl] = useState<string>('')
 
   const json = useMemo(() => JSON.stringify({ ...article }, null, 2), [article])
   const [connWarning, setConnWarning] = useState<string>('')
@@ -483,6 +488,65 @@ export default function Admin() {
           </div>
 
           <div>
+            {/* 画像アップロード */}
+            <div className="mb-6 p-4 border rounded">
+              <h2 className="text-xl font-semibold mb-3">画像アップロード</h2>
+              <div
+                className="mb-3 p-4 border-2 border-dashed rounded text-sm text-muted-foreground bg-muted/30"
+                onDragOver={(e)=>{ e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e)=>{
+                  e.preventDefault(); e.stopPropagation();
+                  const f = e.dataTransfer.files?.[0]
+                  if (f) {
+                    setUpFile(f)
+                    const r = new FileReader()
+                    r.onload = () => setUpPreview(String(r.result||''))
+                    r.readAsDataURL(f)
+                  }
+                }}
+              >
+                ここに画像をドラッグ＆ドロップ、または下のファイル選択を使用
+              </div>
+              <div className="flex items-center gap-3 mb-3">
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e)=>{
+                  const f = e.target.files?.[0]
+                  if (f) {
+                    setUpFile(f)
+                    const r = new FileReader()
+                    r.onload = () => setUpPreview(String(r.result||''))
+                    r.readAsDataURL(f)
+                  }
+                }} />
+                <button className="px-3 py-2 border rounded" disabled={!upFile || upUploading} onClick={async()=>{
+                  try {
+                    if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+                    if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
+                    if (!upFile || !upPreview) throw new Error('ファイルが選択されていません')
+                    setUpUploading(true)
+                    const body = { filename: upFile.name, contentType: upFile.type, dataBase64: upPreview }
+                    const r = await fetch(CMS_BASE + '/upload-image-base64', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN }, body: JSON.stringify(body)
+                    })
+                    const j = await r.json().catch(()=>null)
+                    if (!r.ok) throw new Error(j?.error || 'アップロードに失敗しました')
+                    setUpUrl(j.url)
+                    setArticle(a => ({ ...a, imageUrl: j.url }))
+                    navigator.clipboard?.writeText(j.url)
+                    setLog('アップロード完了。URLをコピーしました。')
+                  } catch(e:any) {
+                    setLog('失敗: ' + e.message)
+                  } finally {
+                    setUpUploading(false)
+                  }
+                }}>{upUploading ? 'アップロード中...' : 'アップロード'}</button>
+              </div>
+              {upPreview && (
+                <div className="flex items-center gap-4">
+                  <img src={upPreview} alt="preview" className="w-36 h-24 object-cover rounded border" />
+                  <div className="text-xs text-muted-foreground break-all">{upUrl || '（URLはアップロード後に表示）'}</div>
+                </div>
+              )}
+            </div>
             {/* Keyword Planner */}
             <div className="mb-6 p-4 border rounded">
               <h2 className="text-xl font-semibold mb-3">キーワードプランナー（簡易）</h2>

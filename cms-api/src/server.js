@@ -27,7 +27,7 @@ if (!GITHUB_TOKEN || !GITHUB_REPO_OWNER || !GITHUB_REPO_NAME) {
 const octokit = new Octokit({ auth: GITHUB_TOKEN })
 const app = express()
 app.use(cors())
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '10mb' }))
 
 function requireAdmin(req, res, next) {
   if (!ADMIN_TOKEN) return res.status(500).json({ error: 'ADMIN_TOKEN is not set on server' })
@@ -64,6 +64,88 @@ async function putFile(path, content, sha, message) {
     sha: sha || undefined,
   })
 }
+
+// Put a file whose content is already base64-encoded (binary safe)
+async function putFileBase64(path, base64Content, sha, message) {
+  await octokit.repos.createOrUpdateFileContents({
+    owner: GITHUB_REPO_OWNER,
+    repo: GITHUB_REPO_NAME,
+    path,
+    message,
+    content: base64Content,
+    branch: GITHUB_BRANCH,
+    sha: sha || undefined,
+  })
+}
+
+// Get only sha (binary-safe)
+async function getFileShaOnly(path) {
+  try {
+    const { data } = await octokit.repos.getContent({
+      owner: GITHUB_REPO_OWNER,
+      repo: GITHUB_REPO_NAME,
+      path,
+      ref: GITHUB_BRANCH,
+    })
+    return data.sha
+  } catch (e) {
+    if (e.status === 404) return null
+    throw e
+  }
+}
+
+function sanitizeFilename(name) {
+  const base = String(name || '').split('\\').pop().split('/').pop()
+  const parts = base.split('.')
+  let ext = parts.length > 1 ? parts.pop() : ''
+  let stem = parts.join('.')
+  stem = stem.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9-_.]+/g, '-').replace(/^-+|-+$/g, '') || 'upload'
+  ext = (ext || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  return { stem, ext }
+}
+
+function extFromContentType(ct) {
+  const map = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' }
+  return map[String(ct || '').toLowerCase()] || ''
+}
+
+function bytesFromBase64Len(len) {
+  // approximate bytes from base64 length
+  return Math.floor(len * 3 / 4)
+}
+
+// Upload image (base64 or data URL), store under public/media/uploads/YYYY/MM/
+app.post('/upload-image-base64', requireAdmin, async (req, res) => {
+  try {
+    const { filename = 'upload', contentType = '', dataBase64 = '' } = req.body || {}
+    if (!dataBase64) return res.status(400).json({ error: 'dataBase64 is required' })
+    // strip data URL prefix if present
+    const m = String(dataBase64).match(/^data:([^;]+);base64,(.*)$/)
+    const ct = (m ? m[1] : contentType) || ''
+    const b64 = m ? m[2] : String(dataBase64)
+    const allowed = ['image/png','image/jpeg','image/jpg','image/webp','image/gif']
+    if (!allowed.includes(ct.toLowerCase())) return res.status(400).json({ error: 'unsupported contentType' })
+    const maxBytes = 5 * 1024 * 1024 // 5MB
+    if (bytesFromBase64Len(b64.length) > maxBytes) return res.status(413).json({ error: 'file too large (max 5MB)' })
+
+    const { stem, ext: extFromName } = sanitizeFilename(filename)
+    const ext = extFromName || extFromContentType(ct) || 'png'
+    const now = new Date()
+    const yyyy = String(now.getFullYear())
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const rand = Math.random().toString(36).slice(2, 8)
+    const outName = `${stem}-${now.getTime()}-${rand}.${ext}`
+    const rel = `media/uploads/${yyyy}/${mm}/${outName}`
+    const path = `public/${rel}`
+    const sha = await getFileShaOnly(path)
+    await putFileBase64(path, b64, sha, `chore(cms): upload image ${rel}`)
+    const url = `/${rel}`
+    res.json({ ok: true, url })
+  } catch (e) {
+    console.error('upload-image-base64 error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to upload image' })
+  }
+})
 
 function validateArticle(a) {
   const required = ['slug', 'title', 'excerpt', 'author', 'publishDate', 'readTime', 'category', 'imageUrl']
