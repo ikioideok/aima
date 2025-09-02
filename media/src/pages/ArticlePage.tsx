@@ -8,6 +8,8 @@ import siteOwner from '../data/siteOwner.json';
 import { SimpleHeader } from '../components/SimpleHeader';
 import { SimpleFooter } from '../components/SimpleFooter';
 import { CompactCard } from '../components/CompactCard';
+import { ReviewerCard } from '../components/ReviewerCard';
+import siteOwner from '../data/siteOwner.json';
 
 // Combine all articles into one array. Note: featuredArticle is an object, not an array.
 const allArticles = [featuredArticle, ...specialArticles, ...recentArticles, dummyArticle];
@@ -179,6 +181,17 @@ const ArticlePage = () => {
           />
         )}
       </div>
+
+      {/* Reviewer Card */}
+      <ReviewerCard
+        info={{
+          name: (article.reviewer || '').trim() || (siteOwner?.name || ''),
+          title: siteOwner?.title,
+          bio: siteOwner?.bio,
+          avatarUrl: siteOwner?.avatarUrl,
+          links: siteOwner?.links as any,
+        }}
+      />
 
       {/* Related Articles */}
       {related.length > 0 && (
