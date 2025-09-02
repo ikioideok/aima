@@ -1,10 +1,22 @@
 services:
+  # Media (static site)
   - type: static
     name: aima-media
     env: node
     buildCommand: npm ci && npm run build && npm run postbuild
     publishPath: dist/media
     pullRequestPreviewsEnabled: false
+    envVars:
+      # CMSのURLをフロントに注入（本番の管理画面がこのURLへ直接接続します）
+      - key: VITE_CMS_API_BASE
+        fromService:
+          type: web
+          name: aima-cms-api
+          property: url
+      # 管理画面の認証トークン（CMSのADMIN_TOKENと同じ値を設定してください）
+      # 値はRenderダッシュボードで設定してください（このYAMLには平文を置かない）。
+      - key: VITE_ADMIN_TOKEN
+        sync: false
     headers:
       - path: /assets/*
         name: Cache-Control
@@ -12,3 +24,31 @@ services:
       - path: /*
         name: X-Frame-Options
         value: SAMEORIGIN
+
+  # CMS API（Node.js, Express）
+  - type: web
+    name: aima-cms-api
+    env: node
+    rootDir: cms-api
+    buildCommand: npm ci
+    startCommand: node src/server.js
+    plan: free
+    autoDeploy: true
+    envVars:
+      # GitHub連携に必要（Renderのダッシュボードで設定してください）
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO_OWNER
+        value: ikioideok
+      - key: GITHUB_REPO_NAME
+        value: aima
+      - key: GITHUB_BRANCH
+        value: main
+      # 管理画面の認証トークン（フロントのVITE_ADMIN_TOKENと同じ値に）
+      - key: ADMIN_TOKEN
+        sync: false
+      # 必要に応じて（記事生成機能を使わない場合は未設定でOK）
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
