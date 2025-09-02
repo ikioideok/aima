@@ -1,15 +1,5 @@
 [
   {
-    "slug": "brand-lift-measurement-for-multi-channel-campaigns",
-    "title": "マルチチャネル施策のブランドリフト測定ガイド",
-    "excerpt": "サーチリフト・指名検索・想起率の計測と因果推論の基本。媒体横断で効果を評価するための設計手順。",
-    "author": "川口 アナリティクス",
-    "publishDate": "2024-01-09",
-    "readTime": "16分",
-    "category": "アナリティクス",
-    "imageUrl": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-  },
-  {
     "slug": "google-ads-performance-max-structure",
     "title": "P-MAXで成果を最大化する構造設計",
     "excerpt": "アセットグループの切り方、フィード管理、除外の考え方、目標設定まで。スケールとCPAの両立を狙う。",
