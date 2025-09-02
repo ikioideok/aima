@@ -95,10 +95,22 @@ export function Sidebar() {
               if (unique.length >= 3) break
             }
             return (
-              <ul className="space-y-2">
-                {unique.map((a) => (
+              <ul className="space-y-3">
+                {unique.map((a, i) => (
                   <li key={a.slug} className="text-sm">
-                    <a className="hover:underline" href={`/media/articles/${a.slug}/`}>{a.title}</a>
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 inline-flex items-center justify-center text-[10px] font-semibold rounded-full bg-red-accent text-red-accent-foreground w-5 h-5">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <a className="font-medium hover:underline line-clamp-2" href={`/media/articles/${a.slug}/`}>
+                          {a.title}
+                        </a>
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {a.category}{a.readTime ? ` ・ ${a.readTime}` : ''}{a.publishDate ? ` ・ ${a.publishDate}` : ''}
+                        </div>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
