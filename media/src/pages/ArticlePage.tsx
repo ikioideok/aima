@@ -103,7 +103,7 @@ const ArticlePage = () => {
   const pageContent = article ? (
     <article className="space-y-4">
       {article.imageUrl ? (
-        <div className="w-full aspect-[16/9] rounded-lg mb-8 overflow-hidden bg-white">
+        <div className="w-full aspect-[16/9] rounded-lg mb-8 overflow-hidden bg-white" style={{ backgroundColor: '#ffffff' }}>
           <img
             src={article.imageUrl}
             alt={article.title}
