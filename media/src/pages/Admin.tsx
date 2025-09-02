@@ -24,7 +24,17 @@ const initial: Article = {
   body: ''
 }
 
-const CMS_BASE = import.meta.env.VITE_CMS_API_BASE || ''
+const rawCMSBase = import.meta.env.VITE_CMS_API_BASE || ''
+// Resolve CMS base with sensible fallbacks to avoid Failed to fetch (mixed content / unset env)
+const CMS_BASE: string = (() => {
+  if (rawCMSBase) return rawCMSBase as string
+  // If running over HTTPS and no env set, assume reverse proxy at same origin
+  if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
+    return '/cms-api'
+  }
+  // Local dev fallback
+  return 'http://localhost:3001'
+})()
 const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || ''
 
 export default function Admin() {
@@ -71,6 +81,16 @@ export default function Admin() {
   const [selectedSlug, setSelectedSlug] = useState<string>('')
 
   const json = useMemo(() => JSON.stringify({ ...article }, null, 2), [article])
+  const [connWarning, setConnWarning] = useState<string>('')
+
+  React.useEffect(() => {
+    try {
+      const u = new URL(CMS_BASE, typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:' && u.protocol === 'http:') {
+        setConnWarning('警告: このページ(HTTPS)からHTTPのCMSには接続できません。VITE_CMS_API_BASEをHTTPSにするか、/cms-apiプロキシを設定してください。')
+      }
+    } catch (_) {}
+  }, [])
 
   function onChange<K extends keyof Article>(k: K, v: Article[K]) {
     setArticle((a) => ({ ...a, [k]: v }))
@@ -276,6 +296,11 @@ export default function Admin() {
     <div className="min-h-screen bg-background text-foreground">
       <div className="w-full max-w-5xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">記事管理（簡易）</h1>
+        {!!connWarning && (
+          <div className="mb-4 p-3 text-sm rounded border border-yellow-400 bg-yellow-50 text-yellow-800">
+            {connWarning}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
