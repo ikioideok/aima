@@ -3,6 +3,9 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { TrendingUp, User, Mail, Twitter, Github, Linkedin } from "lucide-react";
+import featuredArticle from '../data/featuredArticle.json'
+import specialArticles from '../data/specialArticles.json'
+import recentArticles from '../data/recentArticles.json'
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 export function Sidebar() {
@@ -13,14 +16,29 @@ export function Sidebar() {
     { title: "SEOに強い情報設計：サイト構造と内部リンク", readTime: "10分", views: "6.1k" }
   ];
 
-  const categories = [
-    { name: "コンテンツマーケティング", count: 45 },
-    { name: "SEO", count: 38 },
-    { name: "広告運用", count: 32 },
-    { name: "SNSマーケティング", count: 28 },
-    { name: "マーケティング戦略", count: 24 },
-    { name: "マーケティングAI/自動化", count: 22 }
-  ];
+  function slugify(str: string): string {
+    return String(str || '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
+  const categories = (() => {
+    const all = [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[]
+    const map = new Map<string, { name: string, count: number, slug: string }>()
+    for (const a of all) {
+      const name = a?.category || 'その他'
+      const slug = slugify(name)
+      const cur = map.get(slug) || { name, count: 0, slug }
+      cur.count += 1
+      map.set(slug, cur)
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+  })();
 
   return (
     <aside className="space-y-6">
@@ -80,16 +98,17 @@ export function Sidebar() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {categories.map((category, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between py-1 cursor-pointer hover:text-primary transition-colors"
+            {categories.map((category) => (
+              <a
+                key={category.slug}
+                href={`/media/category/${category.slug}/`}
+                className="flex items-center justify-between py-1 hover:text-primary transition-colors"
               >
                 <span className="text-sm">{category.name}</span>
                 <Badge variant="secondary" className="text-xs">
                   {category.count}
                 </Badge>
-              </div>
+              </a>
             ))}
           </div>
         </CardContent>
