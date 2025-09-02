@@ -7,6 +7,8 @@ import PageList from "./pages/PageList.tsx";
 import LatestPage from "./pages/LatestPage.tsx";
 import FeaturedPage from "./pages/FeaturedPage.tsx";
 import SpecialPage from "./pages/SpecialPage.tsx";
+import CategoriesPage from "./pages/CategoriesPage.tsx";
+import CategoryPage from "./pages/CategoryPage.tsx";
 import Admin from "./pages/Admin.tsx";
 import "./styles/globals.css";
 
@@ -29,6 +31,8 @@ createRoot(document.getElementById("root")!).render(
       <Route path="/latest" element={<LatestPage />} />
       <Route path="/featured" element={<FeaturedPage />} />
       <Route path="/special" element={<SpecialPage />} />
+      <Route path="/categories" element={<CategoriesPage />} />
+      <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/admin" element={<Admin />} />
     </Routes>
   </BrowserRouter>

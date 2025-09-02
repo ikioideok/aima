@@ -7,6 +7,8 @@ import PageList from '../pages/PageList'
 import LatestPage from '../pages/LatestPage'
 import FeaturedPage from '../pages/FeaturedPage'
 import SpecialPage from '../pages/SpecialPage'
+import CategoriesPage from '../pages/CategoriesPage'
+import CategoryPage from '../pages/CategoryPage'
 
 export function render(url: string) {
   // Note: In a real app, you'd need to handle data fetching for the components
@@ -20,6 +22,8 @@ export function render(url: string) {
         <Route path="/latest" element={<LatestPage />} />
         <Route path="/featured" element={<FeaturedPage />} />
         <Route path="/special" element={<SpecialPage />} />
+        <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/category/:slug" element={<CategoryPage />} />
       </Routes>
     </StaticRouter>
   )

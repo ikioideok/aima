@@ -8,7 +8,7 @@ export function SimpleHeader() {
     { name: "最新記事", href: "/media/latest/" },
     { name: "注目記事", href: "/media/featured/" },
     { name: "特集記事", href: "/media/special/" },
-    { name: "カテゴリー", href: "/media/" },
+    { name: "カテゴリー", href: "/media/categories/" },
     { name: "このサイトについて", href: "/media/" }
   ];
 

@@ -67,15 +67,25 @@ export function SimpleFooter() {
                 "SNSマーケティング",
                 "マーケティング戦略",
                 "マーケティングAI/自動化"
-              ].map((item) => (
-                <span 
-                  key={item}
-                  className="block text-sm text-muted-foreground"
-                  aria-disabled="true"
-                >
-                  {item}
-                </span>
-              ))}
+              ].map((item) => {
+                const slug = String(item)
+                  .toLowerCase()
+                  .normalize('NFKD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .replace(/[^a-z0-9\s-]/g, '')
+                  .trim()
+                  .replace(/[\s_-]+/g, '-')
+                  .replace(/^-+|-+$/g, '')
+                return (
+                  <a 
+                    key={item}
+                    href={`/media/category/${slug}/`}
+                    className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {item}
+                  </a>
+                )
+              })}
             </nav>
           </div>
 

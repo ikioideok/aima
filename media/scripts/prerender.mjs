@@ -39,15 +39,38 @@ const outDir = path.resolve('../dist/media')
 const templatePath = path.join(outDir, 'index.html')
 const template = fs.readFileSync(templatePath, 'utf-8')
 
-const { bySlug: articles, recent } = collectArticles()
+const { bySlug: articles, recent, special, featured } = collectArticles()
 const PAGE_SIZE = 10
 const totalPages = Math.max(1, Math.ceil((recent || []).length / PAGE_SIZE))
 const pageRoutes = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => `/media/page/${i + 2}/`)
+// collect categories
+function slugify(str) {
+  return String(str || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+const all = [featured, ...(special||[]), ...(recent||[])].filter(Boolean)
+const catSet = new Map()
+for (const a of all) {
+  const c = a?.category
+  if (!c) continue
+  catSet.set(slugify(c), c)
+}
+const categoryRoutes = Array.from(catSet.keys()).map((s) => `/media/category/${s}/`)
+
 const routes = [
   '/media/',
   '/media/latest/',
   '/media/featured/',
   '/media/special/',
+  '/media/categories/',
+  ...categoryRoutes,
   ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`),
   ...pageRoutes
 ]
@@ -80,6 +103,21 @@ function applyHeadMeta(template, url, opts = {}) {
     const n = Number(pm[1] || '2')
     title = `最新記事 - ページ ${n}｜AI Marketing News`
     canonical = `${SITE_ORIGIN}/media/page/${n}/`
+    ogUrl = canonical
+  }
+  // categories index
+  if (url === '/media/categories/') {
+    title = `カテゴリー｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/categories/`
+    ogUrl = canonical
+  }
+  // category pages
+  const cm = url.match(/^\/media\/category\/([^/]+)\/?$/)
+  if (cm) {
+    const slug = cm[1]
+    const name = catSet.get(slug) || 'カテゴリー'
+    title = `${name}｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/category/${slug}/`
     ogUrl = canonical
   }
   // section pages
@@ -180,7 +218,12 @@ try {
   const urls = [
     `${SITE_ORIGIN}/media/`,
     ...Array.from(articles.keys()).map((slug) => `${SITE_ORIGIN}/media/articles/${slug}/`),
-    ...pageRoutes.map((p) => `${SITE_ORIGIN}${p}`)
+    ...pageRoutes.map((p) => `${SITE_ORIGIN}${p}`),
+    `${SITE_ORIGIN}/media/latest/`,
+    `${SITE_ORIGIN}/media/featured/`,
+    `${SITE_ORIGIN}/media/special/`,
+    `${SITE_ORIGIN}/media/categories/`,
+    ...categoryRoutes.map((p) => `${SITE_ORIGIN}${p}`)
   ]
   const today = new Date().toISOString().slice(0, 10)
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
