@@ -696,5 +696,69 @@ app.post('/clear-featured', requireAdmin, async (req, res) => {
   }
 })
 
+// --- Keyword Planner: Save/Load/Delete ---
+const KEYWORD_PLANS_PATH = 'media/src/data/keywordPlans.json'
+
+// Save a keyword plan
+app.post('/save-keyword-plan', requireAdmin, async (req, res) => {
+  try {
+    const { plan, notes = '', provider, model } = req.body || {}
+    if (!plan || typeof plan !== 'object' || !plan.seed) {
+      return res.status(400).json({ error: 'plan with seed is required' })
+    }
+    const { sha, content } = await getFile(KEYWORD_PLANS_PATH)
+    const arr = content ? JSON.parse(content) : []
+    const id = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
+    const rec = {
+      id,
+      seed: String(plan.seed || ''),
+      suggestions: Array.isArray(plan.suggestions) ? plan.suggestions : [],
+      notes: String(notes || ''),
+      provider: provider || null,
+      model: model || null,
+      createdAt: new Date().toISOString(),
+    }
+    arr.unshift(rec)
+    // keep latest 50 entries
+    const next = arr.slice(0, 50)
+    const out = JSON.stringify(next, null, 2) + '\n'
+    await putFile(KEYWORD_PLANS_PATH, out, sha, `chore(cms): save keyword plan for ${rec.seed}`)
+    res.json({ ok: true, id: rec.id })
+  } catch (e) {
+    console.error('save-keyword-plan error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to save keyword plan' })
+  }
+})
+
+// List keyword plans
+app.get('/keyword-plans', requireAdmin, async (req, res) => {
+  try {
+    const { content } = await getFile(KEYWORD_PLANS_PATH)
+    const arr = content ? JSON.parse(content) : []
+    res.json({ ok: true, plans: arr })
+  } catch (e) {
+    console.error('get keyword-plans error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to get keyword plans' })
+  }
+})
+
+// Delete keyword plan by id
+app.delete('/keyword-plans/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { sha, content } = await getFile(KEYWORD_PLANS_PATH)
+    const arr = content ? JSON.parse(content) : []
+    const next = arr.filter((r) => r.id !== id)
+    if (next.length === arr.length) return res.status(404).json({ error: 'Plan not found' })
+    const out = JSON.stringify(next, null, 2) + '\n'
+    await putFile(KEYWORD_PLANS_PATH, out, sha, `chore(cms): delete keyword plan ${id}`)
+    res.json({ ok: true })
+  } catch (e) {
+    console.error('delete keyword-plan error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to delete keyword plan' })
+  }
+})
+
 const port = process.env.PORT || 3001
 app.listen(port, () => console.log(`CMS API listening on :${port}`))

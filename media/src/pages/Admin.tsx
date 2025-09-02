@@ -49,6 +49,9 @@ export default function Admin() {
   const [kpSeed, setKpSeed] = useState<string>('')
   const [kpLoading, setKpLoading] = useState(false)
   const [kpResult, setKpResult] = useState<any|null>(null)
+  const [kpNotes, setKpNotes] = useState<string>('')
+  const [kpSaving, setKpSaving] = useState(false)
+  const [kpSaved, setKpSaved] = useState<any[]>([])
   // 保存時の公開日上書きオプション
   const [publishToday, setPublishToday] = useState<boolean>(false)
   // 保存時の追加オプション
@@ -114,6 +117,16 @@ export default function Admin() {
   }
 
   React.useEffect(()=>{ loadLists() }, [])
+
+  async function loadSavedPlans() {
+    if (!CMS_BASE || !ADMIN_TOKEN) return
+    try {
+      const r = await fetch(CMS_BASE + '/keyword-plans', { headers: { 'X-Admin-Token': ADMIN_TOKEN } })
+      const j = await r.json().catch(()=>null)
+      if (j?.plans) setKpSaved(j.plans)
+    } catch (_) {}
+  }
+  React.useEffect(()=>{ loadSavedPlans() }, [])
 
   function selectForEdit(list: 'recent'|'special'|'featured', slug?: string) {
     if (list === 'featured' && featuredItem) {
@@ -465,6 +478,10 @@ export default function Admin() {
                   </select>
                 </div>
               </div>
+              <div className="mb-3">
+                <label className="block text-sm mb-1">メモ（任意）</label>
+                <input className="w-full border rounded px-3 py-2 bg-input-background" value={kpNotes} onChange={(e)=>setKpNotes(e.target.value)} placeholder="用途や補足など" />
+              </div>
               <div className="flex gap-3 mb-3">
                 <button className="px-3 py-2 rounded border" disabled={kpLoading || !kpSeed} onClick={async ()=>{
                   try {
@@ -485,6 +502,27 @@ export default function Admin() {
                     setKpLoading(false)
                   }
                 }}>{kpLoading ? '生成中...' : '候補を生成'}</button>
+                <button className="px-3 py-2 rounded border" disabled={kpSaving || !kpResult} onClick={async ()=>{
+                  try {
+                    if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+                    if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
+                    setKpSaving(true)
+                    const r = await fetch(CMS_BASE + '/save-keyword-plan', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN },
+                      body: JSON.stringify({ plan: kpResult, notes: kpNotes, provider: providerOutline, model: modelOutline })
+                    })
+                    const j = await r.json().catch(()=>null)
+                    if (!r.ok) throw new Error(j?.error || '保存に失敗しました')
+                    setKpNotes('')
+                    setLog('保存しました')
+                    await loadSavedPlans()
+                  } catch(e:any) {
+                    setLog('失敗: ' + e.message)
+                  } finally {
+                    setKpSaving(false)
+                  }
+                }}>{kpSaving ? '保存中...' : 'この候補を保存'}</button>
                 {!!kpResult?.suggestions?.length && (
                   <button className="px-3 py-2 rounded border" onClick={()=>{
                     const rows = kpResult.suggestions.map((s:any)=> [s.keyword, s.intent, s.volume||'', s.difficulty||'', (s.variations||[]).join(' | '), (s.questions||[]).join(' | ')].join(','))
@@ -520,6 +558,58 @@ export default function Admin() {
                               setOutline((o:any)=> ({...(o||{}), seo: { ...(o?.seo||{}), keywords: [...new Set([...(o?.seo?.keywords||[]), s.keyword])] }}))
                               setLog('SEOキーワードに追加しました')
                             }}>SEOに追加</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="mb-6 p-4 border rounded">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-semibold">保存済みキーワードプラン</h2>
+                <button className="text-sm underline" onClick={loadSavedPlans}>再読み込み</button>
+              </div>
+              {kpSaved.length === 0 ? (
+                <div className="text-sm text-muted-foreground">まだ保存されていません。</div>
+              ) : (
+                <div className="overflow-auto border rounded">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-2">種キーワード</th>
+                        <th className="text-left p-2">件数</th>
+                        <th className="text-left p-2">作成日時</th>
+                        <th className="text-left p-2">メモ</th>
+                        <th className="text-left p-2">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {kpSaved.map((r:any)=> (
+                        <tr key={r.id} className="border-t">
+                          <td className="p-2 whitespace-nowrap">{r.seed}</td>
+                          <td className="p-2 whitespace-nowrap">{Array.isArray(r.suggestions)?r.suggestions.length:0}</td>
+                          <td className="p-2 whitespace-nowrap">{new Date(r.createdAt).toLocaleString()}</td>
+                          <td className="p-2">{r.notes||''}</td>
+                          <td className="p-2 whitespace-nowrap flex gap-2">
+                            <button className="text-xs px-2 py-1 border rounded" onClick={()=>{
+                              const rows = (r.suggestions||[]).map((s:any)=> [s.keyword, s.intent, s.volume||'', s.difficulty||'', (s.variations||[]).join(' | '), (s.questions||[]).join(' | ')].join(','))
+                              const csv = ['keyword,intent,volume,difficulty,variations,questions', ...rows].join('\n')
+                              navigator.clipboard?.writeText(csv)
+                              setLog('コピーしました（CSV）')
+                            }}>CSV</button>
+                            <button className="text-xs px-2 py-1 border rounded" onClick={async()=>{
+                              try {
+                                if (!CMS_BASE) throw new Error('VITE_CMS_API_BASE が未設定です')
+                                if (!ADMIN_TOKEN) throw new Error('VITE_ADMIN_TOKEN が未設定です')
+                                const rr = await fetch(CMS_BASE + `/keyword-plans/${encodeURIComponent(r.id)}`, { method:'DELETE', headers: { 'X-Admin-Token': ADMIN_TOKEN } })
+                                const jj = await rr.json().catch(()=>null)
+                                if (!rr.ok) throw new Error(jj?.error || '削除に失敗しました')
+                                await loadSavedPlans()
+                                setLog('削除しました')
+                              } catch(e:any) { setLog('失敗: ' + e.message) }
+                            }}>削除</button>
                           </td>
                         </tr>
                       ))}
