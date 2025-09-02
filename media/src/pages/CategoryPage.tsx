@@ -20,7 +20,12 @@ function slugify(str: string): string {
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>()
-  const all = React.useMemo(() => [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[], [])
+  const all = React.useMemo(() => {
+    const pool = [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[]
+    const bySlug = new Map<string, any>()
+    for (const a of pool) if (a?.slug) bySlug.set(a.slug, a)
+    return Array.from(bySlug.values())
+  }, [])
   const catName = React.useMemo(() => {
     for (const a of all) {
       const n = a?.category || ''
@@ -30,9 +35,10 @@ export default function CategoryPage() {
   }, [slug])
 
   const items = React.useMemo(() => {
-    return all.filter((a) => slugify(a?.category || '') === slug)
+    return all
+      .filter((a) => slugify(a?.category || '') === slug)
       .sort((a, b) => String(b.publishDate||'').localeCompare(String(a.publishDate||'')))
-  }, [slug])
+  }, [slug, all])
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,4 +64,3 @@ export default function CategoryPage() {
     </div>
   )
 }
-
