@@ -8,6 +8,8 @@ import specialArticles from '../data/specialArticles.json'
 import recentArticles from '../data/recentArticles.json'
 import siteOwner from '../data/siteOwner.json'
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { CompactCard } from "./CompactCard";
+import recommendedSlugs from '../data/recommended.json'
 
 export function Sidebar() {
   const popularArticles = [
@@ -43,6 +45,27 @@ export function Sidebar() {
 
   return (
     <aside className="space-y-6">
+      {/* Editorial Picks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">編集部おすすめ</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(() => {
+            const pool = [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[]
+            const bySlug = new Map(pool.map((a) => [a.slug, a]))
+            const picks = (recommendedSlugs as string[])
+              .map((s) => bySlug.get(s))
+              .filter(Boolean) as any[]
+            const fallback = picks.length ? picks : specialArticles.slice(0, 3)
+            return fallback.slice(0, 3).map((a) => (
+              <a key={a.slug} href={`/media/articles/${a.slug}/`}>
+                <CompactCard {...a} />
+              </a>
+            ))
+          })()}
+        </CardContent>
+      </Card>
       {/* Newsletter Signup */}
       <Card>
         <CardHeader>
@@ -62,6 +85,21 @@ export function Sidebar() {
           <p className="text-xs text-muted-foreground">
             いつでも配信停止できます
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Resources CTA */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">無料テンプレート・資料</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            記事ブリーフ雛形、チェックリスト、プロンプト例など、すぐ使える実務テンプレを配布中。資料請求・ダウンロードのご相談はお気軽に。
+          </p>
+          <Button asChild className="w-full">
+            <a href="https://ai-and-marketing.jp/#contact" rel="noopener noreferrer">資料について相談する</a>
+          </Button>
         </CardContent>
       </Card>
 
