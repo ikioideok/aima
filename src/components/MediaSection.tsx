@@ -2,6 +2,8 @@ import React from 'react';
 import { motion, useInView } from 'motion/react';
 import { useRef } from 'react';
 import { ArrowUpRight, Quote, Play, ExternalLink, TrendingUp } from 'lucide-react';
+import featuredArticle from '../../media/src/data/featuredArticle.json';
+import recentArticles from '../../media/src/data/recentArticles.json';
 
 export function MediaSection() {
   const ref = useRef(null);
@@ -55,32 +57,18 @@ export function MediaSection() {
     },
   };
 
-  const mediaItems = [
-    {
-      type: "press",
-      title: "SEO記事 01",
-      source: "AIMA Media",
-      description: "検索上位を狙うための最新SEOトレンドと、実務に活かせる実践ポイントをわかりやすく解説。",
-      date: "2025.01.15",
-      category: "SEO"
-    },
-    {
-      type: "press",
-      title: "SEO記事 02",
-      source: "AIMA Media",
-      description: "AIを活用したコンテンツ最適化の考え方と、成果につながるキーワード戦略の作り方。",
-      date: "2025.01.20",
-      category: "SEO"
-    },
-    {
-      type: "press",
-      title: "SEO記事 03",
-      source: "AIMA Media",
-      description: "サイト構造の見直しでCVRを高める、テクニカルSEOの基本とチェックリスト。",
-      date: "2025.01.28",
-      category: "SEO"
-    }
-  ];
+  const mediaItems = (() => {
+    const src = [featuredArticle, ...(recentArticles as any[]).slice(0, 2)].filter(Boolean) as any[]
+    return src.map((a) => ({
+      type: 'press' as const,
+      title: a.title,
+      source: 'AI Marketing News',
+      description: a.excerpt,
+      date: a.publishDate,
+      category: a.category || 'News',
+      href: `/media/articles/${a.slug}/`
+    }))
+  })();
 
   const getCategoryColor = (category: string) => {
     const colors = {
@@ -141,7 +129,8 @@ export function MediaSection() {
           className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16"
         >
           {mediaItems.map((item, index) => (
-            <motion.div
+            <motion.a
+              href={item.href || '#'}
               key={index}
               variants={cardVariants}
               whileHover={{ 
@@ -311,7 +300,7 @@ export function MediaSection() {
                 className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ zIndex: -1 }}
               />
-            </motion.div>
+            </motion.a>
           ))}
         </motion.div>
 
