@@ -215,6 +215,18 @@ for (const url of routes) {
 }
 
 await vite.close()
+// Ensure uploaded images are published: copy repo public/media/uploads -> dist/media/uploads
+try {
+  const srcUploads = path.resolve('../public/media/uploads')
+  const dstUploads = path.resolve('../dist/media/uploads')
+  if (fs.existsSync(srcUploads)) {
+    fs.mkdirSync(dstUploads, { recursive: true })
+    // Node 16+: use cpSync recursive
+    fs.cpSync(srcUploads, dstUploads, { recursive: true })
+  }
+} catch (e) {
+  console.warn('Failed to copy uploads:', e?.message || e)
+}
 // Generate RSS feed
 try {
   const items = Object.values(Object.fromEntries(articles))

@@ -135,11 +135,13 @@ app.post('/upload-image-base64', requireAdmin, async (req, res) => {
     const mm = String(now.getMonth() + 1).padStart(2, '0')
     const rand = Math.random().toString(36).slice(2, 8)
     const outName = `${stem}-${now.getTime()}-${rand}.${ext}`
-    const rel = `media/uploads/${yyyy}/${mm}/${outName}`
-    const path = `public/${rel}`
-    const sha = await getFileShaOnly(path)
-    await putFileBase64(path, b64, sha, `chore(cms): upload image ${rel}`)
-    const url = `/${rel}`
+    // Public URL under media site
+    const relWeb = `media/uploads/${yyyy}/${mm}/${outName}`
+    // Store under media/public so Vite copies to dist/media on build
+    const repoPath = `media/public/uploads/${yyyy}/${mm}/${outName}`
+    const sha = await getFileShaOnly(repoPath)
+    await putFileBase64(repoPath, b64, sha, `chore(cms): upload image ${relWeb}`)
+    const url = `/${relWeb}`
     res.json({ ok: true, url })
   } catch (e) {
     console.error('upload-image-base64 error:', e?.message || e)
