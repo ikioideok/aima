@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "mf2r705z-9d9ema",
+    "seed": "SEO",
+    "suggestions": [
+      "SEO対策",
+      "SEOツール",
+      "SEO会社",
+      "SEO費用",
+      "コンテンツSEO",
+      "内部対策",
+      "外部対策",
+      "テクニカルSEO",
+      "キーワード選定",
+      "被リンク獲得",
+      "SEOライティング",
+      "リライト 方法",
+      "ローカルSEO",
+      "MEO対策",
+      "SEOコンサルティング",
+      "SEO 効果測定",
+      "Googleコアアップデート",
+      "サーチコンソール 使い方",
+      "WordPress SEO",
+      "ECサイト SEO"
+    ],
+    "notes": "",
+    "provider": "gemini",
+    "model": "gemini-2.5-pro",
+    "createdAt": "2025-09-02T16:19:13.943Z"
+  }
+]
