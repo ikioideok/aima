@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
 Sitemap: https://ai-and-marketing.jp/sitemap.xml
+Sitemap: https://ai-and-marketing.jp/media/sitemap.xml
