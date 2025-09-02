@@ -148,10 +148,19 @@ app.post('/upload-image-base64', requireAdmin, async (req, res) => {
 })
 
 function validateArticle(a) {
-  const required = ['slug', 'title', 'excerpt', 'author', 'publishDate', 'readTime', 'category', 'imageUrl']
+  // Allow empty imageUrl explicitly (＝アイキャッチ未設定)。
+  // Other fields are required.
+  const required = ['slug', 'title', 'excerpt', 'author', 'publishDate', 'readTime', 'category']
   for (const k of required) {
     if (!a?.[k]) return `${k} is required`
   }
+  // imageUrl: empty string is allowed, otherwise must be a URL or /media/uploads path
+  const isValidImageUrl = (s) => {
+    const str = String(s ?? '')
+    if (str === '') return true
+    return /^(https?:\/\/|\/media\/uploads\/)/.test(str)
+  }
+  if (!isValidImageUrl(a.imageUrl)) return 'imageUrl must be empty, a valid URL, or /media/uploads path'
   return null
 }
 
@@ -739,16 +748,35 @@ app.put('/update-in/:list', requireAdmin, async (req, res) => {
   try {
     const list = req.params.list
     if (!['recent', 'special'].includes(list)) return res.status(400).json({ error: 'list must be recent or special' })
-    const article = req.body || {}
-    const err = validateArticle(article)
+    const incoming = req.body || {}
+    // Validate (imageUrl may be empty string)
+    const err = validateArticle(incoming)
     if (err) return res.status(400).json({ error: err })
-    const oldSlug = req.query.slug || article.oldSlug || article.slug
+    const oldSlug = req.query.slug || incoming.oldSlug || incoming.slug
     const path = list === 'recent' ? 'media/src/data/recentArticles.json' : 'media/src/data/specialArticles.json'
     const { sha, content } = await getFile(path)
     const arr = content ? JSON.parse(content) : []
     const idx = arr.findIndex((a) => a.slug === oldSlug)
     if (idx === -1) return res.status(404).json({ error: 'Article not found' })
-    arr[idx] = article
+    const existing = arr[idx] || {}
+    // Safely merge imageUrl
+    // - undefined/null: keep existing
+    // - empty string: explicitly clear (no eyecatch)
+    // - invalid non-empty (例: 'SEO'): keep existing
+    const isValidImageUrl = (s) => {
+      const str = String(s ?? '')
+      if (str === '') return true
+      return /^(https?:\/\/|\/media\/uploads\/)/.test(str)
+    }
+    const merged = { ...existing, ...incoming }
+    if (incoming.imageUrl === undefined || incoming.imageUrl === null) {
+      merged.imageUrl = existing.imageUrl
+    } else if (incoming.imageUrl === '') {
+      merged.imageUrl = ''
+    } else if (!isValidImageUrl(incoming.imageUrl)) {
+      merged.imageUrl = existing.imageUrl
+    }
+    arr[idx] = merged
     const out = JSON.stringify(arr, null, 2) + '\n'
     await putFile(path, out, sha, `chore(cms): update ${oldSlug} in ${list}`)
     res.json({ ok: true })

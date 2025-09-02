@@ -25,15 +25,17 @@ export function CompactCard({
       {/* Image */}
       <div className="flex-shrink-0">
         <div className="w-24 h-16 rounded-md overflow-hidden bg-muted">
-          <img
-            src={imageUrl}
-            alt={title}
-            width={96}
-            height={64}
-            decoding="async"
-            loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={title}
+              width={96}
+              height={64}
+              decoding="async"
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : null}
         </div>
       </div>
 
