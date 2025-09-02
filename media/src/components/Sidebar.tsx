@@ -160,28 +160,7 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      {/* Tags */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">タグ</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {[
-              "SEO", "コンテンツ戦略", "E-E-A-T", "Google広告", "Meta広告",
-              "LPO", "CVR改善", "CRM", "MAツール", "GA4", "SNS運用", "生成AI活用"
-            ].map((tag, index) => (
-              <Badge 
-                key={index}
-                variant="outline" 
-                className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/** タグ機能は現状未運用のため非表示（将来再導入時に復活） */}
     </aside>
   );
 }
