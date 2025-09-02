@@ -21,7 +21,7 @@ function collectArticles() {
   for (const a of special || []) add(a)
   if (dummy) add(dummy)
 
-  return bySlug
+  return { bySlug, featured, recent, special }
 }
 
 // Use Vite's SSR loader
@@ -39,16 +39,22 @@ const outDir = path.resolve('../dist/media')
 const templatePath = path.join(outDir, 'index.html')
 const template = fs.readFileSync(templatePath, 'utf-8')
 
-const articles = collectArticles()
-const routes = ['/media/', ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`)]
+const { bySlug: articles, recent } = collectArticles()
+const PAGE_SIZE = 10
+const totalPages = Math.max(1, Math.ceil((recent || []).length / PAGE_SIZE))
+const pageRoutes = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => `/media/page/${i + 2}/`)
+const routes = ['/media/', ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`), ...pageRoutes]
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://ai-and-marketing.jp'
 
-function applyHeadMeta(template, url) {
+function applyHeadMeta(template, url, opts = {}) {
   let title = 'AI Marketing News｜マーケティングニュース・解説'
   let description = 'AI Marketing News｜マーケティングの最新ニュースと実務解説。'
   let canonical = `${SITE_ORIGIN}/media/`
   let ogUrl = `${SITE_ORIGIN}/media/`
+  const siteName = 'AI Marketing News'
+  const locale = 'ja_JP'
+  const twitterSite = '@ai_marketing_news'
 
   const m = url.match(/^\/media\/articles\/([^/]+)\/?$/)
   if (m) {
@@ -61,6 +67,14 @@ function applyHeadMeta(template, url) {
       ogUrl = canonical
     }
   }
+  // pagination pages
+  const pm = url.match(/^\/media\/page\/(\d+)\/?$/)
+  if (pm) {
+    const n = Number(pm[1] || '2')
+    title = `最新記事 - ページ ${n}｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/page/${n}/`
+    ogUrl = canonical
+  }
 
   // Replace basic tags in head
   let out = template
@@ -70,12 +84,35 @@ function applyHeadMeta(template, url) {
   out = out.replace(/<meta property=\"og:description\" content=\"[^\"]*\"\s*\/>/, `<meta property=\"og:description\" content=\"${description.replace(/"/g, '&quot;')}\">`)
   out = out.replace(/<meta property=\"og:url\" content=\"[^\"]*\"\s*\/>/, `<meta property=\"og:url\" content=\"${ogUrl}\">`)
   out = out.replace(/<link rel=\"canonical\" href=\"[^\"]*\"\s*\/>/, `<link rel=\"canonical\" href=\"${canonical}\">`)
+  // Inject site-wide metas if missing
+  const injectIfMissing = (html, needleRegex, tag) => needleRegex.test(html) ? html : html.replace('</head>', `${tag}\n</head>`)
+  out = injectIfMissing(out, /<meta property=\"og:site_name\"[^>]*>/, `<meta property=\"og:site_name\" content=\"${siteName}\">`)
+  out = injectIfMissing(out, /<meta property=\"og:locale\"[^>]*>/, `<meta property=\"og:locale\" content=\"${locale}\">`)
+  out = injectIfMissing(out, /<meta name=\"twitter:site\"[^>]*>/, `<meta name=\"twitter:site\" content=\"${twitterSite}\">`)
+
+  // prev/next for pagination
+  const total = opts.totalPages || 1
+  if (url === '/media/' && total > 1) {
+    out = injectIfMissing(out, /<link rel=\"next\"[^>]*>/, `<link rel=\"next\" href=\"${SITE_ORIGIN}/media/page/2/\">`)
+  }
+  const pm2 = url.match(/^\/media\/page\/(\d+)\/?$/)
+  if (pm2) {
+    const n = Number(pm2[1] || '2')
+    if (n > 1) {
+      const prevHref = n === 2 ? `${SITE_ORIGIN}/media/` : `${SITE_ORIGIN}/media/page/${n - 1}/`
+      out = injectIfMissing(out, /<link rel=\"prev\"[^>]*>/, `<link rel=\"prev\" href=\"${prevHref}\">`)
+    }
+    if (n < total) {
+      const nextHref = `${SITE_ORIGIN}/media/page/${n + 1}/`
+      out = injectIfMissing(out, /<link rel=\"next\"[^>]*>/, `<link rel=\"next\" href=\"${nextHref}\">`)
+    }
+  }
   return out
 }
 
 for (const url of routes) {
   const { html } = await render(url)
-  let page = applyHeadMeta(template, url)
+  let page = applyHeadMeta(template, url, { totalPages })
   const outHtml = page.replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`) 
   const rel = url.replace(/^\/media\/?/, '') // '' or 'articles/slug'
   const file = rel === '' ? path.join(outDir, 'index.html') : path.join(outDir, rel, 'index.html')
@@ -84,4 +121,64 @@ for (const url of routes) {
 }
 
 await vite.close()
+// Generate RSS feed
+try {
+  const items = Object.values(Object.fromEntries(articles))
+    .filter((a) => a && a.slug)
+    // prioritize recent order as listed in data
+  const recentOrder = (recent || []).map((a) => a.slug)
+  const bySlug = new Map(items.map((a) => [a.slug, a]))
+  const ordered = recentOrder.map((s) => bySlug.get(s)).filter(Boolean)
+
+  const rssItems = ordered.slice(0, 50).map((a) => `
+    <item>
+      <title>${escapeXml(a.title)}</title>
+      <link>${SITE_ORIGIN}/media/articles/${a.slug}/</link>
+      <guid>${SITE_ORIGIN}/media/articles/${a.slug}/</guid>
+      <pubDate>${new Date(a.publishDate).toUTCString()}</pubDate>
+      <description>${escapeXml(a.excerpt || '')}</description>
+    </item>`).join('\n')
+
+  const rss = `<?xml version="1.0" encoding="UTF-8"?>
+  <rss version="2.0">
+    <channel>
+      <title>AI Marketing News</title>
+      <link>${SITE_ORIGIN}/media/</link>
+      <description>マーケティングの最新ニュースと実務解説</description>
+      <language>ja</language>
+      ${rssItems}
+    </channel>
+  </rss>`
+  fs.writeFileSync(path.join(outDir, 'feed.xml'), rss.trim() + '\n')
+} catch (e) {
+  console.warn('Failed to generate RSS:', e?.message || e)
+}
+
+// Generate sitemap for /media
+try {
+  const urls = [
+    `${SITE_ORIGIN}/media/`,
+    ...Array.from(articles.keys()).map((slug) => `${SITE_ORIGIN}/media/articles/${slug}/`),
+    ...pageRoutes.map((p) => `${SITE_ORIGIN}${p}`)
+  ]
+  const today = new Date().toISOString().slice(0, 10)
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    ${urls.map((u) => `<url><loc>${u}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>`).join('\n    ')}
+  </urlset>`
+  fs.writeFileSync(path.join(outDir, 'sitemap.xml'), xml.trim() + '\n')
+} catch (e) {
+  console.warn('Failed to generate sitemap:', e?.message || e)
+}
+
 console.log('Prerendered routes:', routes)
+
+// helpers
+function escapeXml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}

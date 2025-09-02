@@ -100,7 +100,7 @@ export function Footer() {
               ].map((item, index) => (
                 <a 
                   key={index}
-                  href="#" 
+                  href="/media/" 
                   className="block text-gray-600 hover:text-purple-600 transition-colors duration-300 text-sm group"
                 >
                   <div className="flex items-center gap-2">
@@ -162,18 +162,10 @@ export function Footer() {
           </div>
           
           <nav className="flex items-center gap-6 text-sm">
-            <a href="#" className="text-gray-500 hover:text-purple-600 transition-colors">
-              Privacy Policy
-            </a>
-            <a href="#" className="text-gray-500 hover:text-purple-600 transition-colors">
-              Terms of Service
-            </a>
-            <a href="#" className="text-gray-500 hover:text-purple-600 transition-colors">
-              Cookie Policy
-            </a>
-            <a href="#" className="text-gray-500 hover:text-purple-600 transition-colors">
-              Contact Us
-            </a>
+            <span className="text-gray-500" aria-disabled="true">Privacy Policy</span>
+            <span className="text-gray-500" aria-disabled="true">Terms of Service</span>
+            <span className="text-gray-500" aria-disabled="true">Cookie Policy</span>
+            <a href="/media/" className="text-gray-500 hover:text-purple-600 transition-colors">Contact Us</a>
           </nav>
         </div>
       </div>

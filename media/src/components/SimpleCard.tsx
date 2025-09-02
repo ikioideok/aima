@@ -32,11 +32,14 @@ export function SimpleCard({
         <div className={`${featured ? 'md:flex' : ''} h-full`}>
           {/* Image */}
           <div className={`relative overflow-hidden ${
-            featured ? 'md:w-1/2' : 'aspect-video'
+            featured ? 'aspect-video md:w-1/2' : 'aspect-video'
           }`}>
             <ImageWithFallback
               src={imageUrl}
               alt={title}
+              width={1200}
+              height={675}
+              sizes={featured ? '(min-width: 768px) 50vw, 100vw' : '100vw'}
               className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
             

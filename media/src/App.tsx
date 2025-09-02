@@ -15,6 +15,19 @@ import recentArticles from "./data/recentArticles.json";
 export default function App() {
   return (
     <div className="min-h-screen bg-background">
+      {/* ItemList JSON-LD for homepage lists */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, url: `https://ai-and-marketing.jp/media/articles/${featuredArticle.slug}/` },
+            ...specialArticles.map((a, i) => ({ '@type': 'ListItem', position: i + 2, url: `https://ai-and-marketing.jp/media/articles/${a.slug}/` })),
+            ...recentArticles.map((a, i) => ({ '@type': 'ListItem', position: i + 2 + specialArticles.length, url: `https://ai-and-marketing.jp/media/articles/${a.slug}/` }))
+          ]
+        }) }}
+      />
       <SimpleHeader />
       
       <main className="w-full max-w-[95vw] mx-auto px-4 py-8">
@@ -86,10 +99,12 @@ export default function App() {
 
             {/* Load More */}
             <div className="text-center pt-8">
-              <Button size="lg" className="bg-red-accent text-red-accent-foreground hover:bg-red-accent/90">
-                さらに記事を読む
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+              <Link to="/page/2/">
+                <Button size="lg" className="bg-red-accent text-red-accent-foreground hover:bg-red-accent/90">
+                  さらに記事を読む
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
             </div>
           </div>
 

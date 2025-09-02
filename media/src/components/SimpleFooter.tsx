@@ -23,17 +23,25 @@ export function SimpleFooter() {
               マーケティングAI活用まで、成果につながる実務知見をお届けします。
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Twitter className="h-4 w-4" />
+              <Button asChild variant="outline" size="sm">
+                <a href="/media/" aria-label="Twitter">
+                  <Twitter className="h-4 w-4" />
+                </a>
               </Button>
-              <Button variant="outline" size="sm">
-                <Github className="h-4 w-4" />
+              <Button asChild variant="outline" size="sm">
+                <a href="/media/" aria-label="GitHub">
+                  <Github className="h-4 w-4" />
+                </a>
               </Button>
-              <Button variant="outline" size="sm">
-                <Linkedin className="h-4 w-4" />
+              <Button asChild variant="outline" size="sm">
+                <a href="/media/" aria-label="LinkedIn">
+                  <Linkedin className="h-4 w-4" />
+                </a>
               </Button>
-              <Button variant="outline" size="sm">
-                <Rss className="h-4 w-4" />
+              <Button asChild variant="outline" size="sm">
+                <a href="/media/feed.xml" aria-label="RSS">
+                  <Rss className="h-4 w-4" />
+                </a>
               </Button>
             </div>
           </div>
@@ -45,7 +53,7 @@ export function SimpleFooter() {
               {["最新記事", "注目記事", "特集記事"].map((item) => (
                 <a 
                   key={item}
-                  href="#" 
+                  href="/media/" 
                   className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {item}
@@ -66,13 +74,13 @@ export function SimpleFooter() {
                 "マーケティング戦略",
                 "マーケティングAI/自動化"
               ].map((item) => (
-                <a 
+                <span 
                   key={item}
-                  href="#" 
-                  className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="block text-sm text-muted-foreground"
+                  aria-disabled="true"
                 >
                   {item}
-                </a>
+                </span>
               ))}
             </nav>
           </div>
@@ -89,13 +97,13 @@ export function SimpleFooter() {
                 "利用規約",
                 "広告掲載"
               ].map((item) => (
-                <a 
+                <span 
                   key={item}
-                  href="#" 
-                  className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="block text-sm text-muted-foreground"
+                  aria-disabled="true"
                 >
                   {item}
-                </a>
+                </span>
               ))}
             </nav>
           </div>

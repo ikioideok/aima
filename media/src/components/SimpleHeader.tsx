@@ -21,9 +21,9 @@ export function SimpleHeader() {
             <span className="text-sm font-bold">AI</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground title-font">
+            <div className="text-lg font-bold text-foreground title-font">
               <span className="text-red-accent">AI</span> Marketing News
-            </h1>
+            </div>
             <div className="text-xs text-muted-foreground">マーケティング情報メディア</div>
           </div>
         </a>
@@ -31,13 +31,24 @@ export function SimpleHeader() {
         {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
           {navItems.map((item) => (
-            <a
-              key={item.name}
-              href={item.href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {item.name}
-            </a>
+            item.href === '#'
+              ? (
+                <span
+                  key={item.name}
+                  className="text-sm font-medium text-muted-foreground cursor-default"
+                  aria-disabled="true"
+                >
+                  {item.name}
+                </span>
+              ) : (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {item.name}
+                </a>
+              )
           ))}
         </nav>
 

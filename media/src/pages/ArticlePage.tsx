@@ -1,11 +1,12 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import featuredArticle from '../data/featuredArticle.json';
 import specialArticles from '../data/specialArticles.json';
 import recentArticles from '../data/recentArticles.json';
 import dummyArticle from '../data/dummyArticle.json'; // Import the new dummy article
 import { SimpleHeader } from '../components/SimpleHeader';
 import { SimpleFooter } from '../components/SimpleFooter';
+import { CompactCard } from '../components/CompactCard';
 
 // Combine all articles into one array. Note: featuredArticle is an object, not an array.
 const allArticles = [featuredArticle, ...specialArticles, ...recentArticles, dummyArticle];
@@ -61,6 +62,20 @@ const ArticlePage = () => {
     }
   }, [article?.body]);
 
+  // Related articles (same category first, then fill with latest)
+  const related = React.useMemo(() => {
+    if (!article) return [] as typeof allArticles
+    const bySlug = new Map<string, any>()
+    for (const a of allArticles) if (a?.slug) bySlug.set(a.slug, a)
+    const pool = Array.from(bySlug.values()).filter(a => a.slug !== article.slug)
+    const sameCat = pool.filter(a => a.category === article.category)
+    const sortByDateDesc = (arr: any[]) => arr.slice().sort((a,b)=> String(b.publishDate||'').localeCompare(String(a.publishDate||'')))
+    const primary = sortByDateDesc(sameCat).slice(0, 3)
+    if (primary.length >= 3) return primary
+    const latest = sortByDateDesc(pool.filter(a => !primary.find(p=>p.slug===a.slug)))
+    return [...primary, ...latest].slice(0,3)
+  }, [article])
+
   const generateStructuredData = () => {
     if (!article) return null;
 
@@ -87,7 +102,17 @@ const ArticlePage = () => {
 
   const pageContent = article ? (
     <article className="space-y-4">
-      <img src={article.imageUrl} alt={article.title} className="w-full h-auto max-h-96 object-cover rounded-lg mb-8" />
+      <img
+        src={article.imageUrl}
+        alt={article.title}
+        className="w-full h-auto max-h-96 object-cover rounded-lg mb-8"
+        decoding="async"
+        loading="eager"
+        fetchPriority="high"
+        width={1200}
+        height={675}
+        style={{ aspectRatio: '16 / 9' }}
+      />
       <h1 className="text-4xl font-bold text-foreground">{article.title}</h1>
       <div className="text-muted-foreground">
         <span>By {article.author}</span> | <span>{article.publishDate}</span> | <span>{article.readTime}</span>
@@ -118,6 +143,20 @@ const ArticlePage = () => {
           />
         )}
       </div>
+
+      {/* Related Articles */}
+      {related.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-2xl font-bold mb-4">関連記事</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {related.map((a) => (
+              <Link to={`/articles/${a.slug}/`} key={a.slug}>
+                <CompactCard {...a} />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </article>
   ) : (
     <div className="text-center py-16">
@@ -129,6 +168,21 @@ const ArticlePage = () => {
   return (
     <div className="min-h-screen bg-background">
       {generateStructuredData()}
+      {/* BreadcrumbList JSON-LD */}
+      {article && (
+        <script
+          type="application/ld+json"
+          // Home (/media/) > Article
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://ai-and-marketing.jp/media/' },
+              { '@type': 'ListItem', position: 2, name: article.title, item: `https://ai-and-marketing.jp/media/articles/${article.slug}/` }
+            ]
+          }) }}
+        />
+      )}
       <SimpleHeader />
       <main className="w-full max-w-4xl mx-auto px-4 py-12">
         {pageContent}

@@ -28,6 +28,10 @@ export function CompactCard({
           <img
             src={imageUrl}
             alt={title}
+            width={96}
+            height={64}
+            decoding="async"
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>

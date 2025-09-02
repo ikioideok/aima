@@ -3,6 +3,7 @@ import { StaticRouter } from 'react-router-dom/server'
 import { Routes, Route } from 'react-router-dom'
 import App from '../App'
 import ArticlePage from '../pages/ArticlePage'
+import PageList from '../pages/PageList'
 
 export function render(url: string) {
   // Note: In a real app, you'd need to handle data fetching for the components
@@ -12,6 +13,7 @@ export function render(url: string) {
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/articles/:slug" element={<ArticlePage />} />
+        <Route path="/page/:page" element={<PageList />} />
       </Routes>
     </StaticRouter>
   )
