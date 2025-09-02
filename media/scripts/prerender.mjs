@@ -69,6 +69,7 @@ const routes = [
   '/media/latest/',
   '/media/featured/',
   '/media/special/',
+  '/media/search/',
   '/media/privacy/',
   '/media/terms/',
   '/media/ads/',
@@ -99,6 +100,12 @@ function applyHeadMeta(template, url, opts = {}) {
       canonical = `${SITE_ORIGIN}/media/articles/${slug}/`
       ogUrl = canonical
     }
+  }
+  // search page (shell) — add noindex
+  if (url === '/media/search/') {
+    title = `検索｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/search/`
+    ogUrl = canonical
   }
   // pagination pages
   const pm = url.match(/^\/media\/page\/(\d+)\/?$/)
@@ -167,6 +174,9 @@ function applyHeadMeta(template, url, opts = {}) {
   out = injectIfMissing(out, /<meta property=\"og:site_name\"[^>]*>/, `<meta property=\"og:site_name\" content=\"${siteName}\">`)
   out = injectIfMissing(out, /<meta property=\"og:locale\"[^>]*>/, `<meta property=\"og:locale\" content=\"${locale}\">`)
   out = injectIfMissing(out, /<meta name=\"twitter:site\"[^>]*>/, `<meta name=\"twitter:site\" content=\"${twitterSite}\">`)
+  if (url === '/media/search/') {
+    out = injectIfMissing(out, /<meta name=\"robots\"[^>]*>/, `<meta name=\"robots\" content=\"noindex, nofollow\">`)
+  }
 
   // prev/next for pagination
   const total = opts.totalPages || 1

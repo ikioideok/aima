@@ -12,6 +12,7 @@ import CategoryPage from '../pages/CategoryPage'
 import PrivacyPage from '../pages/PrivacyPage'
 import TermsPage from '../pages/TermsPage'
 import AdsPage from '../pages/AdsPage'
+import SearchPage from '../pages/SearchPage'
 
 export function render(url: string) {
   // Note: In a real app, you'd need to handle data fetching for the components
@@ -30,6 +31,7 @@ export function render(url: string) {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/ads" element={<AdsPage />} />
+        <Route path="/search" element={<SearchPage />} />
       </Routes>
     </StaticRouter>
   )

@@ -12,6 +12,7 @@ import CategoryPage from "./pages/CategoryPage.tsx";
 import PrivacyPage from "./pages/PrivacyPage.tsx";
 import TermsPage from "./pages/TermsPage.tsx";
 import AdsPage from "./pages/AdsPage.tsx";
+import SearchPage from "./pages/SearchPage.tsx";
 import Admin from "./pages/Admin.tsx";
 import "./styles/globals.css";
 
@@ -39,6 +40,7 @@ createRoot(document.getElementById("root")!).render(
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/ads" element={<AdsPage />} />
+      <Route path="/search" element={<SearchPage />} />
       <Route path="/admin" element={<Admin />} />
     </Routes>
   </BrowserRouter>

@@ -44,13 +44,15 @@ export function SimpleHeader() {
         {/* Search and Actions */}
         <div className="flex items-center gap-3">
           {/* Search */}
-          <div className="relative hidden sm:block">
+          <form action="/media/search" method="get" className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
+              name="q"
               placeholder="記事を検索..."
               className="pl-10 w-64 bg-muted/50 border-border"
+              aria-label="検索キーワード"
             />
-          </div>
+          </form>
           
           {/* Mobile Menu */}
           <Button variant="outline" size="sm" className="lg:hidden">
