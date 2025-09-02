@@ -18,7 +18,13 @@ function slugify(str: string): string {
 }
 
 export default function CategoriesPage() {
-  const all = React.useMemo(() => [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[], [])
+  // Use unique articles (by slug) so counts match category pages
+  const all = React.useMemo(() => {
+    const pool = [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[]
+    const bySlug = new Map<string, any>()
+    for (const a of pool) if (a?.slug) bySlug.set(a.slug, a)
+    return Array.from(bySlug.values())
+  }, [])
   const map = new Map<string, { name: string, count: number }>()
   for (const a of all) {
     const name = a?.category || 'その他'
@@ -51,4 +57,3 @@ export default function CategoriesPage() {
     </div>
   )
 }
-

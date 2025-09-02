@@ -31,9 +31,13 @@ export function Sidebar() {
   }
 
   const categories = (() => {
-    const all = [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[]
+    // Merge and de-duplicate by slug so counts reflect actual unique articles
+    const pool = [featuredArticle, ...specialArticles, ...recentArticles].filter(Boolean) as any[]
+    const bySlug = new Map<string, any>()
+    for (const a of pool) if (a?.slug) bySlug.set(a.slug, a)
+    const unique = Array.from(bySlug.values())
     const map = new Map<string, { name: string, count: number, slug: string }>()
-    for (const a of all) {
+    for (const a of unique) {
       const name = a?.category || 'その他'
       const slug = slugify(name)
       const cur = map.get(slug) || { name, count: 0, slug }
