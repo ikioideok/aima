@@ -103,17 +103,18 @@ const ArticlePage = () => {
   const pageContent = article ? (
     <article className="space-y-4">
       {article.imageUrl ? (
-        <img
-          src={article.imageUrl}
-          alt={article.title}
-          className="w-full h-auto max-h-96 object-cover rounded-lg mb-8"
-          decoding="async"
-          loading="eager"
-          fetchPriority="high"
-          width={1200}
-          height={675}
-          style={{ aspectRatio: '16 / 9' }}
-        />
+        <div className="w-full aspect-[16/9] rounded-lg mb-8 overflow-hidden bg-muted">
+          <img
+            src={article.imageUrl}
+            alt={article.title}
+            decoding="async"
+            loading="eager"
+            fetchPriority="high"
+            width={1600}
+            height={900}
+            className="w-full h-full object-contain"
+          />
+        </div>
       ) : null}
       <h1 className="text-4xl font-bold text-foreground">{article.title}</h1>
       <div className="text-muted-foreground">
