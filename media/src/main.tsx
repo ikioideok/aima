@@ -4,6 +4,9 @@ import { useEffect } from "react";
 import App from "./App.tsx";
 import ArticlePage from "./pages/ArticlePage.tsx";
 import PageList from "./pages/PageList.tsx";
+import LatestPage from "./pages/LatestPage.tsx";
+import FeaturedPage from "./pages/FeaturedPage.tsx";
+import SpecialPage from "./pages/SpecialPage.tsx";
 import Admin from "./pages/Admin.tsx";
 import "./styles/globals.css";
 
@@ -23,6 +26,9 @@ createRoot(document.getElementById("root")!).render(
       <Route path="/" element={<App />} />
       <Route path="/articles/:slug" element={<ArticlePage />} />
       <Route path="/page/:page" element={<PageList />} />
+      <Route path="/latest" element={<LatestPage />} />
+      <Route path="/featured" element={<FeaturedPage />} />
+      <Route path="/special" element={<SpecialPage />} />
       <Route path="/admin" element={<Admin />} />
     </Routes>
   </BrowserRouter>

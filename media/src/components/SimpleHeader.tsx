@@ -5,11 +5,11 @@ import { Search, Menu } from "lucide-react";
 
 export function SimpleHeader() {
   const navItems = [
-    { name: "最新記事", href: "#" },
-    { name: "注目記事", href: "#" },
-    { name: "特集記事", href: "#" },
-    { name: "カテゴリー", href: "#" },
-    { name: "このサイトについて", href: "#" }
+    { name: "最新記事", href: "/media/latest/" },
+    { name: "注目記事", href: "/media/featured/" },
+    { name: "特集記事", href: "/media/special/" },
+    { name: "カテゴリー", href: "/media/" },
+    { name: "このサイトについて", href: "/media/" }
   ];
 
   return (
@@ -31,24 +31,13 @@ export function SimpleHeader() {
         {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
           {navItems.map((item) => (
-            item.href === '#'
-              ? (
-                <span
-                  key={item.name}
-                  className="text-sm font-medium text-muted-foreground cursor-default"
-                  aria-disabled="true"
-                >
-                  {item.name}
-                </span>
-              ) : (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {item.name}
-                </a>
-              )
+            <a
+              key={item.name}
+              href={item.href}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {item.name}
+            </a>
           ))}
         </nav>
 

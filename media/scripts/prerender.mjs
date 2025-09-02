@@ -43,7 +43,14 @@ const { bySlug: articles, recent } = collectArticles()
 const PAGE_SIZE = 10
 const totalPages = Math.max(1, Math.ceil((recent || []).length / PAGE_SIZE))
 const pageRoutes = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => `/media/page/${i + 2}/`)
-const routes = ['/media/', ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`), ...pageRoutes]
+const routes = [
+  '/media/',
+  '/media/latest/',
+  '/media/featured/',
+  '/media/special/',
+  ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`),
+  ...pageRoutes
+]
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://ai-and-marketing.jp'
 
@@ -73,6 +80,20 @@ function applyHeadMeta(template, url, opts = {}) {
     const n = Number(pm[1] || '2')
     title = `最新記事 - ページ ${n}｜AI Marketing News`
     canonical = `${SITE_ORIGIN}/media/page/${n}/`
+    ogUrl = canonical
+  }
+  // section pages
+  if (url === '/media/latest/') {
+    title = `最新記事｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/latest/`
+    ogUrl = canonical
+  } else if (url === '/media/featured/') {
+    title = `注目記事｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/featured/`
+    ogUrl = canonical
+  } else if (url === '/media/special/') {
+    title = `特集記事｜AI Marketing News`
+    canonical = `${SITE_ORIGIN}/media/special/`
     ogUrl = canonical
   }
 

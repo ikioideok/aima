@@ -62,10 +62,12 @@ export default function App() {
                   <Star className="h-6 w-6 text-red-accent" />
                   特集
                 </h2>
-                <Button variant="outline" className="border-red-accent text-red-accent hover:bg-red-accent hover:text-red-accent-foreground">
-                  特集一覧
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
+                <Link to="/special/">
+                  <Button variant="outline" className="border-red-accent text-red-accent hover:bg-red-accent hover:text-red-accent-foreground">
+                    特集一覧
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {specialArticles.map((article) => (
@@ -83,10 +85,12 @@ export default function App() {
                   <Zap className="h-6 w-6 text-red-accent" />
                   最新記事
                 </h2>
-                <Button variant="outline" className="border-red-accent text-red-accent hover:bg-red-accent hover:text-red-accent-foreground">
-                  すべて見る
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
+                <Link to="/latest/">
+                  <Button variant="outline" className="border-red-accent text-red-accent hover:bg-red-accent hover:text-red-accent-foreground">
+                    すべて見る
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
               </div>
               <div className="space-y-4">
                 {recentArticles.map((article) => (

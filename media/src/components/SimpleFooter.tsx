@@ -50,15 +50,9 @@ export function SimpleFooter() {
           <div className="space-y-4">
             <h4 className="font-medium">記事</h4>
             <nav className="space-y-2">
-              {["最新記事", "注目記事", "特集記事"].map((item) => (
-                <a 
-                  key={item}
-                  href="/media/" 
-                  className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {item}
-                </a>
-              ))}
+              <a href="/media/latest/" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">最新記事</a>
+              <a href="/media/featured/" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">注目記事</a>
+              <a href="/media/special/" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">特集記事</a>
             </nav>
           </div>
 

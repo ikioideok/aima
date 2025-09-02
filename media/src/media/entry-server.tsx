@@ -4,6 +4,9 @@ import { Routes, Route } from 'react-router-dom'
 import App from '../App'
 import ArticlePage from '../pages/ArticlePage'
 import PageList from '../pages/PageList'
+import LatestPage from '../pages/LatestPage'
+import FeaturedPage from '../pages/FeaturedPage'
+import SpecialPage from '../pages/SpecialPage'
 
 export function render(url: string) {
   // Note: In a real app, you'd need to handle data fetching for the components
@@ -14,6 +17,9 @@ export function render(url: string) {
         <Route path="/" element={<App />} />
         <Route path="/articles/:slug" element={<ArticlePage />} />
         <Route path="/page/:page" element={<PageList />} />
+        <Route path="/latest" element={<LatestPage />} />
+        <Route path="/featured" element={<FeaturedPage />} />
+        <Route path="/special" element={<SpecialPage />} />
       </Routes>
     </StaticRouter>
   )
