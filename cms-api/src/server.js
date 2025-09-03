@@ -439,8 +439,8 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     }
 
     const system = 'あなたは日本語のコンテンツストラテジストです。AIMAのマーケティング記事の構成を、MECEで実務的に作成します。冗長・重複は避け、見出しは検索意図を網羅し、具体的な価値提案を含めます。'
-    const userOpenAI = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":string,"h3":string[]}] }\n\n注意:\n- JSON以外のテキスト（説明、注釈、コードフェンスなど）は絶対に出力しないでください。`
-    const userGemini = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":string,"h3":string[]}] }\n注意:\n- 説明文やコードフェンスは禁止。JSON以外の出力は禁止。`
+    const userOpenAI = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n\n注意:\n- h3の数は章の内容に応じて柔軟に増減させてください。例えば、h3が0個や5個以上になることもあります。\n- JSON以外のテキスト（説明、注釈、コードフェンスなど）は絶対に出力しないでください。`
+    const userGemini = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n注意:\n- 各h2見出しに含めるh3見出しの数は、内容の複雑さに応じて調整してください。h3が不要な場合もあれば、多数必要な場合もあります。\n- 説明文やコードフェンスは禁止。JSON以外の出力は禁止。`
     const user = provider === 'gemini' ? userGemini : userOpenAI
 
     let json
