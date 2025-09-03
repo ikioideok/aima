@@ -34,10 +34,7 @@ jobs:
 
         - name: Upload dist/media via SFTP
          
-          uses: wlixcc/SFTP-Deploy-Action@v1.3.1
-          with:
-         
-            username: ${{ secrets.SAKURA_USER }}
+          uses: wlixcc/SFTP-Deploy-Action@v1.2.6
             password: ${{ secrets.SAKURA_PASSWORD }}
             # key: ${{ secrets.SAKURA_SSH_KEY }}   # 鍵認証を使う場合はこちら
             local_path: media/dist/media
