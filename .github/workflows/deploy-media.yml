@@ -1,16 +1,19 @@
 name: Deploy media to Sakura
+
 on:
   push:
     branches: [ main ]
     paths:
       - 'media/**'
       - '!media/node_modules/**'
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -18,6 +21,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: |
             media/package-lock.json
+
       - name: Build media site
         working-directory: media
         env:
@@ -27,9 +31,7 @@ jobs:
           npm ci
           npm run build
           npm run postbuild
-      - name: Skip deploy (secrets not set)
-        if: ${{ !(secrets.SAKURA_HOST != '' && secrets.SAKURA_USER != '' && (secrets.SAKURA_PASSWORD != '' || secrets.SAKURA_SSH_KEY != '') && secrets.SAKURA_REMOTE_DIR != '') }}
-        run: echo "Secrets not set; skipping SFTP deploy."
+
       - name: Upload dist/media via SFTP
         if: ${{ secrets.SAKURA_HOST != '' && secrets.SAKURA_USER != '' && (secrets.SAKURA_PASSWORD != '' || secrets.SAKURA_SSH_KEY != '') && secrets.SAKURA_REMOTE_DIR != '' }}
         uses: wlixcc/SFTP-Deploy-Action@v1.3.1
@@ -37,7 +39,7 @@ jobs:
           server: ${{ secrets.SAKURA_HOST }}
           username: ${{ secrets.SAKURA_USER }}
           password: ${{ secrets.SAKURA_PASSWORD }}
-          # key: ${{ secrets.SAKURA_SSH_KEY }}
+          # key: ${{ secrets.SAKURA_SSH_KEY }}   # 鍵認証を使う場合はこちら
           local_path: media/dist/media
           remote_path: ${{ secrets.SAKURA_REMOTE_DIR }}
           sftp_only: true
