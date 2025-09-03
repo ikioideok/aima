@@ -1,45 +1,54 @@
 name: Deploy media to Sakura
 
 on:
-    push:
-      branches: [ main ]
-      paths:
-        - 'media/**'
-        - '!media/node_modules/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'media/**'
+      - '!media/node_modules/**'
 
 jobs:
-    build-and-deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
-        - name: Setup Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version: '20'
-            cache: 'npm'
-            cache-dependency-path: |
-              media/package-lock.json
+    # ← ここで secrets を env に受ける（if では env.* を参照）
+    env:
+      SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
+      SAKURA_USER: ${{ secrets.SAKURA_USER }}
+      SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+      SAKURA_SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }}
 
-        - name: Build media site
-          working-directory: media
-          env:
-            VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
-            VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
-          run: |
-            npm ci
-            npm run build
-            npm run postbuild
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        - name: Upload dist/media via SFTP
-          if: ${{ secrets.SAKURA_HOST != '' && secrets.SAKURA_USER != '' && (secrets.SAKURA_PASSWORD != '' || secrets.SAKURA_SSH_KEY != '') && secrets.SAKURA_REMOTE_DIR != '' }}
-          uses: wlixcc/SFTP-Deploy-Action@v1.2.6
-          with:
-            server: ${{ secrets.SAKURA_HOST }}
-            username: ${{ secrets.SAKURA_USER }}
-            password: ${{ secrets.SAKURA_PASSWORD }}
-            # key: ${{ secrets.SAKURA_SSH_KEY }}
-            local_path: media/dist/media
-            remote_path: ${{ secrets.SAKURA_REMOTE_DIR }}
-            sftp_only: true
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            media/package-lock.json
+
+      - name: Build media site
+        working-directory: media
+        env:
+          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+        run: |
+          npm ci
+          npm run build
+          npm run postbuild
+
+      - name: Upload dist/media via SFTP
+        if: ${{ env.SAKURA_HOST != '' && env.SAKURA_USER != '' && (env.SAKURA_PASSWORD != '' || env.SAKURA_SSH_KEY != '') && env.SAKURA_REMOTE_DIR != '' }}
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ env.SAKURA_HOST }}
+          username: ${{ env.SAKURA_USER }}
+          password: ${{ env.SAKURA_PASSWORD }}
+          # key: ${{ env.SAKURA_SSH_KEY }}
+          local_path: media/dist/media
+          remote_path: ${{ env.SAKURA_REMOTE_DIR }}
+          sftp_only: true
