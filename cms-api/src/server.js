@@ -244,16 +244,15 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
     ...(isGpt5 ? {} : { temperature }),
   }
 
-  // NOTE: preferMaxCompletion and related fallbacks for max_tokens/max_completion_tokens
-  // were removed. The special gpt-5 model seems to have issues with the non-standard
-  // `max_completion_tokens` parameter, causing it to return minimal (1-line) responses
-  // without failing. Forcing `max_tokens` for all models is safer.
+  // NOTE: The `max_tokens` parameter is not supported by all models.
+  // The recommended parameter is `max_completion_tokens`. This is passed
+  // via the `max_tokens` argument to this function for convenience.
 
   function buildBody(useSchema) {
     const rf = schema && useSchema
       ? { type: 'json_schema', json_schema: { name: 'response', schema, strict: true } }
       : { type: 'json_object' }
-    return { ...base, max_tokens, response_format: rf }
+    return { ...base, max_completion_tokens: max_tokens, response_format: rf }
   }
 
   // Try schema first, then fallback
