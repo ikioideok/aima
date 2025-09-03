@@ -33,11 +33,8 @@ jobs:
             npm run postbuild
 
         - name: Upload dist/media via SFTP
-          if: ${{ secrets.SAKURA_HOST != '' && secrets.SAKURA_USER != '' && (secrets.SAKURA_PASSWORD != '' || secrets.SAKURA_SSH_KEY != '') && secrets.SAKURA_REMOTE_DIR != '' }}
-          uses: wlixcc/SFTP-Deploy-Action@v1.3.1
-          with:
-            server: ${{ secrets.SAKURA_HOST }}
-            username: ${{ secrets.SAKURA_USER }}
+         
+          uses: wlixcc/SFTP-Deploy-Action@v1.2.6
             password: ${{ secrets.SAKURA_PASSWORD }}
             # key: ${{ secrets.SAKURA_SSH_KEY }}   # 鍵認証を使う場合はこちら
             local_path: media/dist/media

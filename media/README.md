@@ -13,5 +13,4 @@
   - Env: `VITE_CMS_API_BASE` (CMS API URL), `VITE_ADMIN_TOKEN`
   - Features: AI outline generation and article drafting (requires CMS API with `OPENAI_API_KEY` or `GEMINI_API_KEY`).
   - Provider select: Default is `Gemini (gemini-2.5-pro)`. You can switch to `GPT-5 (OpenAI)` or override the model ID per request.
-
-<!-- Resolved deployment trigger -->
+<!-- Deployment trigger -->
