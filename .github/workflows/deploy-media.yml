@@ -49,8 +49,8 @@ jobs:
           local_path: media/dist/media
     remote_path: ${{ secrets.SAKURA_REMOTE_DIR }}
 
-            
-          exclude: |
+              
+     exclude: |
             **/.git*
             **/.DS_Store
             **/*.map
