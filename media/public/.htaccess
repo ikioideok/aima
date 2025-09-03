@@ -1,0 +1,24 @@
+RewriteEngine On
+Options -MultiViews
+RewriteBase /media/
+Options -MultiViews
+RewriteBase /media/
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+ReriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.html [L]
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    
+    <FilesMatch "\.(html)$">
+      Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </FilesMatch>
