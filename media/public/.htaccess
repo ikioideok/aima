@@ -4,8 +4,8 @@ RewriteBase /media/
 Options -MultiViews
 RewriteBase /media/
 
-RewriteCond %{REQfEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+ReriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 RewriteRule ^ index.html [L]
