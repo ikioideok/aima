@@ -47,8 +47,9 @@ jobs:
           password: ${{ secrets.SAKURA_PASSWORD }}
           # key: ${{ secrets.SAKURA_SSH_KEY }} # 鍵認証に切替可
           local_path: media/dist/media
-          remote_path: ${{ secrets.SAKURA_REMOTE_DIR media/dist/media
-          sftp_only: true
+    remote_path: ${{ secrets.SAKURA_REMOTE_DIR }}
+
+            
           exclude: |
             **/.git*
             **/.DS_Store
