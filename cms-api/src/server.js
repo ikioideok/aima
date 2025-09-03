@@ -244,29 +244,50 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
     ...(isGpt5 ? {} : { temperature }),
   }
 
-  // NOTE: preferMaxCompletion and related fallbacks for max_tokens/max_completion_tokens
-  // were removed. The special gpt-5 model seems to have issues with the non-standard
-  // `max_completion_tokens` parameter, causing it to return minimal (1-line) responses
-  // without failing. Forcing `max_tokens` for all models is safer.
+  const preferMaxCompletion = isGpt5
 
-  function buildBody(useSchema) {
+  function buildBody(useSchema, useMaxCompletion) {
+    let tokenField
+    if (useMaxCompletion) {
+      // The gpt-5 model requires `max_completion_tokens`, but seems to have a lower
+      // internal limit than other models. Sending a value like 16384 causes it to
+      // return a minimal response without an error. Capping it at 4096 is a safer.
+      const capped_max_tokens = Math.min(max_tokens || 4096, 4096)
+      tokenField = { max_completion_tokens: capped_max_tokens }
+    } else {
+      tokenField = { max_tokens }
+    }
+
     const rf = schema && useSchema
       ? { type: 'json_schema', json_schema: { name: 'response', schema, strict: true } }
       : { type: 'json_object' }
-    return { ...base, max_tokens, response_format: rf }
+    return { ...base, ...tokenField, response_format: rf }
   }
 
-  // Try schema first, then fallback
+  // Try schema + preferred token param first, then fallbacks
   try {
-    return await call(buildBody(true))
+    return await call(buildBody(true, preferMaxCompletion))
   } catch (e) {
     const msg = String(e?.message || '')
+    // Fallback for unsupported token field
+    if (msg.includes('max_tokens')) {
+      try { return await call(buildBody(true, true)) } catch (_) {}
+    }
+    if (msg.includes('max_completion_tokens')) {
+      try { return await call(buildBody(true, false)) } catch (_) {}
+    }
     // Fallback for response_format/json_schema issues
     if (msg.includes('response_format') || msg.includes('json_schema') || e?.status === 400) {
       try {
-        // Retry without schema
-        return await call(buildBody(false))
+        return await call(buildBody(false, preferMaxCompletion))
       } catch (e2) {
+        const msg2 = String(e2?.message || '')
+        if (msg2.includes('max_tokens')) {
+          return await call(buildBody(false, true))
+        }
+        if (msg2.includes('max_completion_tokens')) {
+          return await call(buildBody(false, false))
+        }
         throw e2
       }
     }
