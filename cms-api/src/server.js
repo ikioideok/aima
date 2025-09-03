@@ -252,7 +252,7 @@ async function openaiChatJSON({ system, user, schema, temperature = 0.7, max_tok
     const rf = schema && useSchema
       ? { type: 'json_schema', json_schema: { name: 'response', schema, strict: true } }
       : { type: 'json_object' }
-    return { ...base, max_completion_tokens: max_tokens, response_format: rf }
+    return { ...base, max_tokens: max_tokens, response_format: rf }
   }
 
   // Try schema first, then fallback
