@@ -16,4 +16,4 @@
   - Provider select: Default is `Gemini (gemini-2.5-pro)`. You can switch to `GPT-5 (OpenAI)` or override the model ID per request.
   
 <!-- trigger deploy -->
-
+<!-- redeploy trigger -->
