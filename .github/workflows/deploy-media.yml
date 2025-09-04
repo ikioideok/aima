@@ -1,88 +1,19 @@
-name: Deploy media to Sakura
-
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - "media/**"
-      - "!media/node_modules/**"
-  workflow_dispatch:
-
-concurrency:
-  group: deploy-media
-  cancel-in-progress: true
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-
-    env:
-      SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
-      SAKURA_USER: ${{ secrets.SAKURA_USER }}
-      SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
-      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: media/package-lock.json
-
-      - name: Build (prefix=media)
-        env:
-          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
-          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
-        run: |
-          npm ci --prefix media
-          npm run build --prefix media
-          npm run postbuild --prefix media || true
-          mkdir -p media/dist
-          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
-          rm -rf upload && mkdir -p upload
-          rsync -a media/dist/ upload/
-          echo "---- upload listing ----"
-          find upload -maxdepth 2 -type f -printf "%p\n" | sort
-
       - name: Guard remote path
         run: |
           case "${SAKURA_REMOTE_DIR}" in
-            */www/media|*/www/media/) echo "OK: remote path points to /www/media" ;;
+            */www/media|*/www/media/) echo "OK: ${SAKURA_REMOTE_DIR}" ;;
             *) echo "NG: SAKURA_REMOTE_DIR must be .../www/media/ ; got '${SAKURA_REMOTE_DIR}'" && exit 1 ;;
           esac
 
-      - name: Upload upload → /www/media/
+      - name: Upload dist contents via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
-          server: ${{ env.SAKURA_HOST }}
+          server: ${{ secrets.SAKURA_HOST }}
           port: 22
-          username: ${{ env.SAKURA_USER }}
-          password: ${{ env.SAKURA_PASSWORD }}
-          # ssh_private_key: ${{ secrets.SAKURA_SSH_KEY }}  # 鍵認証に切り替える場合は上でpasswordを空に
-          local_path: upload
-          remote_path: ${{ env.SAKURA_REMOTE_DIR }}
+          username: ${{ secrets.SAKURA_USER }}
+          password: ${{ secrets.SAKURA_PASSWORD }}
+          # 鍵認証を使う場合は上で password を空にして ssh_private_key を使う
+          local_path: media/dist/          # ← distの“中身”をアップロード
+          remote_path: ${{ secrets.SAKURA_REMOTE_DIR }}  # 例: /home/violetsheep5/www/media/
           sftp_only: true
           sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
-
-      - name: Verify (SFTP & HTTP)
-        env:
-          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
-        run: |
-          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
-          echo "Remote: ${SAKURA_REMOTE_DIR}"
-          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e "set sftp:auto-confirm yes; cls -l ${SAKURA_REMOTE_DIR}; get ${SAKURA_REMOTE_DIR}/health.txt -o _health.txt; bye"
-          echo "---- remote health.txt ----"
-          cat _health.txt
-          echo "Waiting for publish (up to ~30s)..."
-          for i in {1..6}; do
-            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://violetsheep5.sakura.ne.jp/media/health.txt")
-            echo "try $i: $code"
-            [ "$code" = "200" ] && echo "OK" && exit 0
-            sleep 5
-          done
-          echo "NG: still not visible"
-          exit 1
