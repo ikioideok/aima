@@ -21,7 +21,7 @@ jobs:
       SAKURA_USER: ${{ secrets.SAKURA_USER }}
       SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
       SAKURA_SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
-      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }}
+      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }} # 例: /home/violetsheep5/www/media/
 
     steps:
       - name: Checkout
@@ -43,7 +43,7 @@ jobs:
           npm ci --prefix media
           npm run build --prefix media
           npm run postbuild --prefix media || true
-          # 疎通ファイルは media/dist 直下に置く（= /media/health.txt になる）
+          # 疎通ファイルは media/dist 直下に置く（= /media/health.txt で取れる想定）
           mkdir -p media/dist
           echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
           echo "---- local dist listing (media/dist) ----"
@@ -57,23 +57,47 @@ jobs:
           port: 22
           username: ${{ env.SAKURA_USER }}
           password: ${{ env.SAKURA_PASSWORD }}
-          # 鍵認証を使う場合は上を空にし、下を有効化
+          # 鍵認証を使う場合は password を空にしてこちらを有効化
           # ssh_private_key: ${{ env.SAKURA_SSH_KEY }}
           local_path: media/dist/
           remote_path: ${{ env.SAKURA_REMOTE_DIR }}
           sftp_only: true
           sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
 
-      - name: Smoke test
+      # 🔎 ここが超重要：アップロード後にサーバ側で実在を確認
+      - name: Verify on server via SFTP (list & fetch)
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
+          sudo apt-get update -y && sudo apt-get install -y lftp
+          echo "Remote path: ${SAKURA_REMOTE_DIR}"
+          # 一覧表示（ls）
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e "set sftp:auto-confirm yes; cls -l ${SAKURA_REMOTE_DIR}; bye"
+          # health.txt を一時取得して中身を出力（本当に置けているか）
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e "set sftp:auto-confirm yes; get ${SAKURA_REMOTE_DIR}/health.txt -o ./_health_remote.txt; bye" || true
+          if [ -f ./_health_remote.txt ]; then
+            echo "---- remote health.txt content ----"
+            cat ./_health_remote.txt
+          else
+            echo "health.txt was NOT found at ${SAKURA_REMOTE_DIR}/health.txt"
+            exit 2
+          fi
+
+      - name: Smoke test (HTTP/HTTPS with retries)
+        run: |
+          set -e
+          URL_HTTPS="https://violetsheep5.sakura.ne.jp/media/health.txt"
+          URL_HTTP="http://violetsheep5.sakura.ne.jp/media/health.txt"
           echo "Waiting for publish (up to ~30s)..."
           for i in {1..6}; do
-            if curl -fsS -m 10 "https://violetsheep5.sakura.ne.jp/media/health.txt" > /dev/null; then
+            CODE_HTTPS=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "$URL_HTTPS" || echo "000")
+            CODE_HTTP=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "$URL_HTTP" || echo "000")
+            echo "Try $i/6: HTTPS=$CODE_HTTPS HTTP=$CODE_HTTP"
+            if [ "$CODE_HTTPS" = "200" ] || [ "$CODE_HTTP" = "200" ]; then
               echo "Smoke test OK"
               exit 0
             fi
-            echo "Not ready yet (try $i/6). Sleeping 5s..."
             sleep 5
           done
-          echo "Smoke test failed: /media/health.txt not found after retries"
+          echo "Smoke test failed"
           exit 1
