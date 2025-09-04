@@ -34,6 +34,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: media/package-lock.json
 
+      # ルートから prefix=media で実行 → 出力先は media/dist
       - name: Build media site
         env:
           VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
@@ -42,12 +43,13 @@ jobs:
           npm ci --prefix media
           npm run build --prefix media
           npm run postbuild --prefix media || true
-          # 疎通用ファイルを dist 直下に配置（= ./dist/health.txt）
-          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/health.txt
-          echo "---- local dist listing ----"
-          find dist -maxdepth 2 -type f -printf "%p\n" | sort
+          # 疎通ファイルは media/dist 直下に置く（= /media/health.txt になる）
+          mkdir -p media/dist
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
+          echo "---- local dist listing (media/dist) ----"
+          find media/dist -maxdepth 2 -type f -printf "%p\n" | sort
 
-      - name: Upload dist → /www/media/
+      - name: Upload media/dist → /www/media/
         if: ${{ env.SAKURA_HOST != '' && env.SAKURA_USER != '' && (env.SAKURA_PASSWORD != '' || env.SAKURA_SSH_KEY != '') && env.SAKURA_REMOTE_DIR != '' }}
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
@@ -57,7 +59,7 @@ jobs:
           password: ${{ env.SAKURA_PASSWORD }}
           # 鍵認証を使う場合は上を空にし、下を有効化
           # ssh_private_key: ${{ env.SAKURA_SSH_KEY }}
-          local_path: ./dist/
+          local_path: media/dist/
           remote_path: ${{ env.SAKURA_REMOTE_DIR }}
           sftp_only: true
           sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
