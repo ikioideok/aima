@@ -34,21 +34,18 @@ jobs:
           cache: "npm"
           cache-dependency-path: media/package-lock.json
 
-      # ルートから prefix=media で全実行（作業ディレクトリのズレを排除）
       - name: Build media site
         env:
           VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
           VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
         run: |
           npm ci --prefix media
-          # ビルド時に環境変数が必要なら cross-env 等をpackage.json側で対応
           npm run build --prefix media
           npm run postbuild --prefix media || true
-          # dist の存在を保証し、疎通用ファイルを media/dist 直下に配置
-          mkdir -p media/dist
-          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
+          # 疎通用ファイルを dist 直下に配置（= ./dist/health.txt）
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/health.txt
           echo "---- local dist listing ----"
-          find media/dist -maxdepth 2 -type f -printf "%p\n" | sort
+          find dist -maxdepth 2 -type f -printf "%p\n" | sort
 
       - name: Upload dist → /www/media/
         if: ${{ env.SAKURA_HOST != '' && env.SAKURA_USER != '' && (env.SAKURA_PASSWORD != '' || env.SAKURA_SSH_KEY != '') && env.SAKURA_REMOTE_DIR != '' }}
@@ -60,7 +57,7 @@ jobs:
           password: ${{ env.SAKURA_PASSWORD }}
           # 鍵認証を使う場合は上を空にし、下を有効化
           # ssh_private_key: ${{ env.SAKURA_SSH_KEY }}
-          local_path: media/dist/
+          local_path: ./dist/
           remote_path: ${{ env.SAKURA_REMOTE_DIR }}
           sftp_only: true
           sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
