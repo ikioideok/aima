@@ -1,0 +1,71 @@
+name: Deploy corporate site to Sakura (root)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "**"                 # ルートのサイトをビルドするので基本どれでもトリガ
+      - "!media/**"          # media は別ワークフローで
+      - "!cms-api/**"
+      - "!.github/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site-root
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
+      SAKURA_USER: ${{ secrets.SAKURA_USER }}
+      SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+      ROOT_REMOTE_DIR: /home/violetsheep5/www/    # ルート直下
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Build corporate site (root project)
+        env:
+          # CMSはRenderを指す値にしておく
+          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+        run: |
+          npm ci
+          npm run build
+          npm run postbuild || true
+          mkdir -p dist
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/health.txt
+          echo "---- dist listing ----"
+          find dist -maxdepth 2 -type f -printf "%p\n" | sort
+
+      - name: Upload dist → /www/ (root)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ env.SAKURA_HOST }}
+          port: 22
+          username: ${{ env.SAKURA_USER }}
+          password: ${{ env.SAKURA_PASSWORD }}
+          local_path: dist/
+          remote_path: ${{ env.ROOT_REMOTE_DIR }}
+          sftp_only: true
+          sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
+
+      - name: Smoke test (preview domain)
+        run: |
+          for i in {1..6}; do
+            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://violetsheep5.sakura.ne.jp/health.txt")
+            echo "try $i: $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 5
+          done
+          exit 1
