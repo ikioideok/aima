@@ -14,4 +14,4 @@
   - Features: AI outline generation and article drafting (requires CMS API with `OPENAI_API_KEY` or `GEMINI_API_KEY`).
   - Provider select: Default is `Gemini (gemini-2.5-pro)`. You can switch to `GPT-5 (OpenAI)` or override the model ID per request.
 <!-- Deployment trigger -->
-<!-- Final deployment trigger2! --> 
+<!-- Final deployment trigger3! --> 
