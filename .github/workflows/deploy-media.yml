@@ -4,9 +4,13 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'media/**'
-      - '!media/node_modules/**'
+      - "media/**"
+      - "!media/node_modules/**"
   workflow_dispatch:
+
+concurrency:
+  group: deploy-media
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -26,8 +30,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: |
             media/package-lock.json
 
@@ -40,7 +44,7 @@ jobs:
           npm ci
           npm run build
           npm run postbuild || true
-          # 念のため成果物と疎通ファイルを用意
+          # 成果物＆疎通確認ファイル（/media/health.txt）を用意
           mkdir -p dist/media
           echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/media/health.txt
 
@@ -52,7 +56,7 @@ jobs:
           port: 22
           username: ${{ env.SAKURA_USER }}
           password: ${{ env.SAKURA_PASSWORD }}
-          # 鍵認証に切り替えるときは下を有効化（↑passwordは空に）
+          # 鍵認証を使う場合は上の password を空にして下を有効化
           # ssh_private_key: ${{ env.SAKURA_SSH_KEY }}
           local_path: media/dist/media
           remote_path: ${{ env.SAKURA_REMOTE_DIR }}
@@ -61,5 +65,14 @@ jobs:
 
       - name: Smoke test
         run: |
-          curl -sSf "http://violetsheep5.sakura.ne.jp/media/health.txt" >/dev/null
-          echo "Smoke test OK"
+          echo "Waiting for publish (up to ~30s)..."
+          for i in {1..6}; do
+            if curl -fsS -m 10 "https://violetsheep5.sakura.ne.jp/media/health.txt" > /dev/null; then
+              echo "Smoke test OK"
+              exit 0
+            fi
+            echo "Not ready yet (try $i/6). Sleeping 5s..."
+            sleep 5
+          done
+          echo "Smoke test failed: /media/health.txt not found after retries"
+          exit 1
