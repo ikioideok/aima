@@ -1,0 +1,78 @@
+name: Deploy aima to Sakura
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "aima/**"
+      - "!aima/node_modules/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-aima
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
+      SAKURA_USER: ${{ secrets.SAKURA_USER }}
+      SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+      AIMA_REMOTE_DIR: /home/violetsheep5/www/aima/
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: aima/package-lock.json
+
+      - name: Build aima site (prefix=aima)
+        env:
+          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+        run: |
+          npm ci --prefix aima
+          npm run build --prefix aima
+          npm run postbuild --prefix aima || true
+          mkdir -p aima/dist
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > aima/dist/health.txt
+          echo "---- aima/dist listing ----"
+          find aima/dist -maxdepth 2 -type f -printf "%p\n" | sort
+
+      - name: Guard remote path
+        run: |
+          case "${AIMA_REMOTE_DIR}" in
+            */www/aima|*/www/aima/) echo "OK: ${AIMA_REMOTE_DIR}" ;;
+            *) echo "NG: AIMA_REMOTE_DIR must be .../www/aima/ ; got '${AIMA_REMOTE_DIR}'" && exit 1 ;;
+          esac
+
+      - name: Upload aima/dist → /www/aima/
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ env.SAKURA_HOST }}
+          port: 22
+          username: ${{ env.SAKURA_USER }}
+          password: ${{ env.SAKURA_PASSWORD }}
+          local_path: aima/dist/
+          remote_path: ${{ env.AIMA_REMOTE_DIR }}
+          sftp_only: true
+          sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
+
+      - name: Smoke test
+        run: |
+          echo "Waiting for publish (up to ~30s)..."
+          for i in {1..6}; do
+            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://violetsheep5.sakura.ne.jp/aima/health.txt")
+            echo "try $i: $code"
+            [ "$code" = "200" ] && echo "OK" && exit 0
+            sleep 5
+          done
+          echo "NG: still not visible"
+          exit 1
