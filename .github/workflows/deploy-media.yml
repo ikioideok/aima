@@ -1,3 +1,51 @@
+name: Deploy media to Sakura
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "media/**"
+      - "!media/node_modules/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-media
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
+      SAKURA_USER: ${{ secrets.SAKURA_USER }}
+      SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: media/package-lock.json
+
+      - name: Build (prefix=media)
+        env:
+          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+        run: |
+          npm ci --prefix media
+          npm run build --prefix media
+          npm run postbuild --prefix media || true
+          mkdir -p media/dist
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
+          echo "---- dist listing ----"
+          find media/dist -maxdepth 2 -type f -printf "%p\n" | sort
+
       - name: Guard remote path
         run: |
           case "${SAKURA_REMOTE_DIR}" in
@@ -12,8 +60,21 @@
           port: 22
           username: ${{ secrets.SAKURA_USER }}
           password: ${{ secrets.SAKURA_PASSWORD }}
-          # 鍵認証を使う場合は上で password を空にして ssh_private_key を使う
-          local_path: media/dist/          # ← distの“中身”をアップロード
+          # 鍵認証を使う場合は上で password を空にして下を有効化
+          # ssh_private_key: ${{ secrets.SAKURA_SSH_KEY }}
+          local_path: media/dist/                 # ← dist の“中身”
           remote_path: ${{ secrets.SAKURA_REMOTE_DIR }}  # 例: /home/violetsheep5/www/media/
           sftp_only: true
           sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
+
+      - name: Smoke test
+        run: |
+          echo "Waiting for publish (up to ~30s)..."
+          for i in {1..6}; do
+            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://violetsheep5.sakura.ne.jp/media/health.txt")
+            echo "try $i: $code"
+            [ "$code" = "200" ] && echo "OK" && exit 0
+            sleep 5
+          done
+          echo "NG: still not visible"
+          exit 1
