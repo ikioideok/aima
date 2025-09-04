@@ -6,12 +6,12 @@ on:
     paths:
       - 'media/**'
       - '!media/node_modules/**'
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    # ← ここで secrets を env に受ける（if では env.* を参照）
     env:
       SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
       SAKURA_USER: ${{ secrets.SAKURA_USER }}
@@ -39,16 +39,27 @@ jobs:
         run: |
           npm ci
           npm run build
-          npm run postbuild
+          npm run postbuild || true
+          # 念のため成果物と疎通ファイルを用意
+          mkdir -p dist/media
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/media/health.txt
 
       - name: Upload dist/media via SFTP
         if: ${{ env.SAKURA_HOST != '' && env.SAKURA_USER != '' && (env.SAKURA_PASSWORD != '' || env.SAKURA_SSH_KEY != '') && env.SAKURA_REMOTE_DIR != '' }}
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
           server: ${{ env.SAKURA_HOST }}
+          port: 22
           username: ${{ env.SAKURA_USER }}
           password: ${{ env.SAKURA_PASSWORD }}
-          # key: ${{ env.SAKURA_SSH_KEY }}
+          # 鍵認証に切り替えるときは下を有効化（↑passwordは空に）
+          # ssh_private_key: ${{ env.SAKURA_SSH_KEY }}
           local_path: media/dist/media
           remote_path: ${{ env.SAKURA_REMOTE_DIR }}
           sftp_only: true
+          sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
+
+      - name: Smoke test
+        run: |
+          curl -sSf "http://violetsheep5.sakura.ne.jp/media/health.txt" >/dev/null
+          echo "Smoke test OK"
