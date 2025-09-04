@@ -20,7 +20,7 @@ jobs:
       SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
       SAKURA_USER: ${{ secrets.SAKURA_USER }}
       SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
-      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }}
+      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }}  # 例: /home/violetsheep5/www/media/
 
     steps:
       - name: Checkout
@@ -33,7 +33,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: media/package-lock.json
 
-      - name: Build (prefix=media)
+      - name: Build media site (prefix=media)
         env:
           VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
           VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
@@ -43,32 +43,39 @@ jobs:
           npm run postbuild --prefix media || true
           mkdir -p media/dist
           echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
-          echo "---- dist listing ----"
+          echo "---- local media/dist listing ----"
           find media/dist -maxdepth 2 -type f -printf "%p\n" | sort
 
-      - name: Guard remote path
+      - name: Guard remote path (/www/media)
         run: |
           case "${SAKURA_REMOTE_DIR}" in
             */www/media|*/www/media/) echo "OK: ${SAKURA_REMOTE_DIR}" ;;
             *) echo "NG: SAKURA_REMOTE_DIR must be .../www/media/ ; got '${SAKURA_REMOTE_DIR}'" && exit 1 ;;
           esac
 
-      - name: Upload dist contents via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
-        with:
-          server: ${{ secrets.SAKURA_HOST }}
-          port: 22
-          username: ${{ secrets.SAKURA_USER }}
-          password: ${{ secrets.SAKURA_PASSWORD }}
-          # 鍵認証を使う場合は上で password を空にして下を有効化
-          # ssh_private_key: ${{ secrets.SAKURA_SSH_KEY }}
-          local_path: media/dist/                 # ← dist の“中身”
-          remote_path: ${{ secrets.SAKURA_REMOTE_DIR }}  # 例: /home/violetsheep5/www/media/
-          sftp_only: true
-          sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
-
-      - name: Smoke test
+      - name: Deploy via lftp mirror (media/dist → /www/media)
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          echo "Mirroring ./media/dist/ -> ${SAKURA_REMOTE_DIR}"
+          # dist の「中身だけ」を /www/media/ 直下へ配置（dist という箱は作らない）
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
+            "set sftp:auto-confirm yes; mkdir -p ${SAKURA_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./media/dist/ ${SAKURA_REMOTE_DIR}; bye"
+          echo "---- remote /www/media listing ----"
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
+            "set sftp:auto-confirm yes; cls -l ${SAKURA_REMOTE_DIR}; bye"
+
+      - name: Verify (SFTP & HTTP)
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          # SFTPで /www/media/health.txt を取得して実在確認
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
+            "set sftp:auto-confirm yes; get ${SAKURA_REMOTE_DIR}/health.txt -o _health.txt; bye"
+          echo "---- remote health.txt ----"
+          cat _health.txt
+          # HTTP確認（プレビュー用ドメインでOK）
           echo "Waiting for publish (up to ~30s)..."
           for i in {1..6}; do
             code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://violetsheep5.sakura.ne.jp/media/health.txt")
@@ -76,5 +83,5 @@ jobs:
             [ "$code" = "200" ] && echo "OK" && exit 0
             sleep 5
           done
-          echo "NG: still not visible"
+          echo "NG: still 404"
           exit 1
