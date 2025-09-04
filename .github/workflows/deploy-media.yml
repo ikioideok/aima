@@ -3,39 +3,26 @@ name: Deploy media to Sakura
 on:
   push:
     branches: [ main ]
-    paths:
-      - "media/**"
-      - "!media/node_modules/**"
+    paths: [ "media/**", "!media/node_modules/**" ]
   workflow_dispatch:
 
-concurrency:
-  group: deploy-media
-  cancel-in-progress: true
+concurrency: { group: deploy-media, cancel-in-progress: true }
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     env:
       SAKURA_HOST: ${{ secrets.SAKURA_HOST }}
       SAKURA_USER: ${{ secrets.SAKURA_USER }}
       SAKURA_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
-      SAKURA_SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
-      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }} # 例: /home/violetsheep5/www/media/
+      SAKURA_REMOTE_DIR: ${{ secrets.SAKURA_REMOTE_DIR }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm", cache-dependency-path: media/package-lock.json }
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: media/package-lock.json
-
-      # ルートから prefix=media で実行 → 出力先は media/dist
-      - name: Build media site
+      - name: Build (prefix=media)
         env:
           VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
           VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
@@ -43,61 +30,36 @@ jobs:
           npm ci --prefix media
           npm run build --prefix media
           npm run postbuild --prefix media || true
-          # 疎通ファイルは media/dist 直下に置く（= /media/health.txt で取れる想定）
           mkdir -p media/dist
           echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
-          echo "---- local dist listing (media/dist) ----"
-          find media/dist -maxdepth 2 -type f -printf "%p\n" | sort
+          rm -rf upload && mkdir -p upload
+          rsync -a media/dist/ upload/
+          echo "---- upload/ listing ----"; find upload -maxdepth 2 -type f -printf "%p\n" | sort
 
-      - name: Upload media/dist → /www/media/
-        if: ${{ env.SAKURA_HOST != '' && env.SAKURA_USER != '' && (env.SAKURA_PASSWORD != '' || env.SAKURA_SSH_KEY != '') && env.SAKURA_REMOTE_DIR != '' }}
+      - name: Guard remote path
+        run: |
+          case "${SAKURA_REMOTE_DIR}" in */www/media|*/www/media/) echo "OK";; *) echo "NG: SAKURA_REMOTE_DIR must be .../www/media/ ; got '${SAKURA_REMOTE_DIR}'" && exit 1;; esac
+
+      - name: Upload upload → /www/media/
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
           server: ${{ env.SAKURA_HOST }}
           port: 22
           username: ${{ env.SAKURA_USER }}
           password: ${{ env.SAKURA_PASSWORD }}
-          # 鍵認証を使う場合は password を空にしてこちらを有効化
-          # ssh_private_key: ${{ env.SAKURA_SSH_KEY }}
-          local_path: media/dist/
+          local_path: upload
           remote_path: ${{ env.SAKURA_REMOTE_DIR }}
           sftp_only: true
           sftpArgs: "-o StrictHostKeyChecking=no -o ConnectTimeout=10"
 
-      # 🔎 ここが超重要：アップロード後にサーバ側で実在を確認
-      - name: Verify on server via SFTP (list & fetch)
-        env:
-          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+      - name: Verify (SFTP & HTTP)
+        env: { LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }} }
         run: |
-          sudo apt-get update -y && sudo apt-get install -y lftp
-          echo "Remote path: ${SAKURA_REMOTE_DIR}"
-          # 一覧表示（ls）
-          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e "set sftp:auto-confirm yes; cls -l ${SAKURA_REMOTE_DIR}; bye"
-          # health.txt を一時取得して中身を出力（本当に置けているか）
-          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e "set sftp:auto-confirm yes; get ${SAKURA_REMOTE_DIR}/health.txt -o ./_health_remote.txt; bye" || true
-          if [ -f ./_health_remote.txt ]; then
-            echo "---- remote health.txt content ----"
-            cat ./_health_remote.txt
-          else
-            echo "health.txt was NOT found at ${SAKURA_REMOTE_DIR}/health.txt"
-            exit 2
-          fi
-
-      - name: Smoke test (HTTP/HTTPS with retries)
-        run: |
-          set -e
-          URL_HTTPS="https://violetsheep5.sakura.ne.jp/media/health.txt"
-          URL_HTTP="http://violetsheep5.sakura.ne.jp/media/health.txt"
-          echo "Waiting for publish (up to ~30s)..."
+          sudo apt-get update -y && sudo apt-get install -y lftp >/dev/null
+          echo "Remote: ${SAKURA_REMOTE_DIR}"
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e "set sftp:auto-confirm yes; cls -l ${SAKURA_REMOTE_DIR}; get ${SAKURA_REMOTE_DIR}/health.txt -o _health.txt; bye"
+          cat _health.txt
           for i in {1..6}; do
-            CODE_HTTPS=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "$URL_HTTPS" || echo "000")
-            CODE_HTTP=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "$URL_HTTP" || echo "000")
-            echo "Try $i/6: HTTPS=$CODE_HTTPS HTTP=$CODE_HTTP"
-            if [ "$CODE_HTTPS" = "200" ] || [ "$CODE_HTTP" = "200" ]; then
-              echo "Smoke test OK"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Smoke test failed"
-          exit 1
+            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://violetsheep5.sakura.ne.jp/media/health.txt")
+            echo "try $i: $code"; [ "$code" = "200" ] && exit 0; sleep 5
+          done; exit 1
