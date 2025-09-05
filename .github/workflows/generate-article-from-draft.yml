@@ -1,0 +1,146 @@
+name: Generate Article From Draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "下書き（media/drafts/{slug}/）のスラッグ"
+        required: true
+        type: string
+      provider:
+        description: "LLM provider (未指定ならmeta.jsonの値)"
+        required: false
+        type: choice
+        options: [openai, gemini]
+      model:
+        description: "Model ID (未指定ならmeta.jsonの値)"
+        required: false
+        type: string
+      imageUrl:
+        description: "アイキャッチURL（任意）"
+        required: false
+        type: string
+      alsoAddSpecial:
+        description: "特集にも追加する"
+        required: false
+        type: boolean
+        default: false
+      alsoSetFeatured:
+        description: "注目記事に設定（置き換え）"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate body from outline draft and post
+        env:
+          SLUG: ${{ inputs.slug }}
+          IN_PROVIDER: ${{ inputs.provider }}
+          IN_MODEL: ${{ inputs.model }}
+          IMAGE_URL: ${{ inputs.imageUrl }}
+          ALSO_SPECIAL: ${{ inputs.alsoAddSpecial }}
+          ALSO_FEATURED: ${{ inputs.alsoSetFeatured }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_BASE: ${{ secrets.GEMINI_API_BASE }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs')
+          const path = require('path')
+          const env = process.env
+          const slug = env.SLUG
+          if (!slug) throw new Error('slug is required')
+          const draftDir = path.join(process.cwd(), 'media', 'drafts', slug)
+          const outline = JSON.parse(fs.readFileSync(path.join(draftDir, 'outline.json'), 'utf-8'))
+          const meta = JSON.parse(fs.readFileSync(path.join(draftDir, 'meta.json'), 'utf-8'))
+          const provider = (env.IN_PROVIDER || meta.provider || 'gemini').toLowerCase()
+          const model = env.IN_MODEL || meta.model || (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-pro')
+          const keyword = meta.keyword
+          const category = meta.category || 'SEO'
+          const tone = meta.tone || '実務的で明快'
+          const audience = meta.audience || 'マーケ担当者・事業責任者'
+          const title = meta.title || outline.title || keyword
+          const imageUrl = (env.IMAGE_URL || '').trim()
+          
+          function estimateReadTimeFromHtml(html) {
+            const text = String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+            const minutes = Math.max(1, Math.ceil(text.length / 600))
+            return `${minutes}分`
+          }
+          
+          async function openaiText({ system, user }) {
+            const base = env.OPENAI_API_BASE || 'https://api.openai.com/v1'
+            const url = base.replace(/\/$/, '') + '/chat/completions'
+            const headers = { 'Authorization': `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
+            const body = JSON.stringify({ model, messages: [ system ? { role: 'system', content: system } : null, { role: 'user', content: user } ].filter(Boolean) })
+            const r = await fetch(url, { method: 'POST', headers, body })
+            const text = await r.text().catch(()=> '')
+            if (!r.ok) throw new Error(`OpenAI error ${r.status}: ${text}`)
+            let data; try { data = JSON.parse(text) } catch {}
+            return String(data?.choices?.[0]?.message?.content || '')
+          }
+          async function geminiText({ system, user }) {
+            const base = env.GEMINI_API_BASE || 'https://generativelanguage.googleapis.com/v1beta'
+            const url = base.replace(/\/$/, '') + `/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`
+            const body = { contents: [{ role: 'user', parts: [{ text: user }] }], ...(system ? { systemInstruction: { role: 'system', parts: [{ text: system }] } } : {}), generationConfig: { responseMimeType: 'text/plain' } }
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            const text = await r.text().catch(()=> '')
+            if (!r.ok) throw new Error(`Gemini error ${r.status}: ${text}`)
+            let data; try { data = JSON.parse(text) } catch {}
+            const parts = data?.candidates?.[0]?.content?.parts || []
+            return String(parts.map(p=>p?.text).filter(Boolean).join('\n').trim() || '')
+          }
+
+          async function generateBody() {
+            const system = 'あなたは日本語のSEO/マーケ記事執筆者です。HTML本文のみを返し、h2/h3を見出しに用います。'
+            const user = `構成に基づいてHTML本文を作成。\n- タイトル: ${title}\n- 見出し: ${outline.h2.map(s=>`[${s.title}]`).join(' ')}\n- トーン: ${tone}\n- 想定読者: ${audience}\n禁止: JSONや説明、コードフェンス。返すのはHTMLのみ。`
+            if (provider === 'openai') return await openaiText({ system, user })
+            return await geminiText({ system, user })
+          }
+
+          ;(async () => {
+            const html = await generateBody()
+            const publishDate = new Date().toISOString().slice(0,10)
+            const readTime = estimateReadTimeFromHtml(html)
+            const article = { slug, title, excerpt: `${keyword}の実務解説。`, author: 'AIMA編集部', reviewer: '', publishDate, readTime, category, imageUrl, body: html }
+
+            const dataDir = path.join(process.cwd(), 'media', 'src', 'data')
+            const recentPath = path.join(dataDir, 'recentArticles.json')
+            const specialPath = path.join(dataDir, 'specialArticles.json')
+            const featuredPath = path.join(dataDir, 'featuredArticle.json')
+            const readJson = (p, fb)=>{ try { return JSON.parse(fs.readFileSync(p,'utf-8')) } catch { return fb } }
+            const writeJson = (p, d)=> fs.writeFileSync(p, JSON.stringify(d,null,2)+'\n')
+
+            const recent = readJson(recentPath, [])
+            const rest = recent.filter(a => a && a.slug !== slug)
+            writeJson(recentPath, [article, ...rest])
+            if (String(env.ALSO_SPECIAL||'false').toLowerCase()==='true') {
+              const special = readJson(specialPath, [])
+              const sRest = special.filter(a => a && a.slug !== slug)
+              writeJson(specialPath, [article, ...sRest])
+            }
+            if (String(env.ALSO_FEATURED||'false').toLowerCase()==='true') writeJson(featuredPath, article)
+
+            console.log('Posted article slug:', slug)
+            console.log('URL: https://ai-and-marketing.jp/media/articles/' + slug + '/')
+          })().catch((e)=>{ console.error(e); process.exit(1) })
+          NODE
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add media/src/data/*.json
+          git commit -m "post(from-draft): ${{ inputs.slug }} (provider=${{ inputs.provider || 'meta' }})" || echo "No changes"
+          git push
+
