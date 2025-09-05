@@ -119,7 +119,7 @@ const ArticlePage = () => {
               alt={article.title}
               decoding="async"
               loading="eager"
-              fetchPriority="high"
+              fetchpriority="high"
               width={1600}
               height={900}
               className="w-full h-full object-contain"
