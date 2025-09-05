@@ -70,7 +70,14 @@ jobs:
           const outline = JSON.parse(fs.readFileSync(path.join(draftDir, 'outline.json'), 'utf-8'))
           const meta = JSON.parse(fs.readFileSync(path.join(draftDir, 'meta.json'), 'utf-8'))
           const provider = (env.IN_PROVIDER || meta.provider || 'gemini').toLowerCase()
-          const model = env.IN_MODEL || meta.model || (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-pro')
+          function normalizeModel(p, m) {
+            const mm = String(m || '').trim()
+            if (!mm) return p === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-pro'
+            if (p === 'openai' && /^gemini/i.test(mm)) return 'gpt-4o-mini'
+            if (p === 'gemini' && /^gpt/i.test(mm)) return 'gemini-2.5-pro'
+            return mm
+          }
+          const model = normalizeModel(provider, env.IN_MODEL || meta.model)
           const keyword = meta.keyword
           const category = meta.category || 'SEO'
           const tone = meta.tone || '実務的で明快'
@@ -115,6 +122,7 @@ jobs:
           }
 
           ;(async () => {
+            console.log('Provider:', provider, 'Model:', model)
             const html = await generateBody()
             const publishDate = new Date().toISOString().slice(0,10)
             const readTime = estimateReadTimeFromHtml(html)

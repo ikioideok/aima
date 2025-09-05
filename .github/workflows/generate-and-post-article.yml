@@ -89,7 +89,14 @@ jobs:
 
           const env = process.env
           const provider = (env.PROVIDER || 'gemini').toLowerCase()
-          const model = env.MODEL || (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-pro')
+          function normalizeModel(p, m) {
+            const mm = String(m || '').trim()
+            if (!mm) return p === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-pro'
+            if (p === 'openai' && /^gemini/i.test(mm)) return 'gpt-4o-mini'
+            if (p === 'gemini' && /^gpt/i.test(mm)) return 'gemini-2.5-pro'
+            return mm
+          }
+          const model = normalizeModel(provider, env.MODEL)
           const keyword = env.KEYWORD
           const category = env.CATEGORY || 'SEO'
           const tone = env.TONE || '実務的で明快'
@@ -182,6 +189,7 @@ jobs:
             const outline = await llmOutline()
             const title = titleOverride || String(outline?.title || keyword)
             const slug = slugify(outline?.slug || title) || slugify(keyword) || `post-${new Date().toISOString().slice(0,10)}`
+            console.log('Provider:', provider, 'Model:', model)
             const html = await llmArticle(outline)
             const publishDate = new Date().toISOString().slice(0,10)
             const readTime = estimateReadTimeFromHtml(html)
