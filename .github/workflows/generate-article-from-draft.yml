@@ -143,4 +143,24 @@ jobs:
           git add media/src/data/*.json
           git commit -m "post(from-draft): ${{ inputs.slug }} (provider=${{ inputs.provider || 'meta' }})" || echo "No changes"
           git push
-
+      - name: Build media (vite) with prerender
+        if: ${{ secrets.SAKURA_HOST && secrets.SAKURA_USER && secrets.SAKURA_PASSWORD && secrets.SAKURA_REMOTE_DIR }}
+        env:
+          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+        run: |
+          npm ci --prefix media
+          npm run build --prefix media
+          npm run postbuild --prefix media || true
+          echo "built: $(date -u +'%FT%TZ')" > media/dist/health.txt
+          ls -la media/dist | head -n 50
+      - name: Deploy media via SFTP to Sakura
+        if: ${{ secrets.SAKURA_HOST && secrets.SAKURA_USER && secrets.SAKURA_PASSWORD && secrets.SAKURA_REMOTE_DIR }}
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          echo "Mirroring ./media/dist -> ${{ secrets.SAKURA_REMOTE_DIR }}"
+          lftp -u "${{ secrets.SAKURA_USER }},${LFTP_PASSWORD}" sftp://"${{ secrets.SAKURA_HOST }}" -e \
+            "set sftp:auto-confirm yes; mkdir -p ${{ secrets.SAKURA_REMOTE_DIR }}; mirror -R --only-newer --parallel=2 ./media/dist/ ${{ secrets.SAKURA_REMOTE_DIR }}; bye"
+          echo "Deployed media."
