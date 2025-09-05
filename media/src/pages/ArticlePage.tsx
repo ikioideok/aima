@@ -47,7 +47,13 @@ const ArticlePage = () => {
       const localToc: Array<{ id: string; text: string; level: 2 | 3 }> = [];
       headings.forEach((el) => {
         const level = el.tagName.toLowerCase() === 'h3' ? 3 : 2;
-        const text = el.textContent || '';
+        // Clean heading text: remove accidental prefixes like "h3:"/"h3：" etc.
+        const raw = el.textContent || '';
+        const cleaned = raw.replace(/^\s*h[23]\s*[:：]\s*/i, '');
+        if (cleaned !== raw) {
+          el.textContent = cleaned;
+        }
+        const text = cleaned;
         let id = el.getAttribute('id') || slugify(text);
         if (!id) return;
         // ensure unique ids

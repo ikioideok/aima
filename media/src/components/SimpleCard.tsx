@@ -24,6 +24,7 @@ export function SimpleCard({
   imageUrl,
   featured = false
 }: SimpleCardProps) {
+  const safeSrc = (imageUrl && imageUrl.trim() !== '') ? imageUrl : '/media/ogp.png'
   return (
     <Card className={`group cursor-pointer transition-all duration-200 hover:shadow-lg ${
       featured ? 'md:col-span-2' : ''
@@ -35,7 +36,7 @@ export function SimpleCard({
             featured ? 'aspect-video md:w-1/2' : 'aspect-video'
           }`}>
             <ImageWithFallback
-              src={imageUrl}
+              src={safeSrc}
               alt={title}
               width={1200}
               height={675}
