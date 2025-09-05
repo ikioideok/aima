@@ -50,6 +50,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write
+
 jobs:
   gen:
     runs-on: ubuntu-latest

@@ -12,6 +12,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   upload:
     runs-on: ubuntu-latest
