@@ -1,0 +1,165 @@
+name: Auto Generate And Deploy Media Articles
+
+on:
+  schedule:
+    # JST 09:00, 12:00, 15:00 = UTC 00:00, 03:00, 06:00
+    - cron: '0 0 * * *'
+    - cron: '0 3 * * *'
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-generate-media
+  cancel-in-progress: false
+
+jobs:
+  auto:
+    runs-on: ubuntu-latest
+    env:
+      SAKURA_HOST_ENV: ${{ secrets.SAKURA_HOST }}
+      SAKURA_USER_ENV: ${{ secrets.SAKURA_USER }}
+      SAKURA_PASSWORD_ENV: ${{ secrets.SAKURA_PASSWORD }}
+      SAKURA_REMOTE_DIR_ENV: ${{ secrets.SAKURA_REMOTE_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate one article from keywordPlans (Gemini) and commit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_BASE: ${{ secrets.GEMINI_API_BASE }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs')
+          const path = require('path')
+
+          const GP = path.join(process.cwd(), 'media', 'src', 'data', 'keywordPlans.json')
+          const RL = path.join(process.cwd(), 'media', 'src', 'data', 'recentArticles.json')
+          const SP = path.join(process.cwd(), 'media', 'src', 'data', 'specialArticles.json')
+          const FL = path.join(process.cwd(), 'media', 'src', 'data', 'featuredArticle.json')
+          const LOG = path.join(process.cwd(), 'media', 'src', 'data', 'published-log.json')
+
+          function readJson(p, fb){ try { return JSON.parse(fs.readFileSync(p,'utf8')) } catch { return fb } }
+          function writeJson(p, d){ fs.writeFileSync(p, JSON.stringify(d,null,2)+'\n') }
+
+          const plans = readJson(GP, [])
+          if (!Array.isArray(plans) || plans.length === 0) throw new Error('keywordPlans.json empty')
+          const log = readJson(LOG, { published: [] })
+          if (!Array.isArray(log.published)) log.published = []
+
+          function pickNext() {
+            for (const plan of plans) {
+              const cat = (plan.seed || plan.category || 'SEO')
+              const arr = Array.isArray(plan.suggestions) ? plan.suggestions : []
+              for (const kw of arr) {
+                const key = `${cat}:::${kw}`
+                if (!log.published.includes(key)) return { keyword: kw, category: cat, key }
+              }
+            }
+            return null
+          }
+
+          const picked = pickNext()
+          if (!picked) { console.log('No remaining keywords.'); process.exit(0) }
+          const { keyword, category, key } = picked
+
+          async function geminiChat({ system, user, asText = false }) {
+            const base = process.env.GEMINI_API_BASE || 'https://generativelanguage.googleapis.com/v1beta'
+            const model = 'gemini-2.5-pro'
+            const url = base.replace(/\/$/, '') + `/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`
+            const responseMimeType = asText ? 'text/plain' : 'application/json'
+            const body = { contents: [{ role: 'user', parts: [{ text: user }] }], ...(system ? { systemInstruction: { role: 'system', parts: [{ text: system }] } } : {}), generationConfig: { responseMimeType } }
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            const text = await r.text().catch(()=> '')
+            if (!r.ok) throw new Error(`Gemini error ${r.status}: ${text}`)
+            let data; try { data = JSON.parse(text) } catch {}
+            const parts = data?.candidates?.[0]?.content?.parts || []
+            const joined = parts.map(p=>p?.text).filter(Boolean).join('\n').trim()
+            return asText ? String(joined || '') : (JSON.parse(joined))
+          }
+
+          function slugify(input) {
+            try {
+              return String(input || '')
+                .toLowerCase()
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .trim()
+                .replace(/[\s_-]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+            } catch { return '' }
+          }
+
+          function estimateRT(html){
+            const text = String(html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim()
+            return `${Math.max(1, Math.ceil(text.length/600))}分`
+          }
+
+          async function generateOutline() {
+            const system = 'あなたは日本語のコンテンツストラテジストです。AIMAの実務記事構成をMECEで設計してください。'
+            const user = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: 実務的で明快\n- 想定読者: マーケ担当者・事業責任者\n\nJSONのみ出力: {"title":string,"slug":string,"h2":[{"title":string,"h3":string[]}]}\n禁止: 説明文やコードフェンス`
+            return await geminiChat({ system, user, asText: false })
+          }
+
+          async function generateBody(outline) {
+            const system = 'あなたは日本語のSEO/マーケ記事執筆者です。HTML本文のみを返し、h2/h3を見出しに用います。'
+            const user = `構成に基づいてHTML本文を作成。\n- タイトル: ${outline.title || keyword}\n- 見出し: ${outline.h2.map(s=>`[${s.title}]`).join(' ')}\n- トーン: 実務的で明快\n- 想定読者: マーケ担当者・事業責任者\n禁止: JSONや説明、コードフェンス。返すのはHTMLのみ。`
+            return await geminiChat({ system, user, asText: true })
+          }
+
+          ;(async () => {
+            const outline = await generateOutline()
+            const title = outline?.title || `${keyword}の実務ガイド`
+            const slug = slugify(outline?.slug || title) || slugify(keyword) || `post-${new Date().toISOString().slice(0,10)}`
+            const html = await generateBody(outline)
+            const publishDate = new Date().toISOString().slice(0,10)
+            const readTime = estimateRT(html)
+            const article = { slug, title, excerpt: `${keyword}の実務解説。`, author: 'AIMA編集部', reviewer: '', publishDate, readTime, category, imageUrl: '', body: html }
+
+            const recent = readJson(RL, [])
+            const rest = recent.filter(a => a && a.slug !== slug)
+            writeJson(RL, [article, ...rest])
+            // optional: keep logs
+            log.published.push(key)
+            writeJson(LOG, log)
+            console.log('Generated and saved article slug:', slug)
+            console.log('URL: https://ai-and-marketing.jp/media/articles/' + slug + '/')
+          })().catch((e)=>{ console.error(e); process.exit(1) })
+          NODE
+      - name: Commit and push data changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add media/src/data/*.json
+          git commit -m "auto(media): generate article from keywordPlans (gemini)" || echo "No changes"
+          git push || true
+
+      - name: Build media (vite) with prerender
+        if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
+        env:
+          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+        run: |
+          npm ci --prefix media
+          npm run build --prefix media
+          npm run postbuild --prefix media || true
+          mkdir -p dist/media
+          echo "built: $(date -u +'%FT%TZ')" > dist/media/health.txt
+          ls -la dist/media | head -n 50
+
+      - name: Deploy media via SFTP to Sakura
+        if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          echo "Mirroring ./dist/media -> $SAKURA_REMOTE_DIR_ENV"
+          lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
+            "set sftp:auto-confirm yes; mkdir -p $SAKURA_REMOTE_DIR_ENV; mirror -R --only-newer --parallel=2 ./dist/media/ $SAKURA_REMOTE_DIR_ENV; bye"
+          echo "Deployed media."
+
