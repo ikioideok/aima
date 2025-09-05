@@ -1,0 +1,149 @@
+name: Post Article
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "記事タイトル"
+        required: true
+        type: string
+      excerpt:
+        description: "概要（抜粋）"
+        required: true
+        type: string
+      author:
+        description: "著者"
+        required: true
+        type: string
+      reviewer:
+        description: "監修者（任意）"
+        required: false
+        type: string
+      publishDate:
+        description: "公開日 (YYYY-MM-DD) 任意。未指定なら今日"
+        required: false
+        type: string
+      category:
+        description: "カテゴリ (例: SEO)"
+        required: true
+        type: string
+      imageUrl:
+        description: "アイキャッチURL（/media/uploads/... or https://...）。空でも可"
+        required: false
+        type: string
+      body:
+        description: "本文（HTML, 任意）"
+        required: false
+        type: string
+      slug:
+        description: "スラッグ（未指定ならタイトルから自動生成）"
+        required: false
+        type: string
+      readTime:
+        description: "読了時間（例: 8分。未指定なら本文から推定）"
+        required: false
+        type: string
+      alsoAddSpecial:
+        description: "特集にも追加する"
+        required: false
+        type: boolean
+        default: false
+      alsoSetFeatured:
+        description: "注目記事に設定（置き換え）"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply article to JSON data
+        id: apply
+        run: |
+          node - <<'NODE'
+          const fs = require('fs')
+          const path = require('path')
+
+          function slugify(input) {
+            try {
+              return String(input || '')
+                .toLowerCase()
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .trim()
+                .replace(/[\s_-]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+            } catch { return '' }
+          }
+
+          function estimateReadTimeFromHtml(html) {
+            const text = String(html || '')
+              .replace(/<[^>]*>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+            const minutes = Math.max(1, Math.ceil(text.length / 600))
+            return `${minutes}分`
+          }
+
+          const inp = process.env
+          const title = inp.INPUT_TITLE
+          const excerpt = inp.INPUT_EXCERPT
+          const author = inp.INPUT_AUTHOR
+          const reviewer = inp.INPUT_REVIEWER || ''
+          const publishDate = inp.INPUT_PUBLISHDATE || (new Date().toISOString().slice(0,10))
+          const category = inp.INPUT_CATEGORY
+          const imageUrl = (inp.INPUT_IMAGEURL ?? '').trim()
+          const body = inp.INPUT_BODY || ''
+          let slug = (inp.INPUT_SLUG || '').trim() || slugify(title)
+          if (!slug) slug = `post-${publishDate}`
+          let readTime = (inp.INPUT_READTIME || '').trim() || estimateReadTimeFromHtml(body)
+          const alsoAddSpecial = String(inp.INPUT_ALSOADDSPECIAL || 'false').toLowerCase() === 'true'
+          const alsoSetFeatured = String(inp.INPUT_ALSOSETFEATURED || 'false').toLowerCase() === 'true'
+
+          const article = { slug, title, excerpt, author, reviewer, publishDate, readTime, category, imageUrl, body }
+
+          const dataDir = path.join(process.cwd(), 'media', 'src', 'data')
+          const recentPath = path.join(dataDir, 'recentArticles.json')
+          const specialPath = path.join(dataDir, 'specialArticles.json')
+          const featuredPath = path.join(dataDir, 'featuredArticle.json')
+
+          function readJson(p, fallback) {
+            try { return JSON.parse(fs.readFileSync(p, 'utf-8')) } catch { return fallback }
+          }
+          function writeJson(p, data) {
+            fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n')
+          }
+
+          // Update recent (insert or replace by slug at head)
+          const recent = readJson(recentPath, [])
+          const others = recent.filter(a => a && a.slug !== slug)
+          const updated = [article, ...others]
+          writeJson(recentPath, updated)
+
+          if (alsoAddSpecial) {
+            const special = readJson(specialPath, [])
+            const sOthers = special.filter(a => a && a.slug !== slug)
+            writeJson(specialPath, [article, ...sOthers])
+          }
+
+          if (alsoSetFeatured) {
+            writeJson(featuredPath, article)
+          }
+
+          console.log('Applied article:', slug)
+          NODE
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add media/src/data/*.json
+          git commit -m "chore(cms): post article via workflow: ${INPUT_TITLE} (${INPUT_SLUG || 'auto'})" || echo "No changes"
+          git push
+

@@ -1,0 +1,72 @@
+name: Upload Image to Media
+
+on:
+  workflow_dispatch:
+    inputs:
+      sourceUrl:
+        description: "画像の取得URL（https://...）"
+        required: true
+        type: string
+      suggestedName:
+        description: "ファイル名の提案（拡張子不要・任意）"
+        required: false
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and place under media/public/uploads
+        env:
+          SRC: ${{ inputs.sourceUrl }}
+          NAME: ${{ inputs.suggestedName }}
+        run: |
+          set -e
+          TS=$(date +%s)
+          YYYY=$(date +%Y)
+          MM=$(date +%m)
+          RND=$(head -c 8 /dev/urandom | base64 | tr -dc 'a-z0-9' | head -c 6)
+          # probe content-type
+          CT=$(curl -sIL "$SRC" | awk -F': ' 'tolower($1)=="content-type"{print tolower($2)}' | head -n1 | tr -d '\r')
+          EXT=""
+          case "$CT" in
+            image/png*) EXT=png ;;
+            image/jpeg*|image/jpg*) EXT=jpg ;;
+            image/webp*) EXT=webp ;;
+            image/gif*) EXT=gif ;;
+          esac
+          if [ -z "$EXT" ]; then
+            # try from URL
+            case "$SRC" in
+              *.png) EXT=png ;;
+              *.jpg|*.jpeg) EXT=jpg ;;
+              *.webp) EXT=webp ;;
+              *.gif) EXT=gif ;;
+            esac
+          fi
+          if [ -z "$EXT" ]; then
+            echo "Unsupported or unknown image type" >&2
+            exit 1
+          fi
+          STEM=$(echo "${NAME:-upload}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+|-+$//g')
+          OUT="media/public/uploads/${YYYY}/${MM}/${STEM}-${TS}-${RND}.${EXT}"
+          mkdir -p "$(dirname "$OUT")"
+          curl -L "$SRC" -o "$OUT"
+          SIZE=$(stat -c%s "$OUT" 2>/dev/null || wc -c < "$OUT")
+          if [ "$SIZE" -gt $((5*1024*1024)) ]; then
+            echo "File too large (>5MB)." >&2
+            exit 1
+          fi
+          echo "Saved: $OUT"
+          echo "PUBLIC_PATH=/$(echo "$OUT" | sed 's#^media/public/##')" >> $GITHUB_ENV
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add media/public/uploads
+          git commit -m "chore(cms): upload image ${{ env.PUBLIC_PATH }}" || echo "No changes"
+          git push
+      - name: Output public URL
+        run: echo "Image path: /${{ env.PUBLIC_PATH }}"
+

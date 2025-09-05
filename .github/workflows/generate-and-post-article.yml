@@ -1,0 +1,210 @@
+name: Generate And Post Article
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "LLM provider (openai or gemini)"
+        required: true
+        type: choice
+        options: [openai, gemini]
+        default: gemini
+      model:
+        description: "Model ID (任意)"
+        required: false
+        type: string
+      keyword:
+        description: "記事キーワード"
+        required: true
+        type: string
+      category:
+        description: "カテゴリ (例: SEO)"
+        required: true
+        type: string
+      tone:
+        description: "トーン (例: 実務的で明快)"
+        required: false
+        type: string
+        default: 実務的で明快
+      audience:
+        description: "想定読者"
+        required: false
+        type: string
+        default: マーケ担当者・事業責任者
+      titleOverride:
+        description: "タイトル上書き（任意）"
+        required: false
+        type: string
+      imageUrl:
+        description: "アイキャッチURL（/media/uploads/... or https://...）"
+        required: false
+        type: string
+      alsoAddSpecial:
+        description: "特集にも追加する"
+        required: false
+        type: boolean
+        default: false
+      alsoSetFeatured:
+        description: "注目記事に設定（置き換え）"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate outline and article, then write JSON
+        env:
+          PROVIDER: ${{ inputs.provider }}
+          MODEL: ${{ inputs.model }}
+          KEYWORD: ${{ inputs.keyword }}
+          CATEGORY: ${{ inputs.category }}
+          TONE: ${{ inputs.tone }}
+          AUDIENCE: ${{ inputs.audience }}
+          TITLE_OVERRIDE: ${{ inputs.titleOverride }}
+          IMAGE_URL: ${{ inputs.imageUrl }}
+          ALSO_SPECIAL: ${{ inputs.alsoAddSpecial }}
+          ALSO_FEATURED: ${{ inputs.alsoSetFeatured }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_BASE: ${{ secrets.GEMINI_API_BASE }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs')
+          const path = require('path')
+
+          const env = process.env
+          const provider = (env.PROVIDER || 'gemini').toLowerCase()
+          const model = env.MODEL || (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-pro')
+          const keyword = env.KEYWORD
+          const category = env.CATEGORY || 'SEO'
+          const tone = env.TONE || '実務的で明快'
+          const audience = env.Audience || env.AUDIENCE || 'マーケ担当者・事業責任者'
+          const titleOverride = env.TITLE_OVERRIDE || ''
+          const imageUrl = (env.IMAGE_URL || '').trim()
+          const alsoSpecial = String(env.ALSO_SPECIAL || 'false').toLowerCase() === 'true'
+          const alsoFeatured = String(env.ALSO_FEATURED || 'false').toLowerCase() === 'true'
+
+          if (!keyword) { throw new Error('keyword is required') }
+
+          function slugify(input) {
+            try {
+              return String(input || '')
+                .toLowerCase()
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .trim()
+                .replace(/[\s_-]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+            } catch { return '' }
+          }
+
+          function estimateReadTimeFromHtml(html) {
+            const text = String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+            const minutes = Math.max(1, Math.ceil(text.length / 600))
+            return `${minutes}分`
+          }
+
+          async function openaiChatJSON({ system, user, schema }) {
+            const base = env.OPENAI_API_BASE || 'https://api.openai.com/v1'
+            const url = base.replace(/\/$/, '') + '/chat/completions'
+            const headers = {
+              'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            }
+            const body = JSON.stringify({
+              model,
+              messages: [ system ? { role: 'system', content: system } : null, { role: 'user', content: user } ].filter(Boolean),
+              response_format: schema ? { type: 'json_object' } : undefined
+            })
+            const r = await fetch(url, { method: 'POST', headers, body })
+            const text = await r.text().catch(()=> '')
+            if (!r.ok) throw new Error(`OpenAI error ${r.status}: ${text}`)
+            let data; try { data = JSON.parse(text) } catch {}
+            let content = data?.choices?.[0]?.message?.content || '{}'
+            const tryParse = (s)=>{ try { return JSON.parse(s) } catch { return null } }
+            const strip = (s)=> s.replace(/^\s*```(?:json)?/i,'').replace(/```\s*$/,'').trim()
+            return tryParse(content) || tryParse(strip(content)) || (()=>{ throw new Error('Invalid JSON from OpenAI') })()
+          }
+
+          async function geminiChatJSON({ system, user }) {
+            const base = env.GEMINI_API_BASE || 'https://generativelanguage.googleapis.com/v1beta'
+            const url = base.replace(/\/$/, '') + `/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`
+            const body = { contents: [{ role: 'user', parts: [{ text: user }] }], ...(system ? { systemInstruction: { role: 'system', parts: [{ text: system }] } } : {}), generationConfig: { responseMimeType: 'application/json' } }
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            const text = await r.text().catch(()=> '')
+            if (!r.ok) throw new Error(`Gemini error ${r.status}: ${text}`)
+            let data; try { data = JSON.parse(text) } catch {}
+            const parts = data?.candidates?.[0]?.content?.parts || []
+            const joined = parts.map(p=>p?.text).filter(Boolean).join('\n').trim()
+            const tryParse = (s)=>{ try { return JSON.parse(s) } catch { return null } }
+            const strip = (s)=> s.replace(/^\s*```(?:json)?/i,'').replace(/```\s*$/,'').trim()
+            return tryParse(joined) || tryParse(strip(joined)) || (()=>{ throw new Error('Invalid JSON from Gemini') })()
+          }
+
+          async function llmOutline() {
+            const system = 'あなたは日本語のコンテンツストラテジストです。AIMAの実務記事構成をMECEで設計してください。'
+            const user = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${audience}\n\nJSONのみ出力: {"title":string,"slug":string,"h2":[{"title":string,"h3":string[]}]}\n禁止: 説明文やコードフェンス`
+            if (provider === 'openai') return await openaiChatJSON({ system, user, schema: true })
+            return await geminiChatJSON({ system, user })
+          }
+
+          async function llmArticle(outline) {
+            const system = 'あなたは日本語のSEO/マーケ記事執筆者です。HTML本文のみを返し、h2/h3を見出しに用います。'
+            const user = `構成に基づき、実務的で独自性のある記事本文(HTML)を生成。\n- タイトル: ${titleOverride || outline.title}\n- 見出し: ${outline.h2.map(s=>`[${s.title}]`).join(' ')}\n- トーン: ${tone}\n- 想定読者: ${audience}\n禁止: JSONや説明、コードフェンス。返すのはHTMLのみ。`
+            if (provider === 'openai') {
+              const res = await openaiChatJSON({ system, user })
+              // When response_format is not forced, we expect plain text; res will be an object from tryParse → so just coerce
+              if (typeof res === 'object') return JSON.stringify(res)
+              return String(res)
+            }
+            const res = await geminiChatJSON({ system, user })
+            if (typeof res === 'object') return JSON.stringify(res)
+            return String(res)
+          }
+
+          (async () => {
+            const outline = await llmOutline()
+            const title = titleOverride || String(outline?.title || keyword)
+            const slug = slugify(outline?.slug || title) || slugify(keyword) || `post-${new Date().toISOString().slice(0,10)}`
+            const html = await llmArticle(outline)
+            const publishDate = new Date().toISOString().slice(0,10)
+            const readTime = estimateReadTimeFromHtml(html)
+            const article = { slug, title, excerpt: `${keyword}の実務解説。`, author: 'AIMA編集部', reviewer: '', publishDate, readTime, category, imageUrl, body: html }
+
+            const dataDir = path.join(process.cwd(), 'media', 'src', 'data')
+            const recentPath = path.join(dataDir, 'recentArticles.json')
+            const specialPath = path.join(dataDir, 'specialArticles.json')
+            const featuredPath = path.join(dataDir, 'featuredArticle.json')
+            const readJson = (p, fb)=>{ try { return JSON.parse(fs.readFileSync(p,'utf-8')) } catch { return fb } }
+            const writeJson = (p, d)=> fs.writeFileSync(p, JSON.stringify(d,null,2)+'\n')
+
+            // recent: insert/replace at head
+            const recent = readJson(recentPath, [])
+            const rest = recent.filter(a => a && a.slug !== slug)
+            writeJson(recentPath, [article, ...rest])
+            if (alsoSpecial) {
+              const special = readJson(specialPath, [])
+              const sRest = special.filter(a => a && a.slug !== slug)
+              writeJson(specialPath, [article, ...sRest])
+            }
+            if (alsoFeatured) writeJson(featuredPath, article)
+
+            console.log('Wrote article slug:', slug)
+          })().catch((e)=>{ console.error(e); process.exit(1) })
+          NODE
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add media/src/data/*.json
+          git commit -m "chore(ai): generate+post '${{ inputs.keyword }}' via Actions (${ {openai: 'OpenAI', gemini: 'Gemini'}[inputs.provider] })" || echo "No changes"
+          git push
+
