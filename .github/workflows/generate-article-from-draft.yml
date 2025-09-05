@@ -178,3 +178,28 @@ jobs:
           lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
             "set sftp:auto-confirm yes; mkdir -p $SAKURA_REMOTE_DIR_ENV; mirror -R --only-newer --parallel=2 ./dist/media/ $SAKURA_REMOTE_DIR_ENV; bye"
           echo "Deployed media."
+
+      - name: Build corporate site (root)
+        if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
+        env:
+          VITE_CMS_API_BASE: ${{ secrets.VITE_CMS_API_BASE }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+        run: |
+          npm ci
+          npm run build
+          npm run postbuild || true
+          mkdir -p dist
+          echo "built root: $(date -u +'%FT%TZ')" > dist/health.txt
+          ls -la dist | head -n 50
+
+      - name: Deploy corporate root via SFTP to Sakura
+        if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR_ENV%/media/}"
+          echo "Mirroring ./dist -> ${ROOT_REMOTE_DIR}"
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
+            "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/ ${ROOT_REMOTE_DIR}; bye"
+          echo "Deployed root."
