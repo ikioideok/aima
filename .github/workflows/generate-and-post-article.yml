@@ -115,7 +115,7 @@ jobs:
             return `${minutes}分`
           }
 
-          async function openaiChatJSON({ system, user, schema }) {
+          async function openaiChat({ system, user, schema, asText = false }) {
             const base = env.OPENAI_API_BASE || 'https://api.openai.com/v1'
             const url = base.replace(/\/$/, '') + '/chat/completions'
             const headers = {
@@ -131,22 +131,25 @@ jobs:
             const text = await r.text().catch(()=> '')
             if (!r.ok) throw new Error(`OpenAI error ${r.status}: ${text}`)
             let data; try { data = JSON.parse(text) } catch {}
-            let content = data?.choices?.[0]?.message?.content || '{}'
+            let content = data?.choices?.[0]?.message?.content || ''
+            if (asText) return String(content || '')
             const tryParse = (s)=>{ try { return JSON.parse(s) } catch { return null } }
             const strip = (s)=> s.replace(/^\s*```(?:json)?/i,'').replace(/```\s*$/,'').trim()
             return tryParse(content) || tryParse(strip(content)) || (()=>{ throw new Error('Invalid JSON from OpenAI') })()
           }
 
-          async function geminiChatJSON({ system, user }) {
+          async function geminiChat({ system, user, asText = false }) {
             const base = env.GEMINI_API_BASE || 'https://generativelanguage.googleapis.com/v1beta'
             const url = base.replace(/\/$/, '') + `/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`
-            const body = { contents: [{ role: 'user', parts: [{ text: user }] }], ...(system ? { systemInstruction: { role: 'system', parts: [{ text: system }] } } : {}), generationConfig: { responseMimeType: 'application/json' } }
+            const responseMimeType = asText ? 'text/plain' : 'application/json'
+            const body = { contents: [{ role: 'user', parts: [{ text: user }] }], ...(system ? { systemInstruction: { role: 'system', parts: [{ text: system }] } } : {}), generationConfig: { responseMimeType } }
             const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
             const text = await r.text().catch(()=> '')
             if (!r.ok) throw new Error(`Gemini error ${r.status}: ${text}`)
             let data; try { data = JSON.parse(text) } catch {}
             const parts = data?.candidates?.[0]?.content?.parts || []
             const joined = parts.map(p=>p?.text).filter(Boolean).join('\n').trim()
+            if (asText) return String(joined || '')
             const tryParse = (s)=>{ try { return JSON.parse(s) } catch { return null } }
             const strip = (s)=> s.replace(/^\s*```(?:json)?/i,'').replace(/```\s*$/,'').trim()
             return tryParse(joined) || tryParse(strip(joined)) || (()=>{ throw new Error('Invalid JSON from Gemini') })()
@@ -155,22 +158,19 @@ jobs:
           async function llmOutline() {
             const system = 'あなたは日本語のコンテンツストラテジストです。AIMAの実務記事構成をMECEで設計してください。'
             const user = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${audience}\n\nJSONのみ出力: {"title":string,"slug":string,"h2":[{"title":string,"h3":string[]}]}\n禁止: 説明文やコードフェンス`
-            if (provider === 'openai') return await openaiChatJSON({ system, user, schema: true })
-            return await geminiChatJSON({ system, user })
+            if (provider === 'openai') return await openaiChat({ system, user, schema: true })
+            return await geminiChat({ system, user })
           }
 
           async function llmArticle(outline) {
             const system = 'あなたは日本語のSEO/マーケ記事執筆者です。HTML本文のみを返し、h2/h3を見出しに用います。'
             const user = `構成に基づき、実務的で独自性のある記事本文(HTML)を生成。\n- タイトル: ${titleOverride || outline.title}\n- 見出し: ${outline.h2.map(s=>`[${s.title}]`).join(' ')}\n- トーン: ${tone}\n- 想定読者: ${audience}\n禁止: JSONや説明、コードフェンス。返すのはHTMLのみ。`
             if (provider === 'openai') {
-              const res = await openaiChatJSON({ system, user })
-              // When response_format is not forced, we expect plain text; res will be an object from tryParse → so just coerce
-              if (typeof res === 'object') return JSON.stringify(res)
-              return String(res)
+              const res = await openaiChat({ system, user, asText: true })
+              return String(res || '')
             }
-            const res = await geminiChatJSON({ system, user })
-            if (typeof res === 'object') return JSON.stringify(res)
-            return String(res)
+            const res = await geminiChat({ system, user, asText: true })
+            return String(res || '')
           }
 
           (async () => {
@@ -201,6 +201,7 @@ jobs:
             if (alsoFeatured) writeJson(featuredPath, article)
 
             console.log('Wrote article slug:', slug)
+            console.log('URL: https://ai-and-marketing.jp/media/articles/' + slug + '/')
           })().catch((e)=>{ console.error(e); process.exit(1) })
           NODE
       - name: Commit and push
