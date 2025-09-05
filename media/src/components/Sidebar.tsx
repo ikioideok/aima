@@ -201,7 +201,7 @@ export function Sidebar() {
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
             {siteOwner.avatarUrl ? (
-              <img src={siteOwner.avatarUrl} alt={siteOwner.name} width={48} height={48} className="w-12 h-12 rounded-full object-cover" />
+              <img src={siteOwner.avatarUrl} alt={siteOwner.name} width={48} height={48} className="w-12 h-12 rounded-full object-cover" loading="lazy" decoding="async" />
             ) : (
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
                 <User className="h-6 w-6 text-muted-foreground" />

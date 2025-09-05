@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { ArrowDown, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
@@ -9,15 +9,28 @@ export function HeroSection() {
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX - window.innerWidth / 2) / window.innerWidth * 0.5,
-        y: (e.clientY - window.innerHeight / 2) / window.innerHeight * 0.5,
+    let rafId: number | null = null;
+    const last = { x: 0, y: 0 };
+
+    const schedule = () => {
+      if (rafId != null) return;
+      rafId = window.requestAnimationFrame(() => {
+        setMousePosition(last);
+        rafId = null;
       });
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    const handleMouseMove = (e: MouseEvent) => {
+      last.x = ((e.clientX - window.innerWidth / 2) / window.innerWidth) * 0.5;
+      last.y = ((e.clientY - window.innerHeight / 2) / window.innerHeight) * 0.5;
+      schedule();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove as any);
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const letterVariants = {

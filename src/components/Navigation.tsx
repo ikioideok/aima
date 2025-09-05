@@ -26,6 +26,7 @@ export function Navigation() {
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
+      aria-label="メインナビゲーション"
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled
           ? 'bg-white/95 backdrop-blur-lg border-b border-black/10 shadow-sm'
@@ -81,6 +82,9 @@ export function Navigation() {
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="lg:hidden p-2 text-black"
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="primary-navigation"
+            aria-label={isMobileMenuOpen ? 'メニューを閉じる' : 'メニューを開く'}
           >
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </motion.button>
@@ -95,6 +99,7 @@ export function Navigation() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="lg:hidden bg-white border-t border-black/10"
+            id="primary-navigation"
           >
             <div className="px-6 py-6 space-y-6">
               {navItems.map((item, index) => (

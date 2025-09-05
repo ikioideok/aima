@@ -550,7 +550,7 @@ export default function Admin() {
               </div>
               {upPreview && (
                 <div className="flex items-center gap-4">
-                  <img src={upPreview} alt="preview" className="w-36 h-24 object-cover rounded border" />
+                  <img src={upPreview} alt="preview" className="w-36 h-24 object-cover rounded border" loading="lazy" decoding="async" />
                   <div className="text-xs text-muted-foreground break-all">{upUrl || '（URLはアップロード後に表示）'}</div>
                 </div>
               )}

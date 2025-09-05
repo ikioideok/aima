@@ -29,7 +29,7 @@ export function ReviewerCard({ info }: { info: ReviewerInfo }) {
       <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
         <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-muted flex-shrink-0">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={`${name}の写真`} className="w-full h-full object-cover" loading="lazy" />
+            <img src={avatarUrl} alt={`${name}の写真`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
           ) : null}
         </div>
         <div className="flex-1 min-w-0">
@@ -51,4 +51,3 @@ export function ReviewerCard({ info }: { info: ReviewerInfo }) {
     </section>
   )
 }
-

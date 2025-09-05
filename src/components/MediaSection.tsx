@@ -147,7 +147,12 @@ export function MediaSection() {
               <div className="w-full aspect-[16/9] bg-gray-100 overflow-hidden">
                 {/* item.thumb is absolute (/media/...) or URL */}
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                <img src={(item as any).thumb} className="w-full h-full object-cover" loading="lazy" />
+                <img
+                  src={(item as any).thumb}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
               {/* Category Badge */}
               <motion.div
