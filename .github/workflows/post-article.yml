@@ -35,14 +35,6 @@ on:
         description: "本文（HTML, 任意）"
         required: false
         type: string
-      slug:
-        description: "スラッグ（未指定ならタイトルから自動生成）"
-        required: false
-        type: string
-      readTime:
-        description: "読了時間（例: 8分。未指定なら本文から推定）"
-        required: false
-        type: string
       alsoAddSpecial:
         description: "特集にも追加する"
         required: false
@@ -144,6 +136,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add media/src/data/*.json
-          git commit -m "chore(cms): post article via workflow: ${INPUT_TITLE} (${INPUT_SLUG || 'auto'})" || echo "No changes"
+          git commit -m "chore(cms): post article via workflow: ${INPUT_TITLE}" || echo "No changes"
           git push
-
