@@ -68,5 +68,5 @@ jobs:
           git commit -m "chore(cms): upload image ${{ env.PUBLIC_PATH }}" || echo "No changes"
           git push
       - name: Output public URL
-        run: echo "Image path: /${{ env.PUBLIC_PATH }}"
-
+        run: |
+          echo "Image path: /${{ env.PUBLIC_PATH }}"
