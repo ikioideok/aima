@@ -225,15 +225,16 @@ jobs:
           npm ci --prefix media
           npm run build --prefix media
           npm run postbuild --prefix media || true
-          echo "built: $(date -u +'%FT%TZ')" > media/dist/health.txt
-          ls -la media/dist | head -n 50
+          mkdir -p dist/media
+          echo "built: $(date -u +'%FT%TZ')" > dist/media/health.txt
+          ls -la dist/media | head -n 50
       - name: Deploy media via SFTP to Sakura
         if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
-          echo "Mirroring ./media/dist -> $SAKURA_REMOTE_DIR_ENV"
+          echo "Mirroring ./dist/media -> $SAKURA_REMOTE_DIR_ENV"
           lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
-            "set sftp:auto-confirm yes; mkdir -p $SAKURA_REMOTE_DIR_ENV; mirror -R --only-newer --parallel=2 ./media/dist/ $SAKURA_REMOTE_DIR_ENV; bye"
+            "set sftp:auto-confirm yes; mkdir -p $SAKURA_REMOTE_DIR_ENV; mirror -R --only-newer --parallel=2 ./dist/media/ $SAKURA_REMOTE_DIR_ENV; bye"
           echo "Deployed media."

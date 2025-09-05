@@ -41,10 +41,10 @@ jobs:
           npm ci --prefix media
           npm run build --prefix media
           npm run postbuild --prefix media || true
-          mkdir -p media/dist
-          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > media/dist/health.txt
-          echo "---- local media/dist listing ----"
-          find media/dist -maxdepth 2 -type f -printf "%p\n" | sort
+          mkdir -p dist/media
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/media/health.txt
+          echo "---- local dist/media listing ----"
+          find dist/media -maxdepth 2 -type f -printf "%p\n" | sort
 
       - name: Guard remote path (/www/media)
         run: |
@@ -53,15 +53,15 @@ jobs:
             *) echo "NG: SAKURA_REMOTE_DIR must be .../www/media/ ; got '${SAKURA_REMOTE_DIR}'" && exit 1 ;;
           esac
 
-      - name: Deploy via lftp mirror (media/dist → /www/media)
+      - name: Deploy via lftp mirror (dist/media → /www/media)
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
-          echo "Mirroring ./media/dist/ -> ${SAKURA_REMOTE_DIR}"
-          # dist の「中身だけ」を /www/media/ 直下へ配置（dist という箱は作らない）
+          echo "Mirroring ./dist/media/ -> ${SAKURA_REMOTE_DIR}"
+          # dist/media の「中身だけ」を /www/media/ 直下へ配置
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; mkdir -p ${SAKURA_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./media/dist/ ${SAKURA_REMOTE_DIR}; bye"
+            "set sftp:auto-confirm yes; mkdir -p ${SAKURA_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/media/ ${SAKURA_REMOTE_DIR}; bye"
           echo "---- remote /www/media listing ----"
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
             "set sftp:auto-confirm yes; cls -l ${SAKURA_REMOTE_DIR}; bye"
