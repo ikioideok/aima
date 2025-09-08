@@ -1,4 +1,4 @@
 This file exists to trigger the deploy-media workflow on push.
 You can remove it anytime.
 
-Last trigger: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+Last trigger: manual run 3
