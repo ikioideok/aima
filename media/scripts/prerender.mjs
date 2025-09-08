@@ -276,7 +276,7 @@ if (renderJinzai) {
   }
   // Ensure Apache serves /jinzai/ with its own index.html (not /media/) and supports SPA-style routing under /jinzai
   try {
-    const ht = `Options -MultiViews\nRewriteEngine On\nRewriteBase /jinzai/\n\n# Direct files/dirs\nRewriteCond %{REQUEST_FILENAME} -f [OR]\nRewriteCond %{REQUEST_FILENAME} -d\nRewriteRule ^ - [L]\n\n# Fallback to index.html within /jinzai/\nRewriteRule . index.html [L]\n`
+    const ht = `Options -MultiViews\nDirectoryIndex index.html\n# Disable any inherited rewrites; always serve files in this dir\nRewriteEngine Off\n`
     fs.writeFileSync(path.join(outDirJinzai, '.htaccess'), ht)
   } catch (e) {
     console.warn('Failed to write /jinzai/.htaccess:', e?.message || e)
