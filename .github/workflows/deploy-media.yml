@@ -76,7 +76,11 @@ jobs:
         run: |
           # /www/ ルートを media のリモート指定から導出
           ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/media/}"
+          # normalize to ensure a single trailing slash
+          ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
           JINZAI_REMOTE_DIR="${ROOT_REMOTE_DIR}jinzai/"
+          echo "Derived ROOT_REMOTE_DIR=${ROOT_REMOTE_DIR}"
+          echo "Deploy JINZAI_REMOTE_DIR=${JINZAI_REMOTE_DIR}"
           if [ -d dist/jinzai ]; then
             sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
             echo "Mirroring ./dist/jinzai/ -> ${JINZAI_REMOTE_DIR}"
