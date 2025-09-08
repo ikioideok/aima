@@ -274,6 +274,13 @@ if (renderJinzai) {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     fs.writeFileSync(file, outHtml)
   }
+  // Ensure Apache serves /jinzai/ with its own index.html (not /media/) and supports SPA-style routing under /jinzai
+  try {
+    const ht = `Options -MultiViews\nRewriteEngine On\nRewriteBase /jinzai/\n\n# Direct files/dirs\nRewriteCond %{REQUEST_FILENAME} -f [OR]\nRewriteCond %{REQUEST_FILENAME} -d\nRewriteRule ^ - [L]\n\n# Fallback to index.html within /jinzai/\nRewriteRule . index.html [L]\n`
+    fs.writeFileSync(path.join(outDirJinzai, '.htaccess'), ht)
+  } catch (e) {
+    console.warn('Failed to write /jinzai/.htaccess:', e?.message || e)
+  }
 }
 
 await vite.close()
