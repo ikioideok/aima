@@ -24,7 +24,8 @@ export default function App() {
           itemListElement: [
             { '@type': 'ListItem', position: 1, url: `https://ai-and-marketing.jp/media/articles/${featuredArticle.slug}/` },
             ...specialArticles.map((a, i) => ({ '@type': 'ListItem', position: i + 2, url: `https://ai-and-marketing.jp/media/articles/${a.slug}/` })),
-            ...recentArticles.map((a, i) => ({ '@type': 'ListItem', position: i + 2 + specialArticles.length, url: `https://ai-and-marketing.jp/media/articles/${a.slug}/` }))
+            // Show only the first 10 recent articles on top
+            ...recentArticles.slice(0, 10).map((a, i) => ({ '@type': 'ListItem', position: i + 2 + specialArticles.length, url: `https://ai-and-marketing.jp/media/articles/${a.slug}/` }))
           ]
         }) }}
       />
@@ -93,7 +94,7 @@ export default function App() {
                 </Link>
               </div>
               <div className="space-y-4">
-                {recentArticles.map((article) => (
+                {recentArticles.slice(0, 10).map((article) => (
                   <Link to={`/articles/${article.slug}/`} key={article.slug}>
                     <CompactCard {...article} />
                   </Link>

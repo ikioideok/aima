@@ -16,7 +16,7 @@ export default function LatestPage() {
         </div>
 
         <div className="space-y-4">
-          {recentArticles.map((a) => (
+          {recentArticles.slice(0, 10).map((a) => (
             <Link to={`/articles/${a.slug}/`} key={a.slug}>
               <CompactCard {...a} />
             </Link>
@@ -34,4 +34,3 @@ export default function LatestPage() {
     </div>
   )
 }
-
