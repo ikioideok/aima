@@ -49,11 +49,12 @@ jobs:
           echo "---- local dist/media listing ----"
           find dist/media -maxdepth 2 -type f -printf "%p\n" | sort
 
-      - name: Guard remote path (/www/media)
+      - name: Guard remote path (/www[/public_html]/media)
         run: |
           case "${SAKURA_REMOTE_DIR}" in
             */www/media|*/www/media/) echo "OK: ${SAKURA_REMOTE_DIR}" ;;
-            *) echo "NG: SAKURA_REMOTE_DIR must be .../www/media/ ; got '${SAKURA_REMOTE_DIR}'" && exit 1 ;;
+            */www/public_html/media|*/www/public_html/media/) echo "OK (public_html): ${SAKURA_REMOTE_DIR}" ;;
+            *) echo "NG: SAKURA_REMOTE_DIR must be .../www/media/ or .../www/public_html/media/ ; got '${SAKURA_REMOTE_DIR}'" && exit 1 ;;
           esac
 
       - name: Deploy via lftp mirror (dist/media → /www/media)
@@ -105,7 +106,15 @@ jobs:
             [ "$code" = "200" ] && echo "OK" && exit 0
             sleep 5
           done
-          echo "NG: /jinzai/ still 404"
+          echo "Preview NG: /jinzai/ still 404 (violetsheep5)"
+          echo "Try production domain..."
+          for i in {1..6}; do
+            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://ai-and-marketing.jp/jinzai/health.txt")
+            echo "prod try $i: $code"
+            [ "$code" = "200" ] && echo "OK (prod health)" && exit 0
+            sleep 5
+          done
+          echo "NG: /jinzai/ health not found on prod"
           exit 1
 
       - name: Verify (SFTP & HTTP)
