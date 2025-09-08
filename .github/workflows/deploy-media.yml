@@ -66,6 +66,23 @@ jobs:
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
             "set sftp:auto-confirm yes; cls -l ${SAKURA_REMOTE_DIR}; bye"
 
+      - name: Deploy jinzai (dist/jinzai → /www/jinzai)
+        if: ${{ always() }}
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          # /www/ ルートを media のリモート指定から導出
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/media/}"
+          JINZAI_REMOTE_DIR="${ROOT_REMOTE_DIR}jinzai/"
+          if [ -d dist/jinzai ]; then
+            sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+            echo "Mirroring ./dist/jinzai/ -> ${JINZAI_REMOTE_DIR}"
+            lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
+              "set sftp:auto-confirm yes; mkdir -p ${JINZAI_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/jinzai/ ${JINZAI_REMOTE_DIR}; bye"
+          else
+            echo "dist/jinzai not found. Skipping."
+          fi
+
       - name: Verify (SFTP & HTTP)
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}

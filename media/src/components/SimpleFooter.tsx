@@ -94,6 +94,12 @@ export function SimpleFooter() {
             <h4 className="font-medium">運営者情報</h4>
             <nav className="space-y-2">
               <a 
+                href="/jinzai/"
+                className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                AIで人材不足解決.com
+              </a>
+              <a 
                 href="https://ai-and-marketing.jp/"
                 className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
                 rel="noopener noreferrer"
