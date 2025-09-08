@@ -1,30 +1,7 @@
 Options -MultiViews
-RewriteEngine On
-RewriteBase /media/
+# Root-level .htaccess intentionally keeps no global rewrite rules
+# so that subdirectories like /media/ and /jinzai/ control routing
+# via their own .htaccess files.
 
-# Handle direct file/directory requests
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Handle SPA routing
-RewriteRule . index.html [L]
-
-# Cache control
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType text/css "access plus 1 year"
-    ExpiresByType application/javascript "access plus 1 year"
-    ExpiresByType image/png "access plus 1 year"
-    ExpiresByType image/jpeg "access plus 1 year"
-    ExpiresByType image/webp "access plus 1 year"
-    ExpiresByType image/gif "access plus 1 year"
-    ExpiresByType font/woff2 "access plus 1 year"
-    ExpiresByType font/woff "access plus 1 year"
-</IfModule>
-
-<IfModule mod_headers.c>
-    <FilesMatch "\.(html)$">
-      Header set Cache-Control "no-cache, no-store, must-revalidate"
-    </FilesMatch>
-</IfModule>
+# Optional: cache headers can be added here if needed, but avoid
+# overriding sub-app .htaccess behavior.
