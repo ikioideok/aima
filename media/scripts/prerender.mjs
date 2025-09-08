@@ -33,11 +33,26 @@ const vite = await createServer({
 
 // The entry is under src/media/entry-server.tsx
 const { render } = await vite.ssrLoadModule('/src/media/entry-server.tsx')
+// Jinzai tenant renderer
+let renderJinzai = null
+try {
+  ({ render: renderJinzai } = await vite.ssrLoadModule('/src/jinzai/entry-server.tsx'))
+} catch (e) {
+  console.warn('Jinzai renderer not found or failed to load:', e?.message || e)
+}
 
 // dist output path from media/vite.config.ts
 const outDir = path.resolve('../dist/media')
 const templatePath = path.join(outDir, 'index.html')
 const template = fs.readFileSync(templatePath, 'utf-8')
+// jinzai outputs to separate folder and reuses the same template (CSS links) but strips JS to avoid SPA hydration mismatch
+const outDirJinzai = path.resolve('../dist/jinzai')
+function stripJS(html) {
+  return html
+    .replace(/<script\s+type="module"[^>]*>\s*<\/script>/g, '')
+    .replace(/<script\s+nomodule[^>]*>\s*<\/script>/g, '')
+    .replace(/<script\b[^>]*>[^<]*<\/script>/g, '')
+}
 
 const { bySlug: articles, recent, special, featured } = collectArticles()
 const PAGE_SIZE = 10
@@ -78,6 +93,12 @@ const routes = [
   ...categoryRoutes,
   ...Array.from(articles.keys()).map((slug) => `/media/articles/${slug}/`),
   ...pageRoutes
+]
+
+// Routes for jinzai tenant
+const jinzaiRoutes = [
+  '/jinzai/',
+  '/jinzai/tools/vacancy-cost/'
 ]
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://ai-and-marketing.jp'
@@ -214,6 +235,19 @@ function applyHeadMeta(template, url, opts = {}) {
       out = injectIfMissing(out, /<link rel=\"next\"[^>]*>/, `<link rel=\"next\" href=\"${nextHref}\">`)
     }
   }
+  // jinzai: override head for tenant pages
+  if (url === '/jinzai/' || url.startsWith('/jinzai/')) {
+    const isTool = url.startsWith('/jinzai/tools/')
+    const t = isTool ? '欠員コスト診断｜AIで人材不足解決.com' : 'AIで人材不足解決.com｜AI Workforce Solutions'
+    const can = `${SITE_ORIGIN}${url}`
+    out = out
+      .replace(/<title>[^<]*<\/title>/, `<title>${t}</title>`)
+      .replace(/<meta name=\"description\"[^>]*>/, `<meta name=\"description\" content=\"AIで人材不足を、現場から解決。採用・育成・配置・現場自動化まで、投資対効果を可視化して実装まで伴走します。\">`)
+      .replace(/<meta property=\"og:title\"[^>]*>/, `<meta property=\"og:title\" content=\"${t.replace(/"/g, '&quot;')}\">`)
+      .replace(/<meta property=\"og:description\"[^>]*>/, `<meta property=\"og:description\" content=\"AIで人材不足を、現場から解決。採用・育成・配置・現場自動化まで。\">`)
+      .replace(/<meta property=\"og:url\"[^>]*>/, `<meta property=\"og:url\" content=\"${can}\">`)
+      .replace(/<link rel=\"canonical\"[^>]*>/, `<link rel=\"canonical\" href=\"${can}\">`)
+  }
   return out
 }
 
@@ -225,6 +259,21 @@ for (const url of routes) {
   const file = rel === '' ? path.join(outDir, 'index.html') : path.join(outDir, rel, 'index.html')
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, outHtml)
+}
+
+// prerender jinzai tenant if renderer is available
+if (renderJinzai) {
+  for (const url of jinzaiRoutes) {
+    const { html } = await renderJinzai(url)
+    let page = applyHeadMeta(template, url)
+    // strip JS to avoid hydrating with /media bundle; keep CSS from template
+    page = stripJS(page)
+    const outHtml = page.replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`) 
+    const rel = url.replace(/^\/jinzai\/?/, '')
+    const file = rel === '' ? path.join(outDirJinzai, 'index.html') : path.join(outDirJinzai, rel, 'index.html')
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, outHtml)
+  }
 }
 
 await vite.close()
