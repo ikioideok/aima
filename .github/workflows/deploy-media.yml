@@ -43,6 +43,9 @@ jobs:
           npm run postbuild --prefix media || true
           mkdir -p dist/media
           echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/media/health.txt
+          # ensure jinzai health exists even if prerender skipped for some reason
+          mkdir -p dist/jinzai
+          echo "deployed OK $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/jinzai/health.txt
           echo "---- local dist/media listing ----"
           find dist/media -maxdepth 2 -type f -printf "%p\n" | sort
 
@@ -79,9 +82,27 @@ jobs:
             echo "Mirroring ./dist/jinzai/ -> ${JINZAI_REMOTE_DIR}"
             lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
               "set sftp:auto-confirm yes; mkdir -p ${JINZAI_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/jinzai/ ${JINZAI_REMOTE_DIR}; bye"
+            echo "---- remote /www/jinzai listing ----"
+            lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
+              "set sftp:auto-confirm yes; cls -l ${JINZAI_REMOTE_DIR}; bye"
           else
             echo "dist/jinzai not found. Skipping."
           fi
+
+      - name: Verify jinzai (HTTP)
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/media/}"
+          echo "Waiting for /jinzai/ publish (up to ~30s)..."
+          for i in {1..6}; do
+            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://violetsheep5.sakura.ne.jp/jinzai/")
+            echo "try $i: $code"
+            [ "$code" = "200" ] && echo "OK" && exit 0
+            sleep 5
+          done
+          echo "NG: /jinzai/ still 404"
+          exit 1
 
       - name: Verify (SFTP & HTTP)
         env:
