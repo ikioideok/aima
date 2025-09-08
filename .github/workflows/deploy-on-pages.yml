@@ -76,7 +76,7 @@ jobs:
           # Routing is handled by sub-app .htaccess (e.g., /media/, /jinzai/)
           HT
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; put -O ${ROOT_REMOTE_DIR} _root_htaccess -o .htaccess; bye"
+            "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; put -o .htaccess _root_htaccess; bye"
 
       - name: Verify /jinzai health
         run: |
