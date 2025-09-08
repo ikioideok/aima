@@ -5,7 +5,6 @@ import { Search, Menu } from "lucide-react";
 
 export function SimpleHeader() {
   const navItems = [
-    { name: "人材不足解決", href: "/jinzai/" },
     { name: "最新記事", href: "/media/latest/" },
     { name: "注目記事", href: "/media/featured/" },
     { name: "特集記事", href: "/media/special/" },

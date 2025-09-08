@@ -238,6 +238,19 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
+      {/* Related Sites */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">関連サイト</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <a href="/jinzai/" className="font-medium hover:underline">AIで人材不足解決.com</a>
+            <div className="text-sm text-muted-foreground">欠員コスト診断や、人事・現場のAI活用ガイドを掲載。</div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/** タグ機能は現状未運用のため非表示（将来再導入時に復活） */}
     </aside>
   );
