@@ -154,7 +154,7 @@ const ArticlePage = () => {
                     <div class="font-semibold text-foreground">${cfg.title}</div>
                     ${cfg.text ? `<p class=\"text-sm text-muted-foreground m-0\">${cfg.text}</p>` : ''}
                   </div>
-                  <a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center justify-center px-5 py-3 rounded-md bg-primary text-primary-foreground font-semibold shadow-md hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary">
+                  <a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center justify-center px-5 py-3 rounded-md bg-red-600 text-white font-semibold shadow-lg hover:bg-red-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-300">
                     ${cfg.buttonText}
                   </a>
                 </div>
