@@ -53,7 +53,12 @@ jobs:
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
-          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/media/}"
+          # Derive ROOT_REMOTE_DIR robustly from SAKURA_REMOTE_DIR (handles /media and /media/)
+          echo "SAKURA_REMOTE_DIR=${SAKURA_REMOTE_DIR}"
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/}"
+          case "$ROOT_REMOTE_DIR" in
+            */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
+          esac
           ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
           JINZAI_REMOTE_DIR="${ROOT_REMOTE_DIR}jinzai/"
           echo "Derived ROOT_REMOTE_DIR=${ROOT_REMOTE_DIR}"
@@ -66,7 +71,11 @@ jobs:
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
-          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/media/}"
+          # Same robust derivation as above
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/}"
+          case "$ROOT_REMOTE_DIR" in
+            */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
+          esac
           ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
           echo "Upload .htaccess to ${ROOT_REMOTE_DIR}"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null

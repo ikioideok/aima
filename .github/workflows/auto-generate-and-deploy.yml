@@ -182,8 +182,13 @@ jobs:
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
-          # derive /www/ from media remote dir (…/www/media/ -> …/www/)
-          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR_ENV%/media/}"
+          # derive /www/ from media remote dir robustly (…/www/media or …/www/media/ -> …/www/)
+          echo "SAKURA_REMOTE_DIR_ENV=${SAKURA_REMOTE_DIR_ENV}"
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR_ENV%/}"
+          case "$ROOT_REMOTE_DIR" in
+            */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
+          esac
+          ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
           echo "Mirroring ./dist -> ${ROOT_REMOTE_DIR}"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
           lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
