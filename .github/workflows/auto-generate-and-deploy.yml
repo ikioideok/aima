@@ -189,8 +189,14 @@ jobs:
             */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
           esac
           ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
-          echo "Mirroring ./dist -> ${ROOT_REMOTE_DIR}"
+          # Also compute alternate root toggling '/public_html'
+          ALT_ROOT_REMOTE_DIR="$ROOT_REMOTE_DIR"
+          case "$ALT_ROOT_REMOTE_DIR" in
+            */public_html/) ALT_ROOT_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR%public_html/}" ;;
+            */www/) ALT_ROOT_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR}public_html/" ;;
+          esac
+          echo "Mirroring ./dist -> ${ROOT_REMOTE_DIR} and ALT ${ALT_ROOT_REMOTE_DIR}"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
           lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
-            "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/ ${ROOT_REMOTE_DIR}; bye"
+            "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/ ${ROOT_REMOTE_DIR}; mkdir -p ${ALT_ROOT_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/ ${ALT_ROOT_REMOTE_DIR}; bye"
           echo "Deployed root."
