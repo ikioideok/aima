@@ -5,11 +5,13 @@ import specialArticles from '../data/specialArticles.json';
 import recentArticles from '../data/recentArticles.json';
 import dummyArticle from '../data/dummyArticle.json'; // Import the new dummy article
 import siteOwner from '../data/siteOwner.json';
+import cta from '../data/cta.json';
 import { SimpleHeader } from '../components/SimpleHeader';
 import { SimpleFooter } from '../components/SimpleFooter';
 import { CompactCard } from '../components/CompactCard';
 import { ReviewerCard } from '../components/ReviewerCard';
 import siteOwner from '../data/siteOwner.json';
+import NewsletterCard from '../components/NewsletterCard';
 
 // Combine all articles into one array. Note: featuredArticle is an object, not an array.
 const allArticles = [featuredArticle, ...specialArticles, ...recentArticles, dummyArticle];
@@ -63,6 +65,32 @@ const ArticlePage = () => {
         el.setAttribute('id', id);
         localToc.push({ id, text, level: level as 2 | 3 });
       });
+
+      // Inline CTA: insert after the first h2
+      try {
+        const firstH2 = doc.querySelector('h2');
+        const cfg = (cta as any)?.inline || {};
+        const hrefBase = String(cfg.href || '#');
+        const utm = String(cfg.utm || '');
+        const href = hrefBase + utm;
+        if (firstH2 && cfg?.title && cfg?.buttonText && hrefBase !== '#') {
+          const wrapper = doc.createElement('div');
+          wrapper.innerHTML = `
+            <div class="my-6 p-4 border rounded-lg bg-card/50">
+              <div class="text-sm text-muted-foreground mb-1">おすすめリソース</div>
+              <div class="flex flex-col md:flex-row md:items-center gap-3">
+                <div class="flex-1">
+                  <div class="font-semibold text-foreground">${cfg.title}</div>
+                  ${cfg.text ? `<p class="text-sm text-muted-foreground m-0">${cfg.text}</p>` : ''}
+                </div>
+                <a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition">
+                  ${cfg.buttonText}
+                </a>
+              </div>
+            </div>`;
+          firstH2.insertAdjacentElement('afterend', wrapper.firstElementChild as Element);
+        }
+      } catch {}
       setToc(localToc);
       setProcessedHtml(doc.body.innerHTML);
     } catch {
@@ -198,6 +226,34 @@ const ArticlePage = () => {
           links: siteOwner?.links as any,
         }}
       />
+
+      {/* Newsletter Signup */}
+      <section className="mt-10">
+        <NewsletterCard />
+      </section>
+
+      {/* Bottom CTA */}
+      {(() => {
+        const cfg: any = (cta as any)?.bottom || {};
+        if (!cfg?.title || !cfg?.buttonText || !cfg?.href) return null;
+        const href = String(cfg.href) + String(cfg.utm || '');
+        return (
+          <section className="mt-12">
+            <div className="p-6 rounded-xl border bg-card/50">
+              <div className="text-sm text-muted-foreground mb-2">ご案内</div>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold m-0">{cfg.title}</h2>
+                  {cfg.text ? <p className="text-muted-foreground m-0">{cfg.text}</p> : null}
+                </div>
+                <a href={href} target="_blank" rel="noopener" className="inline-flex items-center justify-center px-5 py-3 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition whitespace-nowrap">
+                  {cfg.buttonText}
+                </a>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Related Articles */}
       {related.length > 0 && (

@@ -14,6 +14,9 @@ import TermsPage from "./pages/TermsPage.tsx";
 import AdsPage from "./pages/AdsPage.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import ResourcesPage from "./pages/ResourcesPage.tsx";
+import SubscribePage from "./pages/SubscribePage.tsx";
+import ConsultPage from "./pages/ConsultPage.tsx";
+import SeoChecklistPage from "./pages/SeoChecklistPage.tsx";
 import Admin from "./pages/Admin.tsx";
 import "./styles/globals.css";
 
@@ -43,6 +46,9 @@ createRoot(document.getElementById("root")!).render(
       <Route path="/ads" element={<AdsPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/resources" element={<ResourcesPage />} />
+      <Route path="/resources/seo-checklist" element={<SeoChecklistPage />} />
+      <Route path="/subscribe" element={<SubscribePage />} />
+      <Route path="/consult" element={<ConsultPage />} />
       <Route path="/admin" element={<Admin />} />
     </Routes>
   </BrowserRouter>

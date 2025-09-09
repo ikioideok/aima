@@ -1,0 +1,8 @@
+{
+  "schedulerUrl": "",
+  "mailto": {
+    "address": "info@ai-and-marketing.jp",
+    "subject": "無料相談のご依頼",
+    "bodyTemplate": "お名前：\nご相談内容：\n希望日時：\n"
+  }
+}

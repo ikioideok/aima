@@ -1,0 +1,15 @@
+{
+  "provider": "mailto",
+  "title": "最新記事と資料をお届け",
+  "copy": "週1回程度、実務に使えるコンテンツだけを厳選配信。",
+  "privacyNote": "登録はいつでも解除できます。個人情報はポリシーに基づき適切に取り扱います。",
+  "googleForms": {
+    "action": "",
+    "emailEntry": ""
+  },
+  "mailto": {
+    "address": "",
+    "subject": "Newsletter subscribe request",
+    "bodyTemplate": "Please add this address to the list: {{email}}"
+  }
+}
