@@ -66,29 +66,33 @@ const ArticlePage = () => {
         localToc.push({ id, text, level: level as 2 | 3 });
       });
 
-      // Inline CTA: insert after the first h2
+      // Inline CTA: insert around the middle of the content
       try {
-        const firstH2 = doc.querySelector('h2');
         const cfg = (cta as any)?.inline || {};
         const hrefBase = String(cfg.href || '#');
         const utm = String(cfg.utm || '');
         const href = hrefBase + utm;
-        if (firstH2 && cfg?.title && cfg?.buttonText && hrefBase !== '#') {
-          const wrapper = doc.createElement('div');
-          wrapper.innerHTML = `
-            <div class="my-6 p-4 border rounded-lg bg-card/50">
-              <div class="text-sm text-muted-foreground mb-1">おすすめリソース</div>
-              <div class="flex flex-col md:flex-row md:items-center gap-3">
-                <div class="flex-1">
-                  <div class="font-semibold text-foreground">${cfg.title}</div>
-                  ${cfg.text ? `<p class="text-sm text-muted-foreground m-0">${cfg.text}</p>` : ''}
+        if (cfg?.title && cfg?.buttonText && hrefBase !== '#') {
+          const blocks = Array.from(doc.querySelectorAll('h2, h3, p, ul, ol, table, pre, blockquote, figure')) as HTMLElement[];
+          const middleIdx = blocks.length > 0 ? Math.floor(blocks.length / 2) : -1;
+          const target = middleIdx >= 0 ? blocks[middleIdx] : (doc.querySelector('h2') as HTMLElement | null);
+          if (target) {
+            const wrapper = doc.createElement('div');
+            wrapper.innerHTML = `
+              <div class="my-8 p-4 border rounded-lg bg-card/50" data-cta="inline">
+                <div class="text-sm text-muted-foreground mb-1">おすすめリソース</div>
+                <div class="flex flex-col md:flex-row md:items-center gap-3">
+                  <div class="flex-1">
+                    <div class="font-semibold text-foreground">${cfg.title}</div>
+                    ${cfg.text ? `<p class=\"text-sm text-muted-foreground m-0\">${cfg.text}</p>` : ''}
+                  </div>
+                  <a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center justify-center px-5 py-3 rounded-md bg-primary text-primary-foreground font-semibold shadow-md hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary">
+                    ${cfg.buttonText}
+                  </a>
                 </div>
-                <a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition">
-                  ${cfg.buttonText}
-                </a>
-              </div>
-            </div>`;
-          firstH2.insertAdjacentElement('afterend', wrapper.firstElementChild as Element);
+              </div>`;
+            target.insertAdjacentElement('afterend', wrapper.firstElementChild as Element);
+          }
         }
       } catch {}
       setToc(localToc);
