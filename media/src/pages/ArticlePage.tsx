@@ -66,72 +66,47 @@ const ArticlePage = () => {
         localToc.push({ id, text, level: level as 2 | 3 });
       });
 
-      // Insert line breaks (~150 chars) within long paragraphs for readability
+      // Split long paragraphs into ~150-char chunks as separate <p>, adding blank line between them
       try {
         const LIMIT = 150;
         const paragraphs = Array.from(doc.querySelectorAll('p')) as HTMLParagraphElement[];
-        const splitTextNode = (node: Text, pos: number) => {
-          const full = node.nodeValue || '';
-          const before = full.slice(0, pos);
-          const after = full.slice(pos);
-          const beforeNode = document.createTextNode(before);
-          const afterNode = document.createTextNode(after);
-          const br = document.createElement('br');
-          const parent = node.parentNode!;
-          parent.insertBefore(beforeNode, node);
-          parent.insertBefore(br, node);
-          parent.insertBefore(afterNode, node);
-          parent.removeChild(node);
-          return afterNode; // return the remaining text node (after break)
-        };
-        const applyBreaks = (el: HTMLElement) => {
-          if ((el as any).dataset && (el as any).dataset.broken === '1') return;
-          if (el.closest('pre, code, blockquote')) return; // skip code-like
-          const total = (el.textContent || '').replace(/\s+/g, '').length;
-          if (total <= LIMIT * 1.2) return; // only long paragraphs
-          let count = 0;
-          const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-          const toProcess: Text[] = [];
-          while (true) {
-            const n = walker.nextNode() as Text | null;
-            if (!n) break;
-            if ((n.nodeValue || '').trim().length === 0) continue;
-            toProcess.push(n);
+        const splitChunks = (text: string) => {
+          const chunks: string[] = [];
+          let s = text.replace(/\s+/g, ' ').trim();
+          while (s.length > 0) {
+            if (s.length <= LIMIT * 1.2) { chunks.push(s); break; }
+            let cut = LIMIT;
+            // prefer punctuation near boundary
+            const window = s.slice(Math.max(0, LIMIT - 20), Math.min(s.length, LIMIT + 20));
+            let idx = Math.max(window.lastIndexOf('。'), window.lastIndexOf('、'));
+            if (idx >= 0) cut = (LIMIT - 20) + idx + 1; // include punctuation
+            const part = s.slice(0, cut).trim();
+            if (part.length === 0) break;
+            chunks.push(part);
+            s = s.slice(cut).trim();
           }
-          let nextBreakAt = LIMIT;
-          for (let i = 0; i < toProcess.length; i++) {
-            let t = toProcess[i];
-            while (t) {
-              const len = (t.nodeValue || '').replace(/\s+/g, '').length;
-              if (count + len < nextBreakAt) { count += len; break; }
-              // Need to split within this text node at position (nextBreakAt - count) in terms of non-space chars
-              const raw = t.nodeValue || '';
-              if (!raw) break;
-              let acc = 0;
-              let splitPos = raw.length;
-              for (let j = 0; j < raw.length; j++) {
-                const ch = raw[j];
-                if (!/\s/.test(ch)) acc++;
-                if (acc === (nextBreakAt - count)) { splitPos = j + 1; break; }
-              }
-              // Try to break at punctuation near splitPos for nicer wrap
-              const windowStart = Math.max(0, splitPos - 12);
-              const windowEnd = Math.min(raw.length, splitPos + 12);
-              const window = raw.slice(windowStart, windowEnd);
-              const punctIndex = Math.max(window.lastIndexOf('。'), window.lastIndexOf('、'));
-              if (punctIndex >= 0) {
-                splitPos = windowStart + punctIndex + 1;
-              }
-              const remaining = splitTextNode(t, splitPos);
-              // after split, remaining is new text after <br>
-              t = remaining;
-              count = nextBreakAt; // we've reached break
-              nextBreakAt += LIMIT;
+          return chunks;
+        };
+        paragraphs.forEach((p) => {
+          if (p.closest('pre, code, blockquote')) return; // skip code-like
+          if (p.querySelector('*')) return; // skip if contains inline elements to avoid losing markup
+          const raw = (p.textContent || '').trim();
+          if (raw.length <= LIMIT * 1.2) return;
+          const parent = p.parentElement as HTMLElement;
+          if (!parent) return;
+          const chunks = splitChunks(raw);
+          chunks.forEach((c, i) => {
+            const np = doc.createElement('p');
+            np.textContent = c;
+            parent.insertBefore(np, p);
+            if (i < chunks.length - 1) {
+              const spacer = doc.createElement('p');
+              spacer.innerHTML = '&nbsp;';
+              parent.insertBefore(spacer, p);
             }
-          }
-          (el as any).dataset = { ...(el as any).dataset, broken: '1' };
-        };
-        paragraphs.forEach(p => applyBreaks(p));
+          });
+          parent.removeChild(p);
+        });
       } catch {}
 
       // Inline CTA: insert around the middle of the content
