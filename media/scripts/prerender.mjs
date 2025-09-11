@@ -254,7 +254,10 @@ function applyHeadMeta(template, url, opts = {}) {
 for (const url of routes) {
   const { html } = await render(url)
   let page = applyHeadMeta(template, url, { totalPages })
-  const outHtml = page.replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`) 
+  // Replace root content robustly, even if template already contains SSR markup
+  const outHtml = page
+    .replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`)
+    .replace(/<div id=\"root\">[\s\S]*?<\/div>/, `<div id=\"root\">${html}</div>`)
   const rel = url.replace(/^\/media\/?/, '') // '' or 'articles/slug'
   const file = rel === '' ? path.join(outDir, 'index.html') : path.join(outDir, rel, 'index.html')
   fs.mkdirSync(path.dirname(file), { recursive: true })
@@ -268,7 +271,10 @@ if (renderJinzai) {
     let page = applyHeadMeta(template, url)
     // strip JS to avoid hydrating with /media bundle; keep CSS from template
     page = stripJS(page)
-    const outHtml = page.replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`) 
+    // Replace root content robustly, even if template already contains SSR markup
+    const outHtml = page
+      .replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`)
+      .replace(/<div id=\"root\">[\s\S]*?<\/div>/, `<div id=\"root\">${html}</div>`)
     const rel = url.replace(/^\/jinzai\/?/, '')
     const file = rel === '' ? path.join(outDirJinzai, 'index.html') : path.join(outDirJinzai, rel, 'index.html')
     fs.mkdirSync(path.dirname(file), { recursive: true })
