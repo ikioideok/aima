@@ -72,6 +72,7 @@ jobs:
             "set sftp:auto-confirm yes; cd ${SAKURA_REMOTE_DIR}; rm -f .htaccess; put _media_htaccess; mv _media_htaccess .htaccess; bye"
 
       - name: Deploy jinzai (/jinzai)
+        if: ${{ false }}
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
@@ -96,8 +97,42 @@ jobs:
           echo "ALT_ROOT_REMOTE_DIR=${ALT_ROOT_REMOTE_DIR}"
           echo "Deploy ALT_JINZAI_REMOTE_DIR=${ALT_JINZAI_REMOTE_DIR}"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
-          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; \n             mkdir -p ${JINZAI_REMOTE_DIR}; mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${JINZAI_REMOTE_DIR}; \n             mkdir -p ${ALT_JINZAI_REMOTE_DIR}; mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${ALT_JINZAI_REMOTE_DIR}; \n+            mkdir -p ${MEDIA_JINZAI_DIR}; mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${MEDIA_JINZAI_DIR}; \n            bye"
+
+      - name: Deploy jinzai (fixed)
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          echo "SAKURA_REMOTE_DIR=${SAKURA_REMOTE_DIR}"
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/}"
+          case "$ROOT_REMOTE_DIR" in
+            */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
+          esac
+          ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
+          JINZAI_REMOTE_DIR="${ROOT_REMOTE_DIR}jinzai/"
+          MEDIA_JINZAI_DIR="${SAKURA_REMOTE_DIR%/}/jinzai/"
+          ALT_ROOT_REMOTE_DIR="$ROOT_REMOTE_DIR"
+          case "$ALT_ROOT_REMOTE_DIR" in
+            */public_html/) ALT_ROOT_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR%public_html/}" ;;
+            */www/) ALT_ROOT_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR}public_html/" ;;
+          esac
+          ALT_JINZAI_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR}jinzai/"
+          echo "Derived ROOT_REMOTE_DIR=${ROOT_REMOTE_DIR}"
+          echo "Deploy JINZAI_REMOTE_DIR=${JINZAI_REMOTE_DIR}"
+          echo "MEDIA_JINZAI_DIR=${MEDIA_JINZAI_DIR}"
+          echo "ALT_ROOT_REMOTE_DIR=${ALT_ROOT_REMOTE_DIR}"
+          echo "Deploy ALT_JINZAI_REMOTE_DIR=${ALT_JINZAI_REMOTE_DIR}"
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          cat > _lftp_jinzai <<EOF
+          set sftp:auto-confirm yes
+          mkdir -p ${JINZAI_REMOTE_DIR}
+          mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${JINZAI_REMOTE_DIR}
+          mkdir -p ${ALT_JINZAI_REMOTE_DIR}
+          mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${ALT_JINZAI_REMOTE_DIR}
+          mkdir -p ${MEDIA_JINZAI_DIR}
+          mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${MEDIA_JINZAI_DIR}
+          bye
+          EOF
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -f _lftp_jinzai
 
       - name: Update root .htaccess (ensure /jinzai not overridden)
         env:
