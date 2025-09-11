@@ -157,9 +157,9 @@ const ArticlePage = () => {
                     href="${href}" 
                     target="_blank" 
                     rel="noopener"
-                    style="display:inline-block;padding:12px 20px;border-radius:8px;background-color:#dc2626;color:#fff;-webkit-text-fill-color:#fff;font-weight:700;text-decoration:none;line-height:1;position:relative;box-shadow:0 6px 16px rgba(220,38,38,.2)"
+                    style="display:inline-block;padding:12px 20px;border-radius:8px;background-color:#dc2626;color:#fff;-webkit-text-fill-color:#fff;font-weight:700;text-decoration:none;line-height:1.2;position:relative;box-shadow:0 6px 16px rgba(220,38,38,.2);opacity:1;visibility:visible;mix-blend-mode:normal;isolation:isolate;white-space:nowrap;font-size:16px;pointer-events:auto"
                   >
-                    ${cfg.buttonText}
+                    <span style="position:relative;z-index:1;text-shadow:0 1px 0 rgba(0,0,0,.3),0 0 2px rgba(0,0,0,.2);-webkit-text-stroke:0.25px rgba(0,0,0,.15)">${cfg.buttonText}</span>
                   </a>
                 </div>
               </div>`;
