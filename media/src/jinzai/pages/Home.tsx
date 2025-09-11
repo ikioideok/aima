@@ -54,7 +54,13 @@ export default function JinzaiHome() {
                   <ul className="text-sm space-y-1">
                     {items.slice(0,3).map((it, i) => (
                       <li key={i} className="truncate">
-                        <a href={it.href} className="hover:underline">{it.title}</a>
+                        <a
+                          href={it.href}
+                          className="text-primary underline underline-offset-2 inline-flex items-center gap-1 hover:opacity-90"
+                        >
+                          <span className="truncate">{it.title}</span>
+                          <span aria-hidden className="shrink-0">↗</span>
+                        </a>
                       </li>
                     ))}
                   </ul>
