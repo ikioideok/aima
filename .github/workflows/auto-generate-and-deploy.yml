@@ -187,9 +187,8 @@ jobs:
           lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
             "set sftp:auto-confirm yes; cd ${SAKURA_REMOTE_DIR_ENV}; rm -f .htaccess; put _media_htaccess; mv _media_htaccess .htaccess; bye"
 
-      - name: Deploy jinzai via SFTP to Sakura
+      - name: Deploy jinzai via SFTP to Sakura (legacy)
         if: ${{ false }}
-        if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
@@ -235,6 +234,7 @@ jobs:
           echo "Deploy MEDIA_JINZAI_DIR=${MEDIA_JINZAI_DIR}"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
           cat > _lftp_jinzai_env <<EOF
+          open -u "$SAKURA_USER_ENV","${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV"
           set sftp:auto-confirm yes
           mkdir -p ${JINZAI_REMOTE_DIR}
           mirror -R --only-newer --parallel=2 ./dist/jinzai/ ${JINZAI_REMOTE_DIR}
@@ -244,7 +244,7 @@ jobs:
           mirror -R --only-newer --parallel=2 ./dist/jinzai/ ${MEDIA_JINZAI_DIR}
           bye
           EOF
-          lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -f _lftp_jinzai_env
+          lftp -f _lftp_jinzai_env
           echo "Deployed jinzai."
 
       - name: Build corporate site (root)

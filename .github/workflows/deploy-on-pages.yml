@@ -123,6 +123,7 @@ jobs:
           echo "Deploy ALT_JINZAI_REMOTE_DIR=${ALT_JINZAI_REMOTE_DIR}"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
           cat > _lftp_jinzai <<EOF
+          open -u "${SAKURA_USER}","${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}"
           set sftp:auto-confirm yes
           mkdir -p ${JINZAI_REMOTE_DIR}
           mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${JINZAI_REMOTE_DIR}
@@ -132,7 +133,7 @@ jobs:
           mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${MEDIA_JINZAI_DIR}
           bye
           EOF
-          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -f _lftp_jinzai
+          lftp -f _lftp_jinzai
 
       - name: Update root .htaccess (ensure /jinzai not overridden)
         env:
