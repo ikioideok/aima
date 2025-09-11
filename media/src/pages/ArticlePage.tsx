@@ -4,7 +4,6 @@ import featuredArticle from '../data/featuredArticle.json';
 import specialArticles from '../data/specialArticles.json';
 import recentArticles from '../data/recentArticles.json';
 import dummyArticle from '../data/dummyArticle.json'; // Import the new dummy article
-import siteOwner from '../data/siteOwner.json';
 import cta from '../data/cta.json';
 import { SimpleHeader } from '../components/SimpleHeader';
 import { SimpleFooter } from '../components/SimpleFooter';
