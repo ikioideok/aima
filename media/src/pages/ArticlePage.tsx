@@ -153,7 +153,15 @@ const ArticlePage = () => {
                     <div class="font-semibold text-foreground">${cfg.title}</div>
                     ${cfg.text ? `<p class=\"text-sm text-muted-foreground m-0\">${cfg.text}</p>` : ''}
                   </div>
-                  <a href="${href}" target="_blank" rel="noopener" class="aima-inline-cta-btn">${cfg.buttonText}</a>
+                  <a 
+                    href="${href}" 
+                    target="_blank" 
+                    rel="noopener" 
+                    class="aima-inline-cta-btn"
+                    style="color:#fff;-webkit-text-fill-color:#fff;text-decoration:none;background:var(--red-accent)"
+                  >
+                    <span style="position:relative;z-index:1">${cfg.buttonText}</span>
+                  </a>
                 </div>
               </div>`;
             target.insertAdjacentElement('afterend', wrapper.firstElementChild as Element);
