@@ -271,10 +271,8 @@ if (renderJinzai) {
     let page = applyHeadMeta(template, url)
     // strip JS to avoid hydrating with /media bundle; keep CSS from template
     page = stripJS(page)
-    // Replace root content robustly, even if template already contains SSR markup
-    const outHtml = page
-      .replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`)
-      .replace(/<div id=\"root\">[\s\S]*?<\/div>/, `<div id=\"root\">${html}</div>`)
+    // For jinzai, replace the entire <body> to avoid any media remnants
+    const outHtml = page.replace(/<body[^>]*>[\s\S]*?<\/body>/, `<body><div id=\"root\">${html}</div></body>`)
     const rel = url.replace(/^\/jinzai\/?/, '')
     const file = rel === '' ? path.join(outDirJinzai, 'index.html') : path.join(outDirJinzai, rel, 'index.html')
     fs.mkdirSync(path.dirname(file), { recursive: true })
