@@ -290,6 +290,14 @@ html {
   position: relative;
   overflow: hidden;
 }
+.prose a.aima-inline-cta-btn {
+  /* Ensure this wins over `.prose a { ... }` specificity */
+  color: #fff !important;
+  text-decoration: none !important;
+}
+.prose a.aima-inline-cta-btn:hover {
+  text-decoration: none !important;
+}
 .aima-inline-cta-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 22px rgba(220, 38, 38, 0.28);
