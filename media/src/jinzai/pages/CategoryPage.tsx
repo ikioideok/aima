@@ -55,12 +55,12 @@ const CATEGORIES: Record<Kind, { title: string; desc: string; bullets: string[] 
 export default function CategoryPage({ kind }: { kind: Kind }) {
   const cfg = CATEGORIES[kind]
   return (
-    <div className="min-h-screen bg-background">
+    <div className="jinzai min-h-screen bg-background">
       <JinzaiHeader />
       <main className="w-full max-w-[95vw] mx-auto px-4 py-10">
         <section className="max-w-3xl mx-auto space-y-4">
-          <h1 className="text-3xl md:text-4xl font-bold title-font">{cfg.title}</h1>
-          <p className="text-muted-foreground text-base md:text-lg">{cfg.desc}</p>
+          <h1 className="text-3xl md:text-4xl title-font">{cfg.title}</h1>
+          <p className="text-muted-foreground text-base md:text-lg jinzai-strong">{cfg.desc}</p>
           <ul className="list-disc ml-6 space-y-2 text-sm md:text-base">
             {cfg.bullets.map((b, i) => <li key={i}>{b}</li>)}
           </ul>
@@ -78,4 +78,3 @@ export default function CategoryPage({ kind }: { kind: Kind }) {
     </div>
   )
 }
-
