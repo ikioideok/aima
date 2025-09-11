@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { JinzaiHeader } from '../components/JinzaiHeader'
 import { JinzaiFooter } from '../components/JinzaiFooter'
+import links from '../data/links.json'
 
 function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
@@ -36,17 +37,31 @@ export default function JinzaiHome() {
         {/* Categories */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
           {[
-            { href: '/jinzai/hiring/', title: '採用', desc: '応募・歩留まり・採用単価の見直し' },
-            { href: '/jinzai/retention/', title: '定着・育成', desc: '入社90日オンボードと育成の標準化' },
-            { href: '/jinzai/staffing/', title: '配置', desc: 'スキル見える化と柔軟シフト' },
-            { href: '/jinzai/efficiency/', title: '業務効率', desc: '紙・転記・属人化をやめる' },
-            { href: '/jinzai/quality/', title: '安全・品質', desc: 'チェックリストと初動対応の標準化' },
-          ].map((b) => (
-            <a key={b.title} href={b.href} className="p-5 rounded-lg border bg-card hover:bg-accent/30 transition">
-              <div className="font-semibold mb-1">{b.title}</div>
-              <div className="text-sm text-muted-foreground">{b.desc}</div>
-            </a>
-          ))}
+            { kind: 'hiring', href: '/jinzai/hiring/', title: '採用', desc: '応募・歩留まり・採用単価の見直し' },
+            { kind: 'retention', href: '/jinzai/retention/', title: '定着・育成', desc: '入社90日オンボードと育成の標準化' },
+            { kind: 'staffing', href: '/jinzai/staffing/', title: '配置', desc: 'スキル見える化と柔軟シフト' },
+            { kind: 'efficiency', href: '/jinzai/efficiency/', title: '業務効率', desc: '紙・転記・属人化をやめる' },
+            { kind: 'quality', href: '/jinzai/quality/', title: '安全・品質', desc: 'チェックリストと初動対応の標準化' },
+          ].map((b) => {
+            const items = (links as any)[b.kind] as Array<{ title: string; href: string }>
+            return (
+              <div key={b.title} className="p-5 rounded-lg border bg-card">
+                <a href={b.href} className="block hover:underline">
+                  <div className="font-semibold mb-1">{b.title}</div>
+                </a>
+                <div className="text-sm text-muted-foreground mb-3">{b.desc}</div>
+                {Array.isArray(items) && items.length > 0 && (
+                  <ul className="text-sm space-y-1">
+                    {items.slice(0,3).map((it, i) => (
+                      <li key={i} className="truncate">
+                        <a href={it.href} className="hover:underline">{it.title}</a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
         </section>
 
         {/* （診断フォームは削除） */}

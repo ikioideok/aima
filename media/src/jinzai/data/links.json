@@ -1,0 +1,22 @@
+{
+  "hiring": [
+    { "title": "求人票の“差別化3点”で応募を増やす", "href": "/media/articles/b2b-content-marketing-guide/" },
+    { "title": "応募→面談の歩留まりを倍にする返信テンプレ", "href": "/media/articles/seo-measures-how-to/" }
+  ],
+  "retention": [
+    { "title": "入社90日オンボーディングの標準設計", "href": "/media/articles/content-marketing-workflow/" },
+    { "title": "評価不満を減らす“期待合わせ”の実務", "href": "/media/articles/content-marketing-performance-measurement/" }
+  ],
+  "staffing": [
+    { "title": "スキルマトリクスの作り方", "href": "/media/articles/what-is-llmo-seo/" },
+    { "title": "繁忙期シフトの3原則", "href": "/media/articles/content-marketing-benefits/" }
+  ],
+  "efficiency": [
+    { "title": "紙→フォーム化の最短手順", "href": "/media/articles/content-marketing-free-tools/" },
+    { "title": "音声→日報の自動化", "href": "/media/articles/content-marketing-sns-integration-guide/" }
+  ],
+  "quality": [
+    { "title": "点検抜けゼロのチェックリスト", "href": "/media/articles/content-marketing-demerits/" },
+    { "title": "初動対応カードの作り方", "href": "/media/articles/content-marketing-video-strategy-aima/" }
+  ]
+}
