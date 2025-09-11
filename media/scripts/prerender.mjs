@@ -71,6 +71,12 @@ function stripJS(html) {
 }
 
 const { bySlug: articles, recent, special, featured } = collectArticles()
+// Load CTA config for SSR injection on article pages (ensures button appears in view-source too)
+let inlineCtaCfg = null
+try {
+  const ctaPath = path.resolve('src/data/cta.json')
+  inlineCtaCfg = JSON.parse(fs.readFileSync(ctaPath, 'utf-8'))?.inline || null
+} catch {}
 const PAGE_SIZE = 10
 const totalPages = Math.max(1, Math.ceil((recent || []).length / PAGE_SIZE))
 const pageRoutes = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => `/media/page/${i + 2}/`)
@@ -274,7 +280,15 @@ function applyHeadMeta(template, url, opts = {}) {
 }
 
 for (const url of routes) {
-  const { html } = await render(url)
+  let { html } = await render(url)
+  // If this is an article page, inject inline CTA into SSR HTML so it is visible without client JS
+  if (/^\/media\/articles\//.test(url) && inlineCtaCfg && inlineCtaCfg.title && inlineCtaCfg.buttonText && inlineCtaCfg.href) {
+    const href = String(inlineCtaCfg.href) + String(inlineCtaCfg.utm || '')
+    const ctaBlock = `\n<div class=\"my-8 p-4 border rounded-lg bg-card/50\" data-cta=\"inline\" style=\"overflow:visible\">\n  <div class=\"text-sm text-muted-foreground mb-1\">おすすめリソース</div>\n  <div class=\"flex flex-col md:flex-row md:items-center gap-3\">\n    <div class=\"flex-1\">\n      <div class=\"font-semibold text-foreground\">${inlineCtaCfg.title}</div>\n      ${inlineCtaCfg.text ? `<p class=\\\"text-sm text-muted-foreground m-0\\\">${inlineCtaCfg.text}</p>` : ''}\n    </div>\n    <a href=\"${href}\" target=\"_blank\" rel=\"noopener\" style=\"display:inline-block;padding:12px 20px;border-radius:8px;background-color:#dc2626;color:#fff;-webkit-text-fill-color:#fff;font-weight:700;text-decoration:none;line-height:1.2;position:relative;z-index:10;box-shadow:0 6px 16px rgba(220,38,38,.2);opacity:1;visibility:visible;mix-blend-mode:normal;isolation:isolate;white-space:nowrap;font-size:16px;pointer-events:auto\">\n      <span style=\"position:relative;z-index:1;text-shadow:0 1px 0 rgba(0,0,0,.3),0 0 2px rgba(0,0,0,.2);-webkit-text-stroke:0.25px rgba(0,0,0,.15)\">${inlineCtaCfg.buttonText}</span>\n    </a>\n  </div>\n</div>\n`
+    if (!/data-cta=\"inline\"/.test(html)) {
+      html = html.replace('<div class="mt-4">', `<div class=\"mt-4\">${ctaBlock}`)
+    }
+  }
   let page = applyHeadMeta(template, url, { totalPages })
   // Replace the entire <body> to avoid accidental duplication or stale SSR remnants
   const outHtml = page.replace(/<body[^>]*>[\s\S]*?<\/body>/i, `<body><div id=\"root\">${html}</div></body>`)
