@@ -164,6 +164,33 @@ jobs:
             "set sftp:auto-confirm yes; mkdir -p $SAKURA_REMOTE_DIR_ENV; mirror -R --only-newer --parallel=2 ./dist/media/ $SAKURA_REMOTE_DIR_ENV; bye"
           echo "Deployed media."
 
+      - name: Deploy jinzai via SFTP to Sakura
+        if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          echo "SAKURA_REMOTE_DIR_ENV=${SAKURA_REMOTE_DIR_ENV}"
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR_ENV%/}"
+          case "$ROOT_REMOTE_DIR" in
+            */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
+          esac
+          ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
+          ALT_ROOT_REMOTE_DIR="$ROOT_REMOTE_DIR"
+          case "$ALT_ROOT_REMOTE_DIR" in
+            */public_html/) ALT_ROOT_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR%public_html/}" ;;
+            */www/) ALT_ROOT_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR}public_html/" ;;
+          esac
+          JINZAI_REMOTE_DIR="${ROOT_REMOTE_DIR}jinzai/"
+          ALT_JINZAI_REMOTE_DIR="${ALT_ROOT_REMOTE_DIR}jinzai/"
+          MEDIA_JINZAI_DIR="${SAKURA_REMOTE_DIR_ENV%/}/jinzai/"
+          echo "Deploy JINZAI_REMOTE_DIR=${JINZAI_REMOTE_DIR}"
+          echo "Deploy ALT_JINZAI_REMOTE_DIR=${ALT_JINZAI_REMOTE_DIR}"
+          echo "Deploy MEDIA_JINZAI_DIR=${MEDIA_JINZAI_DIR}"
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
+            "set sftp:auto-confirm yes; \n+            mkdir -p ${JINZAI_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/jinzai/ ${JINZAI_REMOTE_DIR}; \n+            mkdir -p ${ALT_JINZAI_REMOTE_DIR}; mirror -R --only-newer --parallel=2 ./dist/jinzai/ ${ALT_JINZAI_REMOTE_DIR}; \n+            mkdir -p ${MEDIA_JINZAI_DIR}; mirror -R --only-newer --parallel=2 ./dist/jinzai/ ${MEDIA_JINZAI_DIR}; \n+            bye"
+          echo "Deployed jinzai."
+
       - name: Build corporate site (root)
         if: ${{ env.SAKURA_HOST_ENV && env.SAKURA_USER_ENV && env.SAKURA_PASSWORD_ENV && env.SAKURA_REMOTE_DIR_ENV }}
         env:
