@@ -44,7 +44,23 @@ try {
 // dist output path from media/vite.config.ts
 const outDir = path.resolve('../dist/media')
 const templatePath = path.join(outDir, 'index.html')
-const template = fs.readFileSync(templatePath, 'utf-8')
+// Normalize template to a single HTML document to avoid accidental duplication
+function normalizeTemplate(html) {
+  const s = String(html || '')
+  // If multiple doctypes exist, keep only the first block through its first </html>
+  const firstDoctype = s.toLowerCase().indexOf('<!doctype html')
+  if (firstDoctype >= 0) {
+    const after = s.slice(firstDoctype)
+    const endIdx = after.toLowerCase().indexOf('</html>')
+    if (endIdx >= 0) return after.slice(0, endIdx + '</html>'.length)
+    return after
+  }
+  // Otherwise, trim anything after first closing </html>
+  const endIdx = s.toLowerCase().indexOf('</html>')
+  if (endIdx >= 0) return s.slice(0, endIdx + '</html>'.length)
+  return s
+}
+const template = normalizeTemplate(fs.readFileSync(templatePath, 'utf-8'))
 // jinzai outputs to separate folder and reuses the same template (CSS links) but strips JS to avoid SPA hydration mismatch
 const outDirJinzai = path.resolve('../dist/jinzai')
 function stripJS(html) {
@@ -75,7 +91,9 @@ const catSet = new Map()
 for (const a of all) {
   const c = a?.category
   if (!c) continue
-  catSet.set(slugify(c), c)
+  const s = slugify(c)
+  if (!s) continue
+  catSet.set(s, c)
 }
 const categoryRoutes = Array.from(catSet.keys()).map((s) => `/media/category/${s}/`)
 
@@ -258,10 +276,8 @@ function applyHeadMeta(template, url, opts = {}) {
 for (const url of routes) {
   const { html } = await render(url)
   let page = applyHeadMeta(template, url, { totalPages })
-  // Replace root content robustly, even if template already contains SSR markup
-  const outHtml = page
-    .replace('<div id="root"></div>', `<div id=\"root\">${html}</div>`)
-    .replace(/<div id=\"root\">[\s\S]*?<\/div>/, `<div id=\"root\">${html}</div>`)
+  // Replace the entire <body> to avoid accidental duplication or stale SSR remnants
+  const outHtml = page.replace(/<body[^>]*>[\s\S]*?<\/body>/i, `<body><div id=\"root\">${html}</div></body>`)
   const rel = url.replace(/^\/media\/?/, '') // '' or 'articles/slug'
   const file = rel === '' ? path.join(outDir, 'index.html') : path.join(outDir, rel, 'index.html')
   fs.mkdirSync(path.dirname(file), { recursive: true })
