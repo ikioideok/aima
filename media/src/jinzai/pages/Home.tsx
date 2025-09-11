@@ -19,9 +19,9 @@ export default function JinzaiHome() {
       <main className="w-full max-w-[95vw] mx-auto px-4 py-10">
         {/* Hero */}
         <section className="text-center space-y-5 mb-10">
-          <h1 className="text-4xl md:text-5xl font-bold title-font">AIで人材不足を、現場から解決する</h1>
+          <h1 className="text-4xl md:text-5xl font-bold title-font">人材不足を、現場から解決する</h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            採用・育成・配置・現場自動化まで、成果から逆算したAI活用を。
+            採用・育成・配置・現場支援まで。課題に応じて最適な手段（テクノロジー活用含む）を選び、
             まずは「欠員コスト」を見える化し、投資対効果を明確にします。
           </p>
           <div className="flex items-center justify-center gap-3">
@@ -122,4 +122,3 @@ function LabeledInput({ label, suffix, ...rest }:{ label: string, suffix?: strin
     </label>
   )
 }
-

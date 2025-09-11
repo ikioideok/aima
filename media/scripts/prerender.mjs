@@ -238,15 +238,16 @@ function applyHeadMeta(template, url, opts = {}) {
   // jinzai: override head for tenant pages
   if (url === '/jinzai/' || url.startsWith('/jinzai/')) {
     const isTool = url.startsWith('/jinzai/tools/')
-    const t = isTool ? '欠員コスト診断｜AIで人材不足解決.com' : 'AIで人材不足解決.com｜AI Workforce Solutions'
+    const t = isTool ? '欠員コスト診断｜人材不足解決.com' : '人材不足解決.com｜Workforce Solutions'
     const can = `${SITE_ORIGIN}${url}`
     out = out
       .replace(/<title>[^<]*<\/title>/, `<title>${t}</title>`)
-      .replace(/<meta name=\"description\"[^>]*>/, `<meta name=\"description\" content=\"AIで人材不足を、現場から解決。採用・育成・配置・現場自動化まで、投資対効果を可視化して実装まで伴走します。\">`)
+      .replace(/<meta name=\"description\"[^>]*>/, `<meta name=\"description\" content=\"人材不足を、現場から解決。採用・育成・配置・現場支援まで、投資対効果を可視化して実装まで伴走します。\">`)
       .replace(/<meta property=\"og:title\"[^>]*>/, `<meta property=\"og:title\" content=\"${t.replace(/"/g, '&quot;')}\">`)
-      .replace(/<meta property=\"og:description\"[^>]*>/, `<meta property=\"og:description\" content=\"AIで人材不足を、現場から解決。採用・育成・配置・現場自動化まで。\">`)
+      .replace(/<meta property=\"og:description\"[^>]*>/, `<meta property=\"og:description\" content=\"人材不足を、現場から解決。採用・育成・配置・現場支援まで。\">`)
       .replace(/<meta property=\"og:url\"[^>]*>/, `<meta property=\"og:url\" content=\"${can}\">`)
       .replace(/<link rel=\"canonical\"[^>]*>/, `<link rel=\"canonical\" href=\"${can}\">`)
+      .replace(/<meta property=\"og:site_name\"[^>]*>/, `<meta property=\"og:site_name\" content=\"人材不足解決.com\">`)
   }
   return out
 }

@@ -10,9 +10,9 @@ export function JinzaiHeader() {
           </div>
           <div>
             <div className="text-lg font-bold text-foreground title-font">
-              AIで人材不足解決.com
+              人材不足解決.com
             </div>
-            <div className="text-xs text-muted-foreground">AI Workforce Solutions</div>
+            <div className="text-xs text-muted-foreground">Workforce Solutions</div>
           </div>
         </a>
         <nav className="hidden lg:flex items-center gap-6">
@@ -24,4 +24,3 @@ export function JinzaiHeader() {
     </header>
   )
 }
-
