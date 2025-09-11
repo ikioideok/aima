@@ -59,6 +59,8 @@ jobs:
           Options -MultiViews
           DirectoryIndex index.html
           RewriteEngine On
+          # Explicitly serve /jinzai/ with its own index
+          RewriteRule ^jinzai/?$ jinzai/index.html [L]
           # Serve existing files/directories as-is
           RewriteCond %{REQUEST_FILENAME} -f [OR]
           RewriteCond %{REQUEST_FILENAME} -d
@@ -131,6 +133,9 @@ jobs:
           mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${ALT_JINZAI_REMOTE_DIR}
           mkdir -p ${MEDIA_JINZAI_DIR}
           mirror -R --parallel=2 --ignore-time --overwrite ./dist/jinzai/ ${MEDIA_JINZAI_DIR}
+          cls -l ${JINZAI_REMOTE_DIR}
+          cls -l ${ALT_JINZAI_REMOTE_DIR}
+          cls -l ${MEDIA_JINZAI_DIR}
           bye
           EOF
           lftp -f _lftp_jinzai
