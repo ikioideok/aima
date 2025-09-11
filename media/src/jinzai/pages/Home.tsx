@@ -33,20 +33,19 @@ export default function JinzaiHome() {
           </div>
         </section>
 
-        {/* Quick categories */}
+        {/* Categories */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
           {[
-            { title: '採用×AI', desc: 'JD作成、面接評価、自動日程調整' },
-            { title: '育成・定着×AI', desc: 'OJT教材生成、社内FAQ、面談要約' },
-            { title: '配置・シフト最適化', desc: 'スキルマトリクス、制約最適化' },
-            { title: '現場自動化', desc: '音声→日報、安全点検、書類自動化' },
-            { title: 'コンプライアンス', desc: '個人情報・著作権・AI利用ポリシー' },
-            { title: 'KPI・ROI', desc: '削減時間・欠員コスト・効果測定' },
+            { href: '/jinzai/hiring/', title: '採用', desc: '応募・歩留まり・採用単価の見直し' },
+            { href: '/jinzai/retention/', title: '定着・育成', desc: '入社90日オンボードと育成の標準化' },
+            { href: '/jinzai/staffing/', title: '配置', desc: 'スキル見える化と柔軟シフト' },
+            { href: '/jinzai/efficiency/', title: '業務効率', desc: '紙・転記・属人化をやめる' },
+            { href: '/jinzai/quality/', title: '安全・品質', desc: 'チェックリストと初動対応の標準化' },
           ].map((b) => (
-            <div key={b.title} className="p-5 rounded-lg border bg-card">
+            <a key={b.title} href={b.href} className="p-5 rounded-lg border bg-card hover:bg-accent/30 transition">
               <div className="font-semibold mb-1">{b.title}</div>
               <div className="text-sm text-muted-foreground">{b.desc}</div>
-            </div>
+            </a>
           ))}
         </section>
 

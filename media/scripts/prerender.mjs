@@ -97,7 +97,12 @@ const routes = [
 
 // Routes for jinzai tenant
 const jinzaiRoutes = [
-  '/jinzai/'
+  '/jinzai/',
+  '/jinzai/hiring/',
+  '/jinzai/retention/',
+  '/jinzai/staffing/',
+  '/jinzai/efficiency/',
+  '/jinzai/quality/'
 ]
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://ai-and-marketing.jp'

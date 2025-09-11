@@ -17,7 +17,11 @@ export function JinzaiHeader() {
         </a>
         <nav className="hidden lg:flex items-center gap-6">
           <a href="/jinzai/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">ホーム</a>
-          <a href="/media/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">AI Marketing News</a>
+          <a href="/jinzai/hiring/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">採用</a>
+          <a href="/jinzai/retention/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">定着・育成</a>
+          <a href="/jinzai/staffing/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">配置</a>
+          <a href="/jinzai/efficiency/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">業務効率</a>
+          <a href="/jinzai/quality/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">安全・品質</a>
         </nav>
       </div>
     </header>
