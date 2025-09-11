@@ -7,7 +7,6 @@ export function JinzaiFooter() {
         <div className="mb-2 font-semibold">人材不足解決.com</div>
         <div className="flex flex-wrap gap-4">
           <a href="/jinzai/" className="hover:text-foreground">ホーム</a>
-          <a href="/jinzai/tools/vacancy-cost/" className="hover:text-foreground">欠員コスト診断</a>
           <a href="/media/privacy/" className="hover:text-foreground">プライバシーポリシー</a>
           <a href="/media/terms/" className="hover:text-foreground">利用規約</a>
         </div>

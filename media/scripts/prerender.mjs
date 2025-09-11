@@ -97,8 +97,7 @@ const routes = [
 
 // Routes for jinzai tenant
 const jinzaiRoutes = [
-  '/jinzai/',
-  '/jinzai/tools/vacancy-cost/'
+  '/jinzai/'
 ]
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://ai-and-marketing.jp'
@@ -237,8 +236,7 @@ function applyHeadMeta(template, url, opts = {}) {
   }
   // jinzai: override head for tenant pages
   if (url === '/jinzai/' || url.startsWith('/jinzai/')) {
-    const isTool = url.startsWith('/jinzai/tools/')
-    const t = isTool ? '欠員コスト診断｜人材不足解決.com' : '人材不足解決.com｜Workforce Solutions'
+    const t = '人材不足解決.com｜Workforce Solutions'
     const can = `${SITE_ORIGIN}${url}`
     out = out
       .replace(/<title>[^<]*<\/title>/, `<title>${t}</title>`)

@@ -17,7 +17,6 @@ export function JinzaiHeader() {
         </a>
         <nav className="hidden lg:flex items-center gap-6">
           <a href="/jinzai/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">ホーム</a>
-          <a href="/jinzai/tools/vacancy-cost/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">欠員コスト診断</a>
           <a href="/media/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">AI Marketing News</a>
         </nav>
       </div>

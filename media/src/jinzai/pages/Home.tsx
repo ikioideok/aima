@@ -25,9 +25,6 @@ export default function JinzaiHome() {
             まずは「欠員コスト」を見える化し、投資対効果を明確にします。
           </p>
           <div className="flex items-center justify-center gap-3">
-            <a href="#vacancy-cost">
-              <PrimaryButton>欠員コストを診断する</PrimaryButton>
-            </a>
             <a href="/media/">
               <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-base font-medium transition-all px-5 py-3 border">
                 情報を見る（メディア）
@@ -53,12 +50,7 @@ export default function JinzaiHome() {
           ))}
         </section>
 
-        {/* Vacancy cost calculator (simple) */}
-        <section id="vacancy-cost" className="max-w-3xl mx-auto p-5 rounded-xl border bg-card">
-          <h2 className="text-2xl font-bold mb-4">欠員コスト診断（簡易版）</h2>
-          <p className="text-sm text-muted-foreground mb-4">目安としての損失額を即時に試算します。自社の条件に近づけて入力してください。</p>
-          <VacancyCostForm />
-        </section>
+        {/* （診断フォームは削除） */}
       </main>
       <JinzaiFooter />
     </div>
