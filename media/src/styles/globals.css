@@ -306,20 +306,4 @@ html {
   outline: none;
   box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.35);
 }
-.aima-inline-cta-btn::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -150%;
-  height: 100%;
-  width: 150%;
-  background: linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.25) 50%, rgba(255,255,255,0) 100%);
-  transform: skewX(-20deg);
-}
-.aima-inline-cta-btn:hover::after {
-  animation: aimaShine 0.9s ease forwards;
-}
-@keyframes aimaShine {
-  from { left: -150%; }
-  to { left: 150%; }
-}
+/* Removed shine overlay to avoid any chance of obscuring text */
