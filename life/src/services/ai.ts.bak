@@ -1,0 +1,225 @@
+// Lightweight AI service for generating lifeline via GPT or Gemini
+// Uses localStorage for API keys in development. Do NOT ship keys in code.
+
+import { FormData, DiagnosisResult } from "../types";
+
+type Provider = "openai" | "gemini";
+
+function getConfig() {
+  const provider = (localStorage.getItem("ai.provider") as Provider) || (import.meta.env.VITE_AI_PROVIDER as Provider) || "openai";
+  return {
+    provider,
+    openaiKey: localStorage.getItem("ai.openai.key") || import.meta.env.VITE_OPENAI_API_KEY,
+    // デフォルトモデルは管理画面で上書き可能。要求に合わせ gpt-5 を初期値に
+    openaiModel: localStorage.getItem("ai.openai.model") || import.meta.env.VITE_OPENAI_MODEL || "gpt-5",
+    // 開発では /openai を推奨（vite のプロキシで CORS 回避）
+    openaiBase: localStorage.getItem("ai.openai.base") || import.meta.env.VITE_OPENAI_BASE_URL || "/openai",
+    geminiKey: localStorage.getItem("ai.gemini.key") || import.meta.env.VITE_GEMINI_API_KEY,
+    geminiModel: localStorage.getItem("ai.gemini.model") || import.meta.env.VITE_GEMINI_MODEL || "gemini-1.5-flash-latest",
+  };
+}
+
+function buildPromptText(form: FormData, diag: DiagnosisResult | null, startAge: number, endAge: number) {
+  const profile = JSON.stringify(form, null, 2);
+  const diagnosisSummary = diag
+    ? JSON.stringify({
+        bigFive: diag.bigFive,
+        topCareerAnchor: Object.entries(diag.careerAnchor).sort(([,a],[,b])=> (b as number)-(a as number))[0][0],
+        recommendations: diag.recommendations,
+      }, null, 2)
+    : "(なし)";
+  return `あなたは人生設計の専門家です。\n以下のプロフィールと診断要約をもとに、年齢${startAge}〜${endAge}歳の未来年表（ライフライン）を日本語で作成してください。\n\nプロフィール:\n${profile}\n\n診断要約:\n${diagnosisSummary}\n\n要件:\n- 出力はテキストのみ。前置き・後書き・説明・JSON・記号装飾は不要。\n- 年ごとに1段落で記述し、行頭を「{age}歳：」で始める（例:「36歳：…」）。\n- 各段落に必ず「仕事」「人間関係」「健康」「出来事」を自然に含める（語を見出し化せず文中に織り込む）。\n- 転機の年は段落末尾に「 ― 転機 ―」と明示。\n- 小説的比喩・過度な情緒表現は避け、事実ベースで簡潔に（2〜3文、合計120〜200文字目安）。\n- 入力プロフィール/診断要約の内容（価値観・性格傾向・キャリア軸・家族状況・健康習慣）を必ず反映し、一貫性のある展開にする。`;
+}
+
+export async function generateLifelineAI(form: FormData, diag: DiagnosisResult | null, startAge: number, endAge: number) {
+  const cfg = getConfig();
+  const prompt = buildPromptText(form, diag, startAge, endAge);
+  if (cfg.provider === "gemini") {
+    if (!cfg.geminiKey) throw new Error("Gemini APIキーが未設定です");
+    return callGemini(prompt, cfg.geminiKey, cfg.geminiModel);
+  } else {
+    if (!cfg.openaiKey) throw new Error("OpenAI APIキーが未設定です");
+    const models = [cfg.openaiModel, 'gpt-4o-mini-2024-07-18', 'gpt-4o-mini', 'gpt-4o'].filter(Boolean);
+    let lastErr: any;
+    for (const m of models) {
+      try {
+        if ((m as string).startsWith('gpt-5')) {
+          return await callOpenAIResponses(prompt, cfg.openaiKey, m as string);
+        }
+        return await callOpenAI(prompt, cfg.openaiKey, m as string);
+      } catch (e: any) {
+        lastErr = e;
+        // 次の候補でリトライ
+        continue;
+      }
+    }
+    throw lastErr || new Error('OpenAI API failed');
+  }
+}
+
+export async function generateLifelineAIStream(
+  form: FormData,
+  diag: DiagnosisResult | null,
+  startAge: number,
+  endAge: number,
+  onRow: (row: { age: number; items: { type: '出来事'|'仕事'|'人間関係'|'健康'; text: string; turning?: boolean }[] }) => void
+) {
+  const cfg = getConfig();
+  const prompt = buildPromptText(form, diag, startAge, endAge);
+  if (cfg.provider !== 'openai') {
+    // 非OpenAIは現状ストリーム非対応: フォールバックで一括生成
+    const res = await generateLifelineAI(form, diag, startAge, endAge);
+    (res.lifeline || []).forEach(onRow);
+    return;
+  }
+  if (!cfg.openaiKey) throw new Error('OpenAI APIキーが未設定です');
+  const base = (localStorage.getItem("ai.openai.base") || import.meta.env.VITE_OPENAI_BASE_URL || "/openai").replace(/\/$/, '');
+  const url = `${base}/v1/chat/completions`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${cfg.openaiKey}`,
+    },
+    body: JSON.stringify({
+      model: cfg.openaiModel,
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant that outputs Japanese plain text only.' },
+        { role: 'user', content: prompt },
+      ],
+      stream: true,
+    }),
+  });
+  if (!resp.ok || !resp.body) {
+    let detail = `${resp.status}`;
+    try { const err = await resp.json(); if (err?.error?.message) detail += ` ${err.error.message}`; } catch {}
+    throw new Error(`OpenAI stream error: ${detail}`);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let sseBuffer = '';
+  let textBuffer = '';
+  const flushLines = () => {
+    const lines = textBuffer.split(/\n+/);
+    // keep last partial
+    textBuffer = lines.pop() || '';
+    for (const line of lines) {
+      const m = line.trim().match(/^(\d{1,3})歳：(.+)$/);
+      if (m) {
+        const age = parseInt(m[1], 10);
+        let body = m[2].trim();
+        const turning = /―\s*転機\s*―/.test(body);
+        body = body.replace(/―\s*転機\s*―/g, '').trim();
+        onRow({ age, items: [{ type: '出来事', text: body, turning }] });
+      }
+    }
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    sseBuffer += decoder.decode(value, { stream: true });
+    const events = sseBuffer.split(/\n\n/);
+    sseBuffer = events.pop() || '';
+    for (const evt of events) {
+      const line = evt.split('\n').find(l => l.startsWith('data: '));
+      if (!line) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') {
+        flushLines();
+        return;
+      }
+      try {
+        const json = JSON.parse(data);
+        const delta = json.choices?.[0]?.delta?.content || '';
+        if (delta) {
+          textBuffer += delta;
+          // flush when newline appears
+          if (delta.includes('\n')) flushLines();
+        }
+      } catch {}
+    }
+  }
+  flushLines();
+}
+
+async function callOpenAI(prompt: string, apiKey: string, model: string) {
+  const base = (localStorage.getItem("ai.openai.base") || import.meta.env.VITE_OPENAI_BASE_URL || "/openai").replace(/\/$/, '');
+  const url = `${base}/v1/chat/completions`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: "You are a helpful assistant that outputs strict JSON only." },
+        { role: "user", content: prompt },
+      ],
+    }),
+  });
+  if (!resp.ok) {
+    let detail = `${resp.status}`;
+    try {
+      const err = await resp.json();
+      if (err?.error?.message) detail += ` ${err.error.message}`;
+    } catch {}
+    throw new Error(`OpenAI API error: ${detail}`);
+  }
+  const data = await resp.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  return parseTextLifeline(content);
+}
+
+async function callOpenAIResponses(prompt: string, apiKey: string, model: string) {
+  const base = (localStorage.getItem("ai.openai.base") || import.meta.env.VITE_OPENAI_BASE_URL || "/openai").replace(/\/$/, '');
+  const url = `${base}/v1/responses`;
+  const input = `【役割】\nあなたはプロのライフプランナーです。与えられた条件に従い、指示どおりの形式で日本語のテキストだけを出力します。\n\n【指示】\n${prompt}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ model, input }),
+  });
+  if (!resp.ok) {
+    let detail = `${resp.status}`;
+    try { const err = await resp.json(); if (err?.error?.message) detail += ` ${err.error.message}`; } catch {}
+    throw new Error(`OpenAI Responses error: ${detail}`);
+  }
+  const data = await resp.json();
+  const text = data.output_text || data.choices?.[0]?.message?.content || data.content?.[0]?.text || '';
+  return parseTextLifeline(text);
+}
+
+async function callGemini(prompt: string, apiKey: string, model: string) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  });
+  if (!resp.ok) throw new Error(`Gemini API error: ${resp.status}`);
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return parseTextLifeline(text);
+}
+
+function parseTextLifeline(text: string) {
+  // 期待形式: 行頭に「NN歳：」ではじまる段落が複数
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  const lifeline: { age: number; items: { type: '出来事'|'仕事'|'人間関係'|'健康'; text: string; turning?: boolean }[] }[] = [];
+  for (const line of lines) {
+    // 記号のコロンは全角/半角どちらも許容
+    const m = line.match(/^(\d{1,3})歳[：:](.+)$/);
+    if (!m) continue;
+    const age = parseInt(m[1], 10);
+    let body = m[2].trim();
+    const turning = /―\s*転機\s*―/.test(body);
+    body = body.replace(/―\s*転機\s*―/g, '').trim();
+    lifeline.push({ age, items: [{ type: '出来事', text: body, turning }] });
+  }
+  return { lifeline };
+}

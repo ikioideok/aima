@@ -70,7 +70,7 @@ export function ServiceSection() {
           外注費を<span className="text-red-500">半分以下</span>にすることを目指します。
         </>
       ),
-      features: [],
+      features: ["AIMAの違い: 内製ツールで記事作成〜公開のリードタイムを1/3に短縮"]
     },
     {
       icon: Target,
@@ -87,7 +87,7 @@ export function ServiceSection() {
           クリエイティブ検証やA/Bテストを繰り返し、最適な広告運用を実現します。
         </>
       ),
-      features: [],
+      features: ["AIMAの違い: クリエイティブ検証と入札自動化でCPAの中央値を継続改善"]
     },
     {
       icon: Users,
@@ -104,7 +104,7 @@ export function ServiceSection() {
           フォロワー数のみならず、<span className="text-red-500">エンゲージメント</span>とブランド信頼を重視した支援を行います。
         </>
       ),
-      features: [],
+      features: ["AIMAの違い: 分析×企画テンプレで運用開始から30日でKPI可視化"]
     },
     {
       icon: Brain,
@@ -121,7 +121,7 @@ export function ServiceSection() {
           短期的な成果はもちろん、<span className="text-red-500">中長期的な成長</span>を見据えたマーケティング戦略を伴走型で支援します。
         </>
       ),
-      features: [],
+      features: ["AIMAの違い: 経営KPIと連動したロードマップで短期×中長期を両立"]
     },
     {
       icon: Zap,
@@ -138,7 +138,7 @@ export function ServiceSection() {
           「<span className="text-red-500">現場で使えるAI活用</span>」を実現し、企業が自走できる仕組みを構築します。
         </>
       ),
-      features: [],
+      features: ["AIMAの違い: PoC→教育→運用定着まで一気通貫で伴走"]
     },
     {
       icon: BarChart3,
@@ -155,7 +155,7 @@ export function ServiceSection() {
           <span className="text-red-500">人的リソースを削減</span>し、担当者がより付加価値の高い業務に集中できる体制をつくります。
         </>
       ),
-      features: [],
+      features: ["AIMAの違い: RPA/連携自動化で月40時間の定常業務を削減"]
     },
   ];
 
