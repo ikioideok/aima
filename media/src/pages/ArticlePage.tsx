@@ -234,6 +234,14 @@ const ArticlePage = () => {
               width={1600}
               height={900}
               className="w-full h-full object-contain"
+              onError={(e) => {
+                const t = e.currentTarget as HTMLImageElement
+                // Fallback to default OGP if custom hero is missing
+                if (t && t.getAttribute('data-fallback-applied') !== '1') {
+                  t.src = '/media/ogp.png'
+                  t.setAttribute('data-fallback-applied', '1')
+                }
+              }}
             />
           </div>
         )
