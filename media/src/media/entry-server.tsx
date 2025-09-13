@@ -14,6 +14,7 @@ import TermsPage from '../pages/TermsPage'
 import AdsPage from '../pages/AdsPage'
 import SearchPage from '../pages/SearchPage'
 import ResourcesPage from '../pages/ResourcesPage'
+import ToolsArticle from '../pages/ToolsArticle'
 import SubscribePage from '../pages/SubscribePage'
 import ConsultPage from '../pages/ConsultPage'
 import SeoChecklistPage from '../pages/SeoChecklistPage'
@@ -37,6 +38,7 @@ export function render(url: string) {
         <Route path="/ads" element={<AdsPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
+        <Route path="/tools/article" element={<ToolsArticle />} />
         <Route path="/resources/seo-checklist" element={<SeoChecklistPage />} />
         <Route path="/subscribe" element={<SubscribePage />} />
         <Route path="/consult" element={<ConsultPage />} />
