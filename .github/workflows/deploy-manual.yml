@@ -137,7 +137,7 @@ jobs:
           EOF
           lftp -f _lftp_jinzai
 
-      - name: Update root .htaccess (ensure /jinzai not overridden)
+      - name: Update root .htaccess (ensure /jinzai not overridden + /tools/article redirect)
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
@@ -157,7 +157,10 @@ jobs:
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
           cat > _root_htaccess <<'HT'
           Options -MultiViews
-          # Routing is handled by sub-app .htaccess (e.g., /media/, /jinzai/)
+          RewriteEngine On
+          # Redirect /tools/article -> /media/tools/article/
+          RewriteRule ^tools/article/?$ media/tools/article/ [L,R=302]
+          # Routing of sub-apps is handled by their own .htaccess (e.g., /media/, /jinzai/)
           HT
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
             "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; cd ${ALT_ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; bye"
