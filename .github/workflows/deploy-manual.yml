@@ -137,7 +137,7 @@ jobs:
           EOF
           lftp -f _lftp_jinzai
 
-      - name: Update root .htaccess (ensure /jinzai not overridden + /tools/article redirect)
+      - name: Update root .htaccess (ensure /jinzai not overridden)
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
@@ -157,13 +157,24 @@ jobs:
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
           cat > _root_htaccess <<'HT'
           Options -MultiViews
-          RewriteEngine On
-          # Redirect /tools/article -> /media/tools/article/
-          RewriteRule ^tools/article/?$ media/tools/article/ [L,R=302]
           # Routing of sub-apps is handled by their own .htaccess (e.g., /media/, /jinzai/)
           HT
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
             "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; cd ${ALT_ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; bye"
+
+      - name: Deploy /tools static pages (root)
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+        run: |
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/}"
+          case "$ROOT_REMOTE_DIR" in
+            */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
+          esac
+          ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
+          echo "Mirror ./public/tools -> ${ROOT_REMOTE_DIR}tools/"
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
+            "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}tools/; mirror -R --parallel=2 --ignore-time --overwrite ./public/tools/ ${ROOT_REMOTE_DIR}tools/; bye"
 
       - name: Verify /jinzai health
         run: |
