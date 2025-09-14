@@ -20,7 +20,6 @@ type Outline = {
   word_count_target?: number
   seo?: { keywords?: string[]; meta_description?: string; cta?: string }
   h2: { title: string; h3?: string[] }[]
-  category?: string
   keyword?: string
 }
 
@@ -32,7 +31,6 @@ export default function ToolsArticle() {
   const [modelId, setModelId] = React.useState<string>('gemini-2.5-pro')
   const [keyword, setKeyword] = React.useState('')
   const [audience, setAudience] = React.useState('マーケ担当者')
-  const [category, setCategory] = React.useState('SEO')
   const [tone, setTone] = React.useState<'ですます'|'常体'>('ですます')
   const [wordTarget, setWordTarget] = React.useState<number>(1800)
   const [loading, setLoading] = React.useState(false)
@@ -92,7 +90,6 @@ export default function ToolsArticle() {
         provider,
         model: modelId,
         keyword,
-        category,
         tone: tone === 'ですます' ? 'です・ます調で、実務的に明快' : '常体で、実務的に明快',
         target_audience: audience,
         word_count_target: Number(wordTarget)||1800,
@@ -118,7 +115,6 @@ export default function ToolsArticle() {
         provider,
         model: modelId,
         outline,
-        category,
       }
       let res: any = null
       try {
@@ -177,10 +173,6 @@ export default function ToolsArticle() {
             <label className="grid gap-1">
               <span className="text-sm">想定読者</span>
               <input className="border rounded px-2 py-2" value={audience} onChange={(e)=>setAudience(e.target.value)} />
-            </label>
-            <label className="grid gap-1">
-              <span className="text-sm">カテゴリ</span>
-              <input className="border rounded px-2 py-2" value={category} onChange={(e)=>setCategory(e.target.value)} />
             </label>
           </div>
           <div className="flex gap-4 items-center">
