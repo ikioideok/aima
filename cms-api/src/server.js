@@ -394,7 +394,7 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
     const {
       keyword,
-      category = 'SEO',
+      category = '',
       tone = '実務的で明快',
       target_audience = 'マーケ担当者・事業責任者',
       word_count_target = 1800,
@@ -439,8 +439,8 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     }
 
     const system = 'あなたは日本語のコンテンツストラテジストです。AIMAのマーケティング記事の構成を、MECEで実務的に作成します。冗長・重複は避け、見出しは検索意図を網羅し、具体的な価値提案を含めます。'
-    const userOpenAI = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n\n注意:\n- h3の数は章の内容に応じて柔軟に増減させてください。例えば、h3が0個や5個以上になることもあります。\n- JSON以外のテキスト（説明、注釈、コードフェンスなど）は絶対に出力しないでください。`
-    const userGemini = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n注意:\n- 各h2見出しに含めるh3見出しの数は、内容の複雑さに応じて調整してください。h3が不要な場合もあれば、多数必要な場合もあります。\n- 説明文やコードフェンスは禁止。JSON以外の出力は禁止。`
+    const userOpenAI = `前提\n- キーワード: ${keyword}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n\n注意:\n- h3の数は章の内容に応じて柔軟に増減させてください。例えば、h3が0個や5個以上になることもあります。\n- JSON以外のテキスト（説明、注釈、コードフェンスなど）は絶対に出力しないでください。`
+    const userGemini = `前提\n- キーワード: ${keyword}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n注意:\n- 各h2見出しに含めるh3見出しの数は、内容の複雑さに応じて調整してください。h3が不要な場合もあれば、多数必要な場合もあります。\n- 説明文やコードフェンスは禁止。JSON以外の出力は禁止。`
     const user = provider === 'gemini' ? userGemini : userOpenAI
 
     let json
@@ -450,7 +450,7 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     } catch (e) {
       const msg = String(e?.message || '')
       if (provider === 'gemini' && (msg.includes('MAX_TOKENS') || msg.includes('valid JSON'))) {
-        const compact = `前提\n- キーワード: ${keyword}\n- カテゴリ: ${category}\n\nJSONのみ返す（短く簡潔に）。キー: title, slug, h2[{title,h3(<=1)}]。h2は最大4個。各文字列は20文字以内。説明やフェンスは禁止。`
+        const compact = `前提\n- キーワード: ${keyword}\n\nJSONのみ返す（短く簡潔に）。キー: title, slug, h2[{title,h3(<=1)}]。h2は最大4個。各文字列は20文字以内。説明やフェンスは禁止。`
         try {
           json = await llmChatJSON({ provider, system, user: compact, schema: undefined, temperature: 1, max_tokens: 2048, model })
         } catch (e2) {
@@ -522,7 +522,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
       excerpt: 'B2B企業がパイプラインを伸ばすためのSEO/コンテンツ戦略。検索意図、トピッククラスター、E-E-A-T、計測まで実務視点で解説。',
       body: '<p>本稿では、B2Bで成果に直結するSEOの考え方と実装手順を解説します。まず全体像を掴み、次に実務で使える型へ落とし込みます。</p>\n<h2>検索意図の分解と優先順位付け</h2>\n<p>まず重要なのは、見込み顧客の文脈に沿って検索意図を分解することです。単語ではなく課題の表現として捉え、業界・職種・熟達度で粒度を合わせます。</p>\n<p>意図ごとに必要なコンテンツの役割は異なります。情報収集段階では用語の定義や判断基準、比較検討では差異化ポイントや導入条件が響きます。</p>\n<h3>意図分類の実務メモ</h3>\n<p>現場では、検索クエリの原文をそのままグルーピングするより、営業やCSの会話ログと突き合わせて課題表現に変換すると精度が上がります。</p>\n<ul><li>情報（課題理解）：定義、背景、判断軸</li><li>比較（解決策検討）：差異化、適用条件</li><li>取引（意思決定）：要件、導入プロセス</li></ul>\n<h2>まとめ・次のアクション</h2>\n<p>小さく検証し、勝ち筋の型をテンプレート化して横展開します。効果測定はリードの質と商談化率で確認します。</p>'
     }
-    const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- カテゴリ: ${category || outline.category || 'SEO'}\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。<p>を主体に、各セクションは段落から始める。\n- 箇条書きは必要な場合のみ。各<h2>セクションで<ul>は最大1回、3〜5項目まで。連続した<ul>は禁止。\n- 各<h2>は少なくとも2つの<p>を含む。各<h3>も少なくとも1つの<p>を含む。\n- 導入で期待値を提示し、各見出しでは段落で解説→必要なら要点を<ul>で補足。最後はまとめの段落で締める。\n- 根拠のない断定や最新情報の言い切りは避ける。`
+    const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。<p>を主体に、各セクションは段落から始める。\n- 箇条書きは必要な場合のみ。各<h2>セクションで<ul>は最大1回、3〜5項目まで。連続した<ul>は禁止。\n- 各<h2>は少なくとも2つの<p>を含む。各<h3>も少なくとも1つの<p>を含む。\n- 導入で期待値を提示し、各見出しでは段落で解説→必要なら要点を<ul>で補足。最後はまとめの段落で締める。\n- 根拠のない断定や最新情報の言い切りは避ける。`
 
     let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 16384, model })
 
@@ -557,7 +557,7 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
       author,
       publishDate,
       readTime: `${readTimeMin}分`,
-      category: category || outline.category || 'SEO',
+      category: category || outline.category || '',
       imageUrl,
       body,
     }
