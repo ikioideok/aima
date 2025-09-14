@@ -30,9 +30,6 @@ export default function ToolsArticle() {
   const [modelProvider, setModelProvider] = React.useState<'openai'|'gemini'>('gemini')
   const [modelId, setModelId] = React.useState<string>('gemini-2.5-pro')
   const [keyword, setKeyword] = React.useState('')
-  const [audience, setAudience] = React.useState('マーケ担当者')
-  const [tone, setTone] = React.useState<'ですます'|'常体'>('ですます')
-  const [wordTarget, setWordTarget] = React.useState<number>(1800)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string>('')
   const [outline, setOutline] = React.useState<Outline|null>(null)
@@ -90,9 +87,6 @@ export default function ToolsArticle() {
         provider,
         model: modelId,
         keyword,
-        tone: tone === 'ですます' ? 'です・ます調で、実務的に明快' : '常体で、実務的に明快',
-        target_audience: audience,
-        word_count_target: Number(wordTarget)||1800,
       }
       let res: any = null
       try {
@@ -169,24 +163,7 @@ export default function ToolsArticle() {
             <span className="text-sm">タイトル/キーワード</span>
             <input className="border rounded px-2 py-2" value={keyword} onChange={(e)=>setKeyword(e.target.value)} placeholder="例：SEO内部対策チェックリスト" />
           </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label className="grid gap-1">
-              <span className="text-sm">想定読者</span>
-              <input className="border rounded px-2 py-2" value={audience} onChange={(e)=>setAudience(e.target.value)} />
-            </label>
-          </div>
-          <div className="flex gap-4 items-center">
-            <label className="flex items-center gap-1">
-              <input type="radio" name="tone" checked={tone==='ですます'} onChange={()=>setTone('ですます')} /> です・ます
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="radio" name="tone" checked={tone==='常体'} onChange={()=>setTone('常体')} /> 常体
-            </label>
-            <label className="flex items-center gap-1">
-              <span className="text-sm">目標文字数</span>
-              <input type="number" className="border rounded px-2 py-1 w-28" value={wordTarget} onChange={(e)=>setWordTarget(Number(e.target.value)||1800)} />
-            </label>
-          </div>
+          
           <div className="flex gap-2">
             <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50">アウトライン生成</button>
             <button disabled={loading||!outline||!canCall} onClick={onGenerateArticle} className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50">本文生成</button>
