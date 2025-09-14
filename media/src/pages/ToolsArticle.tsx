@@ -26,8 +26,10 @@ type Outline = {
 
 export default function ToolsArticle() {
   const CMS_BASE = useCMSBase()
-  const [modelProvider, setModelProvider] = React.useState<'openai'|'gemini'>('openai')
-  const [modelId, setModelId] = React.useState<string>('gpt-5')
+  const ADMIN_TOKEN = (import.meta as any).env?.VITE_ADMIN_TOKEN || ''
+  // 初期表示は常に Gemini を既定にする（保存値は無視して起動）
+  const [modelProvider, setModelProvider] = React.useState<'openai'|'gemini'>('gemini')
+  const [modelId, setModelId] = React.useState<string>('gemini-2.5-pro')
   const [keyword, setKeyword] = React.useState('')
   const [audience, setAudience] = React.useState('マーケ担当者')
   const [category, setCategory] = React.useState('SEO')
@@ -157,12 +159,14 @@ export default function ToolsArticle() {
               <select className="border rounded px-2 py-1" value={modelProvider} onChange={(e)=>{
                 const v = e.target.value as 'openai'|'gemini'
                 setModelProvider(v)
-                setModelId(v==='gemini' ? 'gemini-2.5-pro' : 'gpt-5')
+                const id = v==='gemini' ? 'gemini-2.5-pro' : 'gpt-5'
+                setModelId(id)
+                try { window.localStorage.setItem('aima-tools-model-provider', v); window.localStorage.setItem('aima-tools-model-id', id) } catch {}
               }}>
                 <option value="openai">GPT-5（OpenAI）</option>
                 <option value="gemini">Gemini 2.5 Pro（Google）</option>
               </select>
-              <input className="border rounded px-2 py-1 flex-1" value={modelId} onChange={(e)=>setModelId(e.target.value)} />
+              <input className="border rounded px-2 py-1 flex-1" value={modelId} onChange={(e)=>{ setModelId(e.target.value); try { window.localStorage.setItem('aima-tools-model-id', e.target.value) } catch {} }} />
             </div>
           </label>
           <label className="grid gap-1">

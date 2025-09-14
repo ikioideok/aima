@@ -7,4 +7,3 @@ export function render(url: string) {
   const html = renderToString(<App />)
   return { html, head: { title: 'AIMA｜AIマーケティング支援' } }
 }
-
