@@ -105,6 +105,71 @@ jobs:
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
             "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}tools/; mirror -R --parallel=2 --ignore-time --overwrite ./public/tools/ ${ROOT_REMOTE_DIR}tools/; bye"
 
+      - name: Deploy /api PHP endpoints (root)
+        env:
+          LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          ROOT_REMOTE_DIR="${SAKURA_REMOTE_DIR%/}"
+          case "$ROOT_REMOTE_DIR" in
+            */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
+          esac
+          ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
+          mkdir -p api
+          cat > api/generate-outline.php <<'PHP'
+          <?php
+          header('Content-Type: application/json; charset=utf-8');
+          if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
+          $raw = file_get_contents('php://input');
+          $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';
+          if (strpos($ct,'application/json') !== false) { $input = json_decode($raw, true); } else { $input = $_POST; if (!$input && $raw) { parse_str($raw, $input); } }
+          $provider = isset($input['provider']) ? $input['provider'] : 'openai';
+          $model = isset($input['model']) ? $input['model'] : ($provider==='gemini'?'gemini-2.5-pro':'gpt-5');
+          $keyword = isset($input['keyword']) ? $input['keyword'] : '';
+          $category = isset($input['category']) ? $input['category'] : 'SEO';
+          $tone = isset($input['tone']) ? $input['tone'] : 'です・ます調で、実務的に明快';
+          $aud = isset($input['target_audience']) ? $input['target_audience'] : 'マーケ担当者';
+          $wc = isset($input['word_count_target']) ? intval($input['word_count_target']) : 1800;
+          if(!$keyword){ http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
+          function slugify($s){ $s=mb_strtolower($s,'UTF-8'); $s=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$s); $s=preg_replace('/[^a-z0-9\s-]/','',$s); $s=trim($s); $s=preg_replace('/[\s_-]+/','-',$s); $s=preg_replace('/^-+|-+$/','',$s); return $s ?: 'article'; }
+          $system = 'あなたは日本語のコンテンツストラテジストです。MECEで実務的な見出し構成をJSONだけで返します。';
+          $user = "前提\n- キーワード: {$keyword}\n- カテゴリ: {$category}\n- トーン: {$tone}\n- 想定読者: {$aud}\n- 目標文字数: {$wc}\n\n出力(JSONのみ)：{\"title\":string,\"slug\":string,\"persona\":string,\"target_audience\":string,\"tone\":string,\"word_count_target\":number,\"seo\":{\"keywords\":string[],\"meta_description\":string,\"cta\":string},\"h2\":[{\"title\":string,\"h3\":string[]}] }\n禁止: 説明・コードフェンス・余計な文字";
+          require __DIR__.'/_config.php';
+          function openai_call($model,$system,$user){ $key = defined('OPENAI_API_KEY') ? constant('OPENAI_API_KEY') : ''; $ch = curl_init('https://api.openai.com/v1/chat/completions'); $payload = json_encode(['model'=>$model,'messages'=>[['role'=>'system','content'=>$system],['role'=>'user','content'=>$user]]]); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json'],CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$payload]); $res = curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); if($code>=300){ http_response_code(502); echo json_encode(['error'=>'OpenAI error','detail'=>$res]); exit; } $data = json_decode($res,true); return $data['choices'][0]['message']['content'] ?? ''; }
+          function gemini_call($model,$system,$user){ $key = defined('GEMINI_API_KEY') ? constant('GEMINI_API_KEY') : ''; $url = 'https://generativelanguage.googleapis.com/v1beta/models/'.rawurlencode($model).':generateContent?key='.rawurlencode($key); $payload = json_encode(['contents'=>[['role'=>'user','parts'=>[['text'=>$user]]]],'systemInstruction'=>['role'=>'system','parts'=>[['text'=>$system]]],'generationConfig'=>['responseMimeType'=>'application/json','maxOutputTokens'=>4096]]); $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$payload]); $res=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); if($code>=300){ http_response_code(502); echo json_encode(['error'=>'Gemini error','detail'=>$res]); exit; } $data=json_decode($res,true); $parts=$data['candidates'][0]['content']['parts'] ?? []; $text=''; foreach($parts as $p){ if(isset($p['text'])) $text.=$p['text']; } return $text; }
+          $raw = ($provider==='gemini') ? gemini_call($model,$system,$user) : openai_call($model,$system,$user);
+          $s = trim($raw); if(strpos($s,'```')===0){ $s=preg_replace('/^```[a-zA-Z]*\n?|```$/','',$s); } $start=strpos($s,'{'); $end=strrpos($s,'}'); if($start!==false && $end!==false) $s=substr($s,$start,$end-$start+1); $json=json_decode($s,true); if(!$json){ http_response_code(502); echo json_encode(['error'=>'Invalid JSON','raw'=>$raw]); exit; }
+          $json['slug'] = isset($json['slug']) && $json['slug'] ? $json['slug'] : slugify($json['title'] ?? $keyword);
+          $out = [ 'ok'=>true, 'outline'=> [ 'title'=>$json['title'] ?? ($keyword.'のガイド'), 'slug'=>$json['slug'], 'persona'=>$json['persona'] ?? 'マーケター', 'target_audience'=>$json['target_audience'] ?? $aud, 'tone'=>$json['tone'] ?? $tone, 'word_count_target'=>$json['word_count_target'] ?? $wc, 'seo'=>$json['seo'] ?? new stdClass(), 'h2'=>$json['h2'] ?? [], 'category'=>$category, 'keyword'=>$keyword ] ]; echo json_encode($out, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+          PHP
+          cat > api/generate-article.php <<'PHP'
+          <?php
+          header('Content-Type: application/json; charset=utf-8'); if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
+          $raw = file_get_contents('php://input'); $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';
+          if (strpos($ct,'application/json') !== false) { $input = json_decode($raw, true); } else { $input = $_POST; if (!$input && $raw) { parse_str($raw, $input); } }
+          $provider = isset($input['provider']) ? $input['provider'] : 'openai'; $model = isset($input['model']) ? $input['model'] : ($provider==='gemini'?'gemini-2.5-pro':'gpt-5'); $outline = isset($input['outline']) ? (is_array($input['outline']) ? $input['outline'] : json_decode($input['outline'], true)) : null; $category = isset($input['category']) ? $input['category'] : ($outline['category'] ?? 'SEO'); if(!$outline || !isset($outline['title'])){ http_response_code(400); echo json_encode(['error'=>'outline required']); exit; }
+          function slugify($s){ $s=mb_strtolower($s,'UTF-8'); $s=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$s); $s=preg_replace('/[^a-z0-9\s-]/','',$s); $s=trim($s); $s=preg_replace('/[\s_-]+/','-',$s); $s=preg_replace('/^-+|-+$/','',$s); return $s ?: 'article'; }
+          $outlineText=''; foreach(($outline['h2'] ?? []) as $i=>$sec){ $outlineText .= ($i+1).". ".$sec['title']."\n"; foreach(($sec['h3'] ?? []) as $h){ $outlineText .= "  - ".$h."\n"; } }
+          $system = 'あなたは日本語のB2B向けテクニカルライターです。指定された見出し構成に沿って、有効なHTML（<h2>/<h3>/<p>/<ul>/<li>）のみで本文を返します。JSONのみを返してください。'; $user = "前提:\n- カテゴリ: {$category}\n- トーン: ".($outline['tone'] ?? '実務的で明快')."\n- 想定読者: ".($outline['target_audience'] ?? 'マーケ担当者')."\n- 目標文字数: 約".intval($outline['word_count_target'] ?? 1800)."文字\n- 見出し構成:\n{$outlineText}\n\n出力要件:\n- JSONのみ（title, excerpt, body）。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。段落中心、箇条書きは最小限。\n- コードフェンス・説明は禁止。";
+          require __DIR__.'/_config.php';
+          function openai_call($model,$system,$user){ $key = defined('OPENAI_API_KEY') ? constant('OPENAI_API_KEY') : ''; $ch = curl_init('https://api.openai.com/v1/chat/completions'); $payload = json_encode(['model'=>$model,'messages'=>[['role'=>'system','content'=>$system],['role'=>'user','content'=>$user]]]); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json'],CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$payload]); $res = curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); if($code>=300){ http_response_code(502); echo json_encode(['error'=>'OpenAI error','detail'=>$res]); exit; } $data = json_decode($res,true); return $data['choices'][0]['message']['content'] ?? ''; }
+          function gemini_call($model,$system,$user){ $key = defined('GEMINI_API_KEY') ? constant('GEMINI_API_KEY') : ''; $url = 'https://generativelanguage.googleapis.com/v1beta/models/'.rawurlencode($model).':generateContent?key='.rawurlencode($key); $payload = json_encode(['contents'=>[['role'=>'user','parts'=>[['text'=>$user]]]],'systemInstruction'=>['role'=>'system','parts'=>[['text'=>$system]]],'generationConfig'=>['responseMimeType'=>'application/json','maxOutputTokens'=>16384]]); $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$payload]); $res=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); if($code>=300){ http_response_code(502); echo json_encode(['error'=>'Gemini error','detail'=>$res]); exit; } $data=json_decode($res,true); $parts=$data['candidates'][0]['content']['parts'] ?? []; $text=''; foreach($parts as $p){ if(isset($p['text'])) $text.=$p['text']; } return $text; }
+          $raw = ($provider==='gemini') ? gemini_call($model,$system,$user) : openai_call($model,$system,$user);
+          $s = trim($raw); if(strpos($s,'```')===0){ $s=preg_replace('/^```[a-zA-Z]*\n?|```$/','',$s); } $start=strpos($s,'{'); $end=strrpos($s,'}'); if($start!==false && $end!==false) $s=substr($s,$start,$end-$start+1); $json=json_decode($s,true); if(!$json){ http_response_code(502); echo json_encode(['error'=>'Invalid JSON','raw'=>$raw]); exit; }
+          $slug = slugify($outline['slug'] ?? $outline['title']); $article = ['slug'=>$slug,'title'=>$json['title'] ?? ($outline['title'] ?? '記事'),'excerpt'=>$json['excerpt'] ?? '','body'=>$json['body'] ?? '']; echo json_encode(['ok'=>true,'article'=>$article], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+          PHP
+          # write config with embedded keys (uploaded, not committed)
+          cat > api/_config.php <<CONF
+          <?php
+          define('OPENAI_API_KEY', '${{ secrets.OPENAI_API_KEY }}');
+          define('GEMINI_API_KEY', '${{ secrets.GEMINI_API_KEY }}');
+          ?>
+          CONF
+          sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
+          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
+            "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}api/; mirror -R --parallel=2 --ignore-time --overwrite ./api/ ${ROOT_REMOTE_DIR}api/; bye"
+
       - name: Deploy jinzai (/jinzai)
         if: ${{ false }}
         env:

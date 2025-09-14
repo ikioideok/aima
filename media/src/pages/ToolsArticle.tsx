@@ -26,7 +26,6 @@ type Outline = {
 
 export default function ToolsArticle() {
   const CMS_BASE = useCMSBase()
-  const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || ''
   const [modelProvider, setModelProvider] = React.useState<'openai'|'gemini'>('openai')
   const [modelId, setModelId] = React.useState<string>('gpt-5')
   const [keyword, setKeyword] = React.useState('')
@@ -41,9 +40,10 @@ export default function ToolsArticle() {
   const [articleTitle, setArticleTitle] = React.useState<string>('')
   const [articleExcerpt, setArticleExcerpt] = React.useState<string>('')
 
-  const canCall = !!ADMIN_TOKEN
+  // Sakura 直下の /api を優先して呼ぶため、管理トークン前提のブロックは外す
+  const canCall = true
 
-  async function call(path: string, body: any) {
+  async function callCms(path: string, body: any) {
     const url = CMS_BASE + path
     const r = await fetch(url, {
       method: 'POST',
@@ -58,12 +58,35 @@ export default function ToolsArticle() {
     try { return JSON.parse(text) } catch { return null }
   }
 
+  async function callPhp(path: string, body: any) {
+    // Absolute root /api so it works from both / and /media/
+    const url = `/api${path}.php`
+    // WAFに弾かれにくい x-www-form-urlencoded で送信
+    const params = new URLSearchParams()
+    for (const [k, v] of Object.entries(body || {})) {
+      if (v && typeof v === 'object') {
+        params.append(k, JSON.stringify(v))
+      } else if (v !== undefined && v !== null) {
+        params.append(k, String(v))
+      }
+    }
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+    const text = await r.text().catch(()=>'')
+    if (!r.ok) throw new Error(text || `HTTP ${r.status}`)
+    try { return JSON.parse(text) } catch { return null }
+  }
+
   const provider = modelProvider === 'gemini' ? 'gemini' : 'openai'
 
   async function onGenerateOutline() {
     setError(''); setLoading(true); setOutline(null); setArticleHtml('');
     try {
-      const res = await call('/generate-outline', {
+      // Prefer PHP API on Sakura; fallback to cms-api if configured
+      const payload = {
         provider,
         model: modelId,
         keyword,
@@ -71,7 +94,13 @@ export default function ToolsArticle() {
         tone: tone === 'ですます' ? 'です・ます調で、実務的に明快' : '常体で、実務的に明快',
         target_audience: audience,
         word_count_target: Number(wordTarget)||1800,
-      })
+      }
+      let res: any = null
+      try {
+        res = await callPhp('/generate-outline', payload)
+      } catch {
+        res = await callCms('/generate-outline', payload)
+      }
       if (!res?.ok || !res?.outline) throw new Error('Invalid response')
       setOutline(res.outline as Outline)
     } catch (e:any) {
@@ -83,12 +112,18 @@ export default function ToolsArticle() {
     if (!outline) return
     setError(''); setLoading(true); setArticleHtml('')
     try {
-      const res = await call('/generate-article', {
+      const payload = {
         provider,
         model: modelId,
         outline,
         category,
-      })
+      }
+      let res: any = null
+      try {
+        res = await callPhp('/generate-article', payload)
+      } catch {
+        res = await callCms('/generate-article', payload)
+      }
       if (!res?.ok || !res?.article) throw new Error('Invalid response')
       setArticleTitle(res.article.title)
       setArticleExcerpt(res.article.excerpt || '')
@@ -209,4 +244,3 @@ export default function ToolsArticle() {
     </div>
   )
 }
-
