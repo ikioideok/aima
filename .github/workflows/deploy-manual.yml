@@ -248,7 +248,15 @@ jobs:
               }
             }
           }
-          echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+          if ((isset($_GET['debug']) && $_GET['debug']) || (isset($input['debug']) && $input['debug'])) {
+            $m1 = 0; if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $mm1)) { $m1 = count($mm1[1]); }
+            $m2 = 0; if (preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $mm2)) { $m2 = count($mm2[1]); }
+            $m3 = 0; if (preg_match_all('/data-href=\"(https?:[^\"]+)\"/i', $html, $mm3)) { $m3 = count($mm3[1]); }
+            $blocked = (bool)preg_match('/(unusual traffic|enable javascript|consent)/i', $html);
+            echo json_encode(['ok'=>true,'results'=>$results,'debug'=>['html_len'=>strlen($html),'m1'=>$m1,'m2'=>$m2,'m3'=>$m3,'blocked'=>$blocked]], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+          } else {
+            echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+          }
           PHP
           cat > api/generate-outline.php <<'PHP'
           <?php
