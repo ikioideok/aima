@@ -162,7 +162,7 @@ jobs:
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
             "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; cd ${ALT_ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; bye"
 
-      - name: Deploy /tools static pages (root)
+      - name: Cleanup legacy root /tools (disabled deploy)
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
@@ -171,10 +171,10 @@ jobs:
             */media) ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/media}" ;;
           esac
           ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
-          echo "Mirror ./public/tools -> ${ROOT_REMOTE_DIR}tools/"
+          echo "Remove legacy ${ROOT_REMOTE_DIR}tools/"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}tools/; mirror -R --parallel=2 --ignore-time --overwrite ./public/tools/ ${ROOT_REMOTE_DIR}tools/; bye"
+            "set sftp:auto-confirm yes; rm -r ${ROOT_REMOTE_DIR}tools/; bye" || true
 
       - name: Deploy /api PHP endpoints (root)
         env:

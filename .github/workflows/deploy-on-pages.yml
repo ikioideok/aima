@@ -92,6 +92,7 @@ jobs:
             "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; bye"
 
       - name: Deploy /tools static pages (root)
+        if: ${{ false }}
         env:
           LFTP_PASSWORD: ${{ secrets.SAKURA_PASSWORD }}
         run: |
@@ -101,9 +102,7 @@ jobs:
           esac
           ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
           sudo apt-get update -y >/dev/null && sudo apt-get install -y lftp >/dev/null
-          echo "Mirror ./public/tools -> ${ROOT_REMOTE_DIR}tools/"
-          lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; mkdir -p ${ROOT_REMOTE_DIR}tools/; mirror -R --parallel=2 --ignore-time --overwrite ./public/tools/ ${ROOT_REMOTE_DIR}tools/; bye"
+          echo "Disabled: root /tools deployment is no longer used"
 
       - name: Deploy /api PHP endpoints (root)
         env:
