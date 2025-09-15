@@ -121,6 +121,10 @@ jobs:
           cat > api/search-top.php <<'PHP'
           <?php
           header('Content-Type: application/json; charset=utf-8');
+          header('Access-Control-Allow-Origin: *');
+          header('Access-Control-Allow-Methods: POST, OPTIONS');
+          header('Access-Control-Allow-Headers: Content-Type');
+          if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
           if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
           // Read JSON or form-urlencoded
           $raw = file_get_contents('php://input');
@@ -129,7 +133,7 @@ jobs:
           $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
           if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
           $q = urlencode($keyword);
-          $url = "https://www.google.com/search?hl=ja&gl=jp&num=10&q={$q}";
+          $url = "https://www.google.com/search?hl=ja&gl=jp&pws=0&num=20&q={$q}";
           function curl_get($u){
             $ch = curl_init($u);
             curl_setopt_array($ch,[
@@ -213,6 +217,10 @@ jobs:
           cat > api/generate-outline.php <<'PHP'
           <?php
           header('Content-Type: application/json; charset=utf-8');
+          header('Access-Control-Allow-Origin: *');
+          header('Access-Control-Allow-Methods: POST, OPTIONS');
+          header('Access-Control-Allow-Headers: Content-Type');
+          if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
           if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
           $raw = file_get_contents('php://input');
           $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';

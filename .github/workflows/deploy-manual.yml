@@ -192,6 +192,10 @@ jobs:
           cat > api/search-top.php <<'PHP'
           <?php
           header('Content-Type: application/json; charset=utf-8');
+          header('Access-Control-Allow-Origin: *');
+          header('Access-Control-Allow-Methods: POST, OPTIONS');
+          header('Access-Control-Allow-Headers: Content-Type');
+          if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
           if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
           $raw = file_get_contents('php://input');
           $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';
@@ -199,7 +203,7 @@ jobs:
           $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
           if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
           $q = urlencode($keyword);
-          $url = "https://www.google.com/search?hl=ja&gl=jp&num=10&q={$q}";
+          $url = "https://www.google.com/search?hl=ja&gl=jp&pws=0&num=20&q={$q}";
           function curl_get($u){ $ch = curl_init($u); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>15,CURLOPT_HTTPHEADER=>['Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36']]); $res=curl_exec($ch); curl_close($ch); return $res?:''; }
           $html = curl_get($url);
           $results = [];
@@ -221,12 +225,31 @@ jobs:
                 if (count($results)>=10) break;
               }
             }
+            if (count($results) < 10 && preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $m2)){
+              foreach($m2[1] as $link){
+                $u = urldecode($link);
+                if (strpos($u,'http')!==0) continue;
+                if (preg_match('/google\.|gstatic\./i',$u)) continue;
+                if (in_array($u,$seen,true)) continue; $seen[]=$u;
+                $tx = curl_get($u);
+                $title = '';
+                if (preg_match('/<title[^>]*>([\s\S]*?)<\/title>/i', $tx, $mm)){
+                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
+                }
+                $results[] = ['url'=>$u,'title'=>$title,'headings'=>['h1'=>extract_tags($tx,'h1',10),'h2'=>extract_tags($tx,'h2',30),'h3'=>extract_tags($tx,'h3',30),'h4'=>extract_tags($tx,'h4',20)]];
+                if (count($results)>=10) break;
+              }
+            }
           }
           echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           PHP
           cat > api/generate-outline.php <<'PHP'
           <?php
           header('Content-Type: application/json; charset=utf-8');
+          header('Access-Control-Allow-Origin: *');
+          header('Access-Control-Allow-Methods: POST, OPTIONS');
+          header('Access-Control-Allow-Headers: Content-Type');
+          if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
           if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
           // Read JSON or form-urlencoded
           $raw = file_get_contents('php://input');
