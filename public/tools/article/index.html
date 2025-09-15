@@ -5,20 +5,252 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>AI記事生成ツール | AI Marketing</title>
     <style>
-      html,body { height: 100%; margin: 0; }
-      .wrap { min-height: 100%; display: flex; flex-direction: column; }
-      header { padding: 12px 16px; font: 600 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif; }
-      .frame { flex: 1 1 auto; border: 0; width: 100%; height: calc(100vh - 48px); }
-      .note { padding: 8px 16px; color: #555; font: 400 13px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif; }
-      @media (max-width: 640px){ .frame{ height: calc(100vh - 40px);} header{ padding:10px 12px;} }
+      :root { --fg:#111; --muted:#666; --border:#ddd; --bg:#fff; --pri:#1a73e8; }
+      html,body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); }
+      body { font: 14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif; }
+      .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+      h1 { font-size: 18px; margin: 0 0 12px; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+      .row > * { margin: 4px 0; }
+      input[type=text], select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+      textarea { min-height: 120px; }
+      .grid { display: grid; gap: 8px; }
+      .grid-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .grid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .btn { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: #f7f7f7; cursor: pointer; }
+      .btn.primary { background: var(--pri); color: #fff; border-color: var(--pri); }
+      .btn:disabled { opacity: .6; cursor: not-allowed; }
+      .card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: #fff; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .list { list-style: disc; padding-left: 18px; }
+      .results { display: grid; gap: 8px; }
+      .article { border:1px solid var(--border); border-radius:8px; padding:12px; background:#fff; }
+      .prose h2 { font-size: 18px; margin: 16px 0 8px; }
+      .prose h3 { font-size: 16px; margin: 14px 0 6px; }
+      .prose p { margin: 8px 0; }
+      .hidden { display: none; }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <header>AI記事生成（ベータ）</header>
-      <iframe class="frame" src="/media/tools/article/" title="AI記事生成ツール" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe>
-      <div class="note">表示されない場合はリロードしてください。管理トークン未設定時はボタンが無効になります。</div>
+    <div class="container">
+      <h1>AI記事生成（ベータ）</h1>
+      <div class="card">
+        <div class="grid">
+          <label>
+            <div class="muted">キーワード</div>
+            <input id="kw" type="text" placeholder="例：SEO 内部対策 チェックリスト" />
+          </label>
+          <div class="row">
+            <label>
+              <div class="muted">プロバイダ</div>
+              <select id="provider">
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </label>
+            <label style="flex:1 1 auto">
+              <div class="muted">モデル</div>
+              <input id="model" type="text" value="gemini-2.5-pro" />
+            </label>
+            <div class="row" style="margin-left:auto">
+              <button id="btn-outline" class="btn primary">アウトライン作成</button>
+              <button id="btn-article" class="btn" disabled>本文生成</button>
+            </div>
+          </div>
+        </div>
+        <div id="err" class="muted" style="color:#c00; margin-top:8px;"></div>
+      </div>
+
+      <div id="manual" class="card hidden" style="margin-top:12px;">
+        <div class="muted" style="margin-bottom:6px;">検索で取得できない場合、URLを手動で入力（1行1件・最大10件）</div>
+        <textarea id="manual-urls" placeholder="https://example.com/....\nhttps://...\n..."></textarea>
+        <div class="row" style="margin-top:6px;">
+          <button id="btn-extract" class="btn">見出しを取得</button>
+          <button id="btn-cancel-manual" class="btn">キャンセル</button>
+        </div>
+      </div>
+
+      <div id="sources" class="card hidden" style="margin-top:12px;">
+        <div class="row" style="justify-content: space-between;">
+          <div>参考にするサイトを選択</div>
+          <div id="sources-count" class="muted"></div>
+        </div>
+        <div id="sources-list" class="results"></div>
+        <div class="row" style="margin-top:8px;">
+          <button id="btn-retry" class="btn">検索をやり直す</button>
+          <button id="btn-manual" class="btn">URLを手動入力</button>
+          <button id="btn-build-outline" class="btn primary">選んだサイトを参考に構成案を作成</button>
+        </div>
+      </div>
+
+      <div id="outline" class="card hidden" style="margin-top:12px;"></div>
+      <div id="article" class="card hidden" style="margin-top:12px;"></div>
     </div>
+
+    <script>
+      const $ = (sel) => document.querySelector(sel)
+      const kw = $('#kw'), provider = $('#provider'), model = $('#model')
+      const err = $('#err')
+      const btnOutline = $('#btn-outline'), btnArticle = $('#btn-article')
+      const manual = $('#manual'), manualUrls = $('#manual-urls'), btnExtract = $('#btn-extract'), btnCancelManual = $('#btn-cancel-manual')
+      const sourcesWrap = $('#sources'), sourcesList = $('#sources-list'), sourcesCount = $('#sources-count')
+      const btnRetry = $('#btn-retry'), btnManual = $('#btn-manual'), btnBuildOutline = $('#btn-build-outline')
+      const outlineBox = $('#outline'), articleBox = $('#article')
+
+      let sources = []
+      let selected = {}
+      let outline = null
+
+      function setError(m){ err.textContent = m || '' }
+      function show(el, v){ el.classList.toggle('hidden', !v) }
+      function renderSources(){
+        sourcesList.innerHTML = ''
+        sourcesCount.textContent = sources.length + '件'
+        sources.forEach((s, i) => {
+          const card = document.createElement('div')
+          card.className = 'card'
+          card.innerHTML = `
+            <label class="row" style="align-items:flex-start; gap:10px;">
+              <input type="checkbox" data-url="${s.url}" ${selected[s.url]?'checked':''} />
+              <div style="flex:1 1 auto; min-width:0;">
+                <div style="font-weight:600;">${i+1}. ${s.title || s.url}</div>
+                <a href="${s.url}" target="_blank" rel="noreferrer" class="muted" style="word-break: break-all;">${s.url}</a>
+                <div class="grid grid-3" style="margin-top:6px;">
+                  <div><div class="muted">H2</div><ul class="list">${(s.headings?.h2||[]).slice(0,8).map(h=>`<li>${h}</li>`).join('')}</ul></div>
+                  <div><div class="muted">H3</div><ul class="list">${(s.headings?.h3||[]).slice(0,6).map(h=>`<li>${h}</li>`).join('')}</ul></div>
+                  <div><div class="muted">H4</div><ul class="list">${(s.headings?.h4||[]).slice(0,4).map(h=>`<li>${h}</li>`).join('')}</ul></div>
+                </div>
+              </div>
+            </label>`
+          card.querySelector('input[type=checkbox]').addEventListener('change', (e)=>{
+            selected[s.url] = e.target.checked
+          })
+          sourcesList.appendChild(card)
+        })
+      }
+
+      async function fetchJSON(url, opts){
+        const r = await fetch(url, opts)
+        const txt = await r.text().catch(()=> '')
+        try { return JSON.parse(txt) } catch { return null }
+      }
+
+      async function getSearchResults(keyword){
+        // Try GET first
+        let res = await fetchJSON(`/api/search-top.php?keyword=${encodeURIComponent(keyword)}`)
+        if (!res?.results || !Array.isArray(res.results) || res.results.length === 0) {
+          // Fallback: POST x-www-form-urlencoded
+          const params = new URLSearchParams({ keyword })
+          res = await fetchJSON('/api/search-top.php', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
+        }
+        return res?.results || []
+      }
+
+      async function extractOne(url){
+        let res = await fetchJSON(`/api/extract-headings.php?url=${encodeURIComponent(url)}`)
+        if (!res?.result) {
+          res = await fetchJSON(`/cms-api/extract-headings?url=${encodeURIComponent(url)}`)
+        }
+        return res?.result || null
+      }
+
+      btnOutline.addEventListener('click', async ()=>{
+        setError('')
+        outline = null
+        articleBox.innerHTML = ''
+        show(articleBox, false)
+        show(outlineBox, false)
+        sources = []
+        selected = {}
+        show(sourcesWrap, false)
+        show(manual, false)
+        const keyword = kw.value.trim()
+        if (!keyword) { setError('キーワードを入力してください'); return }
+        btnOutline.disabled = true
+        try {
+          const list = await getSearchResults(keyword)
+          if (!list.length) {
+            show(manual, true)
+            return
+          }
+          sources = list
+          sources.forEach(s => selected[s.url] = true)
+          renderSources()
+          show(sourcesWrap, true)
+        } catch(e){ setError(e?.message||'検索に失敗しました') }
+        finally { btnOutline.disabled = false }
+      })
+
+      btnRetry.addEventListener('click', ()=>{ sources=[]; selected={}; renderSources(); show(sourcesWrap,false); show(manual,false) })
+      btnManual.addEventListener('click', ()=>{ show(manual, true) })
+      btnCancelManual.addEventListener('click', ()=>{ show(manual, false) })
+      btnExtract.addEventListener('click', async ()=>{
+        setError('')
+        const urls = manualUrls.value.split(/\n+/).map(s=>s.trim()).filter(Boolean).slice(0,10)
+        if (!urls.length) { setError('URLを入力してください'); return }
+        btnExtract.disabled = true
+        try {
+          const out = []
+          for (const u of urls) { const r = await extractOne(u); if (r) out.push(r) }
+          if (!out.length) { setError('見出しの抽出に失敗しました'); return }
+          sources = out; selected={}; out.forEach(s => selected[s.url] = true)
+          renderSources(); show(sourcesWrap,true); show(manual,false)
+        } catch(e){ setError(e?.message||'抽出に失敗しました') }
+        finally { btnExtract.disabled = false }
+      })
+
+      btnBuildOutline.addEventListener('click', async ()=>{
+        setError('')
+        outline = null
+        show(outlineBox, false)
+        const keyword = kw.value.trim()
+        const chosen = sources.filter(s => selected[s.url])
+        if (!chosen.length) { setError('少なくとも1件選択してください'); return }
+        btnBuildOutline.disabled = true
+        try {
+          const payload = {
+            provider: provider.value,
+            model: model.value,
+            keyword,
+            sources: chosen
+          }
+          const params = new URLSearchParams()
+          params.append('provider', payload.provider)
+          params.append('model', payload.model)
+          params.append('keyword', payload.keyword)
+          params.append('sources', JSON.stringify(payload.sources))
+          let res = await fetchJSON('/api/generate-outline.php', { method: 'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
+          if (!res?.ok || !res?.outline) throw new Error('Invalid response')
+          outline = res.outline
+          outlineBox.innerHTML = ''
+          const t = document.createElement('div'); t.style.fontWeight = '600'; t.textContent = outline.title; outlineBox.appendChild(t)
+          const ul = document.createElement('ul'); ul.className = 'list';
+          outline.h2.forEach(s=>{ const li=document.createElement('li'); li.innerHTML = `<div style="font-weight:500;">${s.title}</div>` + (s.h3 && s.h3.length? `<ul class="list">${s.h3.map(h=>`<li>${h}</li>`).join('')}</ul>` : ''); ul.appendChild(li) })
+          outlineBox.appendChild(ul)
+          show(outlineBox, true)
+          btnArticle.disabled = false
+        } catch(e){ setError(e?.message||'構成案の作成に失敗しました') }
+        finally { btnBuildOutline.disabled = false }
+      })
+
+      btnArticle.addEventListener('click', async ()=>{
+        if (!outline) return
+        setError('')
+        btnArticle.disabled = true
+        try {
+          const payload = { provider: provider.value, model: model.value, outline }
+          const params = new URLSearchParams()
+          params.append('provider', payload.provider)
+          params.append('model', payload.model)
+          params.append('outline', JSON.stringify(payload.outline))
+          let res = await fetchJSON('/api/generate-article.php', { method: 'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
+          if (!res?.ok || !res?.article) throw new Error('Invalid response')
+          const a = res.article
+          articleBox.innerHTML = `<div style="font-weight:600; margin-bottom:6px;">${a.title}</div><div class="prose">${a.body}</div>`
+          show(articleBox, true)
+        } catch(e){ setError(e?.message||'本文生成に失敗しました') }
+        finally { btnArticle.disabled = false }
+      })
+    </script>
   </body>
   </html>
-
