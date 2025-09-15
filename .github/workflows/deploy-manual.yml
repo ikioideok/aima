@@ -203,12 +203,18 @@ jobs:
           $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
           if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
           $q = urlencode($keyword);
-          $url = "https://www.google.com/search?hl=ja&gl=jp&pws=0&num=20&q={$q}";
-          function curl_get($u){ $ch = curl_init($u); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>15,CURLOPT_HTTPHEADER=>['Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36']]); $res=curl_exec($ch); curl_close($ch); return $res?:''; }
-          $html = curl_get($url);
+          function curl_get($u){ $ch = curl_init($u); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,CURLOPT_HTTPHEADER=>['Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7','Cache-Control: no-cache','Pragma: no-cache','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36']]); $res=curl_exec($ch); curl_close($ch); return $res?:''; }
+          $candidates = [
+            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
+            "https://www.google.co.jp/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
+            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&client=ms-android-google&q={$q}"
+          ];
+          $html = '';
+          foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
           $results = [];
           if ($html) {
             $seen = [];
+            // Pattern 1: /url?q=
             if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $m)){
               foreach($m[1] as $link){
                 $u = urldecode($link);
@@ -225,6 +231,7 @@ jobs:
                 if (count($results)>=10) break;
               }
             }
+            // Pattern 2: absolute link href
             if (count($results) < 10 && preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $m2)){
               foreach($m2[1] as $link){
                 $u = urldecode($link);
@@ -416,3 +423,19 @@ jobs:
           done
           echo "NG: /jinzai/health.txt not found"
           exit 1
+            // Pattern 3: data-href on anchors (some variants)
+            if (count($results) < 10 && preg_match_all('/data-href=\"(https?:[^\"]+)\"/i', $html, $m3)){
+              foreach($m3[1] as $link){
+                $u = urldecode($link);
+                if (strpos($u,'http')!==0) continue;
+                if (preg_match('/google\.|gstatic\./i',$u)) continue;
+                if (in_array($u,$seen,true)) continue; $seen[]=$u;
+                $tx = curl_get($u);
+                $title = '';
+                if (preg_match('/<title[^>]*>([\s\S]*?)<\/title>/i', $tx, $mm)){
+                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
+                }
+                $results[] = ['url'=>$u,'title'=>$title,'headings'=>['h1'=>extract_tags($tx,'h1',10),'h2'=>extract_tags($tx,'h2',30),'h3'=>extract_tags($tx,'h3',30),'h4'=>extract_tags($tx,'h4',20)]];
+                if (count($results)>=10) break;
+              }
+            }
