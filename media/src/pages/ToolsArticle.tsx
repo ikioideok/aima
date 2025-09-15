@@ -42,6 +42,8 @@ export default function ToolsArticle() {
   // 新フロー: 検索→参照サイト選択→構成案
   const [sources, setSources] = React.useState<SourceResult[]>([])
   const [selected, setSelected] = React.useState<Record<string, boolean>>({})
+  const [manualUrls, setManualUrls] = React.useState<string>('')
+  const [manualMode, setManualMode] = React.useState<boolean>(false)
 
   // Sakura 直下の /api を優先して呼ぶため、管理トークン前提のブロックは外す
   const canCall = true
@@ -201,6 +203,47 @@ export default function ToolsArticle() {
         </div>
 
         {/* 参照サイト一覧（ステップ1） */}
+        {/* 手動入力モード */}
+        {manualMode && !outline && (
+          <div className="mb-6 p-4 border rounded bg-card">
+            <div className="font-semibold mb-2">参照サイトを手動で入力</div>
+            <textarea className="w-full border rounded p-2 h-28" placeholder="1行に1URLを入力 (最大10件)" value={manualUrls} onChange={(e)=>setManualUrls(e.target.value)} />
+            <div className="mt-2 flex gap-2">
+              <button className="px-3 py-1 border rounded" onClick={async()=>{
+                setError(''); setLoading(true)
+                try {
+                  const urls = manualUrls.split(/\n+/).map(s=>s.trim()).filter(Boolean).slice(0,10)
+                  const out: SourceResult[] = []
+                  for (const u of urls) {
+                    try {
+                      // GET first
+                      let r = await fetch(`/api/extract-headings.php?url=${encodeURIComponent(u)}`)
+                      let txt = await r.text().catch(()=> '')
+                      let js:any = null; try { js = JSON.parse(txt) } catch { js = null }
+                      if (!js?.result) {
+                        // fallback to server CMS if available
+                        const r2 = await fetch(`/cms-api/extract-headings?url=${encodeURIComponent(u)}`)
+                        const js2 = await r2.json().catch(()=>null)
+                        js = js2
+                      }
+                      if (js?.result) out.push(js.result as SourceResult)
+                    } catch {}
+                  }
+                  if (!out.length) throw new Error('見出しの抽出に失敗しました')
+                  setSources(out)
+                  const initSel: Record<string, boolean> = {}
+                  for (const it of out) initSel[it.url] = true
+                  setSelected(initSel)
+                  setManualMode(false)
+                } catch (e:any) {
+                  setError(e?.message || '抽出に失敗しました')
+                } finally { setLoading(false) }
+              }}>見出しを取得</button>
+              <button className="px-3 py-1 border rounded" onClick={()=>{ setManualMode(false); }}>キャンセル</button>
+            </div>
+          </div>
+        )}
+
         {!!sources.length && !outline && (
           <div className="mb-6 p-4 border rounded bg-card">
             <div className="flex items-center justify-between mb-2">
@@ -237,6 +280,7 @@ export default function ToolsArticle() {
             <div className="mt-3 flex gap-2">
               <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
               <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
+              <button disabled={loading} onClick={()=> setManualMode(true)} className="px-3 py-1 border rounded">URLを手動入力</button>
             </div>
           </div>
         )}

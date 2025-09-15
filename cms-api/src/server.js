@@ -279,6 +279,38 @@ app.post('/search-top', async (req, res) => {
   }
 })
 
+// Extract headings from a single URL
+app.post('/extract-headings', async (req, res) => {
+  try {
+    const url = String(req.body?.url || req.query?.url || '').trim()
+    if (!/^https?:\/\//i.test(url)) return res.status(400).json({ error: 'valid url required' })
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Accept-Language': 'ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Pragma': 'no-cache',
+      'Cache-Control': 'no-cache',
+    }
+    const rr = await fetch(url, { headers, redirect: 'follow' })
+    const tx = await rr.text()
+    const get = (tag) => {
+      const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi')
+      const out = []
+      let mm
+      while ((mm = re.exec(tx))) {
+        const raw = mm[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        if (raw) out.push(raw)
+        if (out.length >= (tag === 'h2' ? 30 : tag === 'h3' ? 30 : 20)) break
+      }
+      return out
+    }
+    const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(tx)
+    const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g,' ').trim() : ''
+    res.json({ ok: true, result: { url, title, headings: { h1: get('h1'), h2: get('h2'), h3: get('h3'), h4: get('h4') } } })
+  } catch (e) {
+    res.status(500).json({ error: 'extract failed', detail: String(e?.message || '') })
+  }
+})
+
 // --- LLM helpers ---
 function ensureOpenAI(res) {
   if (!OPENAI_API_KEY) {
