@@ -23,6 +23,9 @@ type Outline = {
   keyword?: string
 }
 
+type SourceHeadings = { h1?: string[]; h2?: string[]; h3?: string[]; h4?: string[] }
+type SourceResult = { url: string; title: string; headings: SourceHeadings }
+
 export default function ToolsArticle() {
   const CMS_BASE = useCMSBase()
   const ADMIN_TOKEN = (import.meta as any).env?.VITE_ADMIN_TOKEN || ''
@@ -36,6 +39,9 @@ export default function ToolsArticle() {
   const [articleHtml, setArticleHtml] = React.useState<string>('')
   const [articleTitle, setArticleTitle] = React.useState<string>('')
   const [articleExcerpt, setArticleExcerpt] = React.useState<string>('')
+  // 新フロー: 検索→参照サイト選択→構成案
+  const [sources, setSources] = React.useState<SourceResult[]>([])
+  const [selected, setSelected] = React.useState<Record<string, boolean>>({})
 
   // Sakura 直下の /api を優先して呼ぶため、管理トークン前提のブロックは外す
   const canCall = true
@@ -80,20 +86,35 @@ export default function ToolsArticle() {
   const provider = modelProvider === 'gemini' ? 'gemini' : 'openai'
 
   async function onGenerateOutline() {
-    setError(''); setLoading(true); setOutline(null); setArticleHtml('');
-    try {
-      // Prefer PHP API on Sakura; fallback to cms-api if configured
-      const payload = {
-        provider,
-        model: modelId,
-        keyword,
-      }
-      let res: any = null
+    setError(''); setArticleHtml(''); setOutline(null)
+    // ステップ1: 参照サイト未取得なら検索して一覧表示
+    if (!sources.length) {
+      setLoading(true)
       try {
-        res = await callPhp('/generate-outline', payload)
-      } catch {
-        res = await callCms('/generate-outline', payload)
-      }
+        let res: any = null
+        try {
+          res = await callPhp('/search-top', { keyword })
+        } catch {
+          res = await callCms('/search-top', { keyword })
+        }
+        const list: SourceResult[] = res?.results || []
+        if (!Array.isArray(list) || list.length === 0) throw new Error('検索結果が取得できませんでした')
+        setSources(list)
+        const initSel: Record<string, boolean> = {}
+        for (const it of list) initSel[it.url] = true
+        setSelected(initSel)
+      } catch (e:any) {
+        setError(e?.message || '検索に失敗しました')
+      } finally { setLoading(false) }
+      return
+    }
+    // ステップ2: 選択済みサイトを使って構成案生成
+    setLoading(true)
+    try {
+      const chosen = sources.filter(s => selected[s.url])
+      const payload = { provider, model: modelId, keyword, sources: chosen }
+      let res: any = null
+      try { res = await callPhp('/generate-outline', payload) } catch { res = await callCms('/generate-outline', payload) }
       if (!res?.ok || !res?.outline) throw new Error('Invalid response')
       setOutline(res.outline as Outline)
     } catch (e:any) {
@@ -165,10 +186,51 @@ export default function ToolsArticle() {
           </label>
           
           <div className="flex gap-2">
-            <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50">アウトライン生成</button>
+            <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50">アウトライン作成</button>
             <button disabled={loading||!outline||!canCall} onClick={onGenerateArticle} className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50">本文生成</button>
           </div>
         </div>
+
+        {/* 参照サイト一覧（ステップ1） */}
+        {!!sources.length && !outline && (
+          <div className="mb-6 p-4 border rounded bg-card">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold">検索結果（参考にするサイトを選択）</div>
+              <div className="text-xs text-muted-foreground">{sources.length}件</div>
+            </div>
+            <ul className="space-y-3">
+              {sources.map((s, i) => (
+                <li key={s.url} className="border rounded p-3 bg-background">
+                  <label className="flex items-start gap-2">
+                    <input type="checkbox" checked={!!selected[s.url]} onChange={(e)=> setSelected(prev=>({...prev, [s.url]: e.target.checked}))} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{i+1}. {s.title || s.url}</div>
+                      <a className="text-xs text-blue-700 break-all" href={s.url} target="_blank" rel="noreferrer">{s.url}</a>
+                      <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <div className="font-semibold">H2</div>
+                          <ul className="list-disc pl-4">{(s.headings?.h2||[]).slice(0,8).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                        </div>
+                        <div>
+                          <div className="font-semibold">H3</div>
+                          <ul className="list-disc pl-4">{(s.headings?.h3||[]).slice(0,6).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                        </div>
+                        <div>
+                          <div className="font-semibold">H4</div>
+                          <ul className="list-disc pl-4">{(s.headings?.h4||[]).slice(0,4).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex gap-2">
+              <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
+              <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
+            </div>
+          </div>
+        )}
 
         {error && <div className="mb-4 p-3 border rounded text-sm text-destructive">{error}</div>}
 

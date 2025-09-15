@@ -188,6 +188,42 @@ jobs:
           esac
           ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
           mkdir -p api
+          # search-top.php: Google検索上位10件＋見出し抽出
+          cat > api/search-top.php <<'PHP'
+          <?php
+          header('Content-Type: application/json; charset=utf-8');
+          if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
+          $raw = file_get_contents('php://input');
+          $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';
+          if (strpos($ct,'application/json') !== false) { $input = json_decode($raw, true); } else { $input = $_POST; if (!$input && $raw) { parse_str($raw, $input); } }
+          $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
+          if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
+          $q = urlencode($keyword);
+          $url = "https://www.google.com/search?hl=ja&gl=jp&num=10&q={$q}";
+          function curl_get($u){ $ch = curl_init($u); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>15,CURLOPT_HTTPHEADER=>['Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36']]); $res=curl_exec($ch); curl_close($ch); return $res?:''; }
+          $html = curl_get($url);
+          $results = [];
+          if ($html) {
+            $seen = [];
+            if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $m)){
+              foreach($m[1] as $link){
+                $u = urldecode($link);
+                if (strpos($u,'http')!==0) continue;
+                if (preg_match('/google\\./i',$u)) continue;
+                if (in_array($u,$seen,true)) continue; $seen[]=$u;
+                $tx = curl_get($u);
+                $title = '';
+                if (preg_match('/<title[^>]*>([\\s\\S]*?)<\\/title>/i', $tx, $mm)){
+                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
+                }
+                function extract_tags($tx,$tag,$limit){ $out=[]; $re = '/<'.$tag.'[^>]*>([\\s\\S]*?)<\\/'.$tag.'>/i'; if (preg_match_all($re,$tx,$ms)){ foreach($ms[1] as $s){ $t = trim(preg_replace('/<[^>]+>/', ' ', $s)); if ($t!=='') $out[]=$t; if (count($out)>=$limit) break; } } return $out; }
+                $results[] = ['url'=>$u,'title'=>$title,'headings'=>['h1'=>extract_tags($tx,'h1',10),'h2'=>extract_tags($tx,'h2',30),'h3'=>extract_tags($tx,'h3',30),'h4'=>extract_tags($tx,'h4',20)]];
+                if (count($results)>=10) break;
+              }
+            }
+          }
+          echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+          PHP
           cat > api/generate-outline.php <<'PHP'
           <?php
           header('Content-Type: application/json; charset=utf-8');
@@ -212,7 +248,23 @@ jobs:
           if(!$keyword){ http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
           function slugify($s){ $s=mb_strtolower($s,'UTF-8'); $s=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$s); $s=preg_replace('/[^a-z0-9\s-]/','',$s); $s=trim($s); $s=preg_replace('/[\s_-]+/','-',$s); $s=preg_replace('/^-+|-+$/','',$s); return $s ?: 'article'; }
           $system = 'あなたは日本語のコンテンツストラテジストです。MECEで実務的な見出し構成をJSONだけで返します。';
-          $user = "前提\n- キーワード: {$keyword}\n- トーン: {$tone}\n- 想定読者: {$aud}\n- 目標文字数: {$wc}\n\n出力(JSONのみ)：{\"title\":string,\"slug\":string,\"persona\":string,\"target_audience\":string,\"tone\":string,\"word_count_target\":number,\"seo\":{\"keywords\":string[],\"meta_description\":string,\"cta\":string},\"h2\":[{\"title\":string,\"h3\":string[]}] }\n禁止: 説明・コードフェンス・余計な文字";
+          $sources = isset($input['sources']) ? (is_array($input['sources']) ? $input['sources'] : json_decode($input['sources'], true)) : [];
+          $ref = '';
+          if (is_array($sources) && count($sources)>0) {
+            $parts = [];
+            $i = 1;
+            foreach ($sources as $s) {
+              if ($i>10) break; $i++;
+              $t = isset($s['title']) ? $s['title'] : '';
+              $u = isset($s['url']) ? $s['url'] : '';
+              $h2 = isset($s['headings']['h2']) && is_array($s['headings']['h2']) ? array_slice($s['headings']['h2'],0,10) : [];
+              $h3 = isset($s['headings']['h3']) && is_array($s['headings']['h3']) ? array_slice($s['headings']['h3'],0,10) : [];
+              $h4 = isset($s['headings']['h4']) && is_array($s['headings']['h4']) ? array_slice($s['headings']['h4'],0,10) : [];
+              $parts[] = "#{$i} {$t} ({$u})\nH2:\n- ".implode("\n- ",$h2)."\nH3:\n- ".implode("\n- ",$h3)."\nH4:\n- ".implode("\n- ",$h4);
+            }
+            $ref = "\n\n参考サイトの見出しを参考に、重複やコピペを避けて最適な構成を作ること:\n".implode("\n\n", $parts);
+          }
+          $user = "前提\n- キーワード: {$keyword}\n- トーン: {$tone}\n- 想定読者: {$aud}\n- 目標文字数: {$wc}{$ref}\n\n出力(JSONのみ)：{\"title\":string,\"slug\":string,\"persona\":string,\"target_audience\":string,\"tone\":string,\"word_count_target\":number,\"seo\":{\"keywords\":string[],\"meta_description\":string,\"cta\":string},\"h2\":[{\"title\":string,\"h3\":string[]}] }\n禁止: 説明・コードフェンス・余計な文字";
           require __DIR__.'/_config.php';
           function openai_call($model,$system,$user){
             $key = defined('OPENAI_API_KEY') ? constant('OPENAI_API_KEY') : '';
