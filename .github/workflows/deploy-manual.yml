@@ -199,7 +199,7 @@ jobs:
           if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
           $raw = file_get_contents('php://input');
           $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';
-          if (strpos($ct,'application/json') !== false) { $input = json_decode($raw, true); } else { $input = $_POST; if (!$input && $raw) { parse_str($raw, $input); } }
+          if ($_SERVER['REQUEST_METHOD'] === 'GET') { $input = $_GET; } else if (strpos($ct,'application/json') !== false) { $input = json_decode($raw, true); } else { $input = $_POST; if (!$input && $raw) { parse_str($raw, $input); } }
           $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
           if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
           $q = urlencode($keyword);

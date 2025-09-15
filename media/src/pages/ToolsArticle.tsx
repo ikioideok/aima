@@ -92,13 +92,19 @@ export default function ToolsArticle() {
       setLoading(true)
       try {
         let res: any = null
+        // Try GET first (WAFに弾かれにくい)
         try {
-          res = await callPhp('/search-top', { keyword })
-          if (!res?.results || !Array.isArray(res.results) || res.results.length === 0) {
-            throw new Error('empty')
+          const r = await fetch(`/api/search-top.php?keyword=${encodeURIComponent(keyword)}`)
+          const txt = await r.text().catch(()=> '')
+          try { res = JSON.parse(txt) } catch { res = null }
+        } catch { /* ignore */ }
+        // Fallback: POST (urlencoded)
+        if (!res?.results || !Array.isArray(res.results) || res.results.length === 0) {
+          try {
+            res = await callPhp('/search-top', { keyword })
+          } catch {
+            res = await callCms('/search-top', { keyword })
           }
-        } catch {
-          res = await callCms('/search-top', { keyword })
         }
         const list: SourceResult[] = res?.results || []
         if (!Array.isArray(list) || list.length === 0) throw new Error('検索結果が取得できませんでした')
