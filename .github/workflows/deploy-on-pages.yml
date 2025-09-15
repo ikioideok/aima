@@ -183,6 +183,30 @@ jobs:
                 if (count($results)>=10) break;
               }
             }
+            if (count($results) < 10 && preg_match_all('/<a[^>]+href="(https?:[^"]+)"/i', $html, $m2)){
+              foreach($m2[1] as $link){
+                $u = urldecode($link);
+                if (strpos($u,'http')!==0) continue;
+                if (preg_match('/google\.|gstatic\./i',$u)) continue;
+                if (in_array($u,$seen,true)) continue; $seen[]=$u;
+                $tx = curl_get($u);
+                $title = '';
+                if (preg_match('/<title[^>]*>([\s\S]*?)<\/title>/i', $tx, $mm)){
+                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
+                }
+                $results[] = [
+                  'url'=>$u,
+                  'title'=>$title,
+                  'headings'=>[
+                    'h1'=>extract_tags($tx,'h1',10),
+                    'h2'=>extract_tags($tx,'h2',30),
+                    'h3'=>extract_tags($tx,'h3',30),
+                    'h4'=>extract_tags($tx,'h4',20),
+                  ]
+                ];
+                if (count($results)>=10) break;
+              }
+            }
           }
           echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           PHP

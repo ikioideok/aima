@@ -197,6 +197,24 @@ app.post('/search-top', async (req, res) => {
         if (urls.length >= 10) break
       } catch {}
     }
+    // Fallback: also scan direct absolute links if insufficient
+    if (urls.length < 10) {
+      const reAbs = /<a[^>]+href=\"(https?:[^\"]+)\"/gi
+      let m2
+      const seen2 = new Set(urls)
+      while ((m2 = reAbs.exec(html))) {
+        try {
+          const u = decodeURIComponent(m2[1])
+          if (!/^https?:\/\//i.test(u)) continue
+          const host = new URL(u).hostname
+          if (/google\./i.test(host) || /gstatic\./i.test(host)) continue
+          if (seen2.has(u)) continue
+          seen2.add(u)
+          urls.push(u)
+          if (urls.length >= 10) break
+        } catch {}
+      }
+    }
     async function fetchPage(u) {
       try {
         const rr = await fetch(u, { headers, redirect: 'follow' })
@@ -225,6 +243,10 @@ app.post('/search-top', async (req, res) => {
       // eslint-disable-next-line no-await-in-loop
       const item = await fetchPage(u)
       results.push(item)
+    }
+    if (!results.length) {
+      const blocked = /unusual traffic|enable javascript|consent/i.test(html)
+      return res.status(502).json({ error: blocked ? 'Googleにブロックされました（時間をおいて再試行）' : 'SERP解析に失敗しました' })
     }
     res.json({ ok: true, results })
   } catch (e) {

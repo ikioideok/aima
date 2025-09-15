@@ -94,6 +94,9 @@ export default function ToolsArticle() {
         let res: any = null
         try {
           res = await callPhp('/search-top', { keyword })
+          if (!res?.results || !Array.isArray(res.results) || res.results.length === 0) {
+            throw new Error('empty')
+          }
         } catch {
           res = await callCms('/search-top', { keyword })
         }
