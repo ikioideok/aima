@@ -244,6 +244,31 @@ app.post('/search-top', async (req, res) => {
       const item = await fetchPage(u)
       results.push(item)
     }
+    // Fallback: try Bing if too few
+    if (results.length < 5) {
+      try {
+        const bingUrl = `https://www.bing.com/search?q=${q}`
+        const rb = await fetch(bingUrl, { headers })
+        const hb = await rb.text()
+        const reB = /<li class=\"b_algo\"[\s\S]*?<h2>[\s\S]*?<a[^>]+href=\"(https?:[^\"]+)\"/gi
+        let mb
+        while ((mb = reB.exec(hb))) {
+          try {
+            const u = decodeURIComponent(mb[1])
+            const host = new URL(u).hostname
+            if (/google\.|gstatic\./i.test(host)) continue
+            if (!urls.includes(u)) urls.push(u)
+            if (urls.length >= 20) break
+          } catch {}
+        }
+        while (results.length < 10 && results.length < urls.length) {
+          const next = urls[results.length]
+          // eslint-disable-next-line no-await-in-loop
+          const item = await fetchPage(next)
+          results.push(item)
+        }
+      } catch {}
+    }
     if (!results.length) {
       const blocked = /unusual traffic|enable javascript|consent/i.test(html)
       return res.status(502).json({ error: blocked ? 'Googleにブロックされました（時間をおいて再試行）' : 'SERP解析に失敗しました' })
