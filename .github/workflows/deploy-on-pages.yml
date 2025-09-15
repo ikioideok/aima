@@ -133,22 +133,30 @@ jobs:
           $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
           if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
           $q = urlencode($keyword);
-          $url = "https://www.google.com/search?hl=ja&gl=jp&pws=0&num=20&q={$q}";
           function curl_get($u){
             $ch = curl_init($u);
             curl_setopt_array($ch,[
               CURLOPT_RETURNTRANSFER=>true,
               CURLOPT_FOLLOWLOCATION=>true,
               CURLOPT_CONNECTTIMEOUT=>8,
-              CURLOPT_TIMEOUT=>15,
+              CURLOPT_TIMEOUT=>20,
               CURLOPT_HTTPHEADER=>[
                 'Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Cache-Control: no-cache',
+                'Pragma: no-cache',
+                'Cookie: CONSENT=YES+',
                 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
               ]
             ]);
             $res = curl_exec($ch); curl_close($ch); return $res ?: '';
           }
-          $html = curl_get($url);
+          $candidates = [
+            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
+            "https://www.google.co.jp/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
+            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&client=ms-android-google&q={$q}"
+          ];
+          $html = '';
+          foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
           $results = [];
           if ($html) {
             $seen = [];
