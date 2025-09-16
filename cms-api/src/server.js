@@ -269,13 +269,22 @@ app.post('/search-top', async (req, res) => {
         const rb = await fetch(bingUrl, { headers })
         const hb = await rb.text()
         const itemRe = /<item>[\s\S]*?<link>(https?:[^<]+)<\/link>[\s\S]*?<title>([\s\S]*?)<\/title>/gi
+        const jpLinks = []
+        const otherLinks = []
         let mb
         while ((mb = itemRe.exec(hb))) {
+          const rawLink = mb[1].replace(/&amp;/g, '&')
           try {
-            const rawLink = mb[1].replace(/&amp;/g, '&')
-            pushCandidate(rawLink)
-            if (urls.length >= 20) break
-          } catch {}
+            const host = new URL(rawLink).hostname || ''
+            if (/\.jp$/i.test(host)) jpLinks.push(rawLink)
+            else otherLinks.push(rawLink)
+          } catch {
+            otherLinks.push(rawLink)
+          }
+        }
+        for (const link of [...jpLinks, ...otherLinks]) {
+          pushCandidate(link)
+          if (urls.length >= 20) break
         }
         while (results.length < 10 && results.length < urls.length) {
           const next = urls[results.length]
