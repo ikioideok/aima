@@ -6,12 +6,13 @@
     <title>AI記事生成ツール | AI Marketing</title>
     <style>
       :root { --fg:#111; --muted:#666; --border:#ddd; --bg:#fff; --pri:#1a73e8; }
+      *, *::before, *::after { box-sizing: border-box; }
       html,body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); }
       body { font: 14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif; }
       .container { max-width: 960px; margin: 0 auto; padding: 16px; }
       h1 { font-size: 18px; margin: 0 0 12px; }
-      .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-      .row > * { margin: 4px 0; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
+      .row > * { margin: 4px 0; flex: 1 1 auto; min-width: 0; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start; margin-top: 4px; }
       input[type=text], select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
       textarea { min-height: 120px; }
@@ -25,7 +26,7 @@
       .muted { color: var(--muted); font-size: 12px; }
       .cards { display: flex; flex-direction: column; gap: 16px; }
       .list { list-style: disc; padding-left: 18px; }
-       .results { display: grid; gap: 8px; grid-template-columns: minmax(0,1fr); }
+      .results { display: grid; gap: 8px; grid-template-columns: minmax(0,1fr); }
       .list-scroll { max-height: 130px; overflow-y: auto; padding-right: 4px; }
       .article { border:1px solid var(--border); border-radius:8px; padding:12px; background:#fff; }
       .prose h2 { font-size: 18px; margin: 16px 0 8px; }
@@ -56,7 +57,7 @@
                     <option value="openai">OpenAI</option>
                   </select>
                 </label>
-                <label style="flex:1 1 auto">
+                <label style="flex:1 1 auto; min-width:0;">
                   <div class="muted">モデル</div>
                   <input id="model" type="text" value="gemini-2.5-pro" />
                 </label>

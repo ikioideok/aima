@@ -175,12 +175,12 @@ export default function ToolsArticle() {
           </div>
         )}
         <div className="space-y-6">
-          <div className="grid gap-3 p-4 border rounded bg-card">
-            <label className="grid gap-1">
-              <span className="text-sm">モデル</span>
-              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <select
-                  className="border rounded px-2 py-1 w-full sm:w-44"
+            <div className="grid gap-3 p-4 border rounded bg-card">
+              <label className="grid gap-1">
+                <span className="text-sm">モデル</span>
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center w-full">
+                  <select
+                  className="border rounded px-2 py-1 w-full sm:w-48 sm:max-w-xs"
                   value={modelProvider}
                   onChange={(e)=>{
                     const v = e.target.value as 'openai'|'gemini'
