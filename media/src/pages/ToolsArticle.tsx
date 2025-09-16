@@ -36,8 +36,6 @@ export default function ToolsArticle() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string>('')
   const [outline, setOutline] = React.useState<Outline|null>(null)
-  const [outlineDraft, setOutlineDraft] = React.useState<string>('')
-  const [outlineParseError, setOutlineParseError] = React.useState<string>('')
   const [articleHtml, setArticleHtml] = React.useState<string>('')
   const [articleTitle, setArticleTitle] = React.useState<string>('')
   const [articleExcerpt, setArticleExcerpt] = React.useState<string>('')
@@ -89,23 +87,46 @@ export default function ToolsArticle() {
 
   const provider = modelProvider === 'gemini' ? 'gemini' : 'openai'
 
-  React.useEffect(() => {
-    if (!outlineDraft.trim()) {
-      setOutlineParseError('')
-      return
-    }
-    try {
-      const parsed = JSON.parse(outlineDraft) as Outline
-      setOutline(parsed)
-      setOutlineParseError('')
-    } catch (err) {
-      setOutlineParseError('アウトラインのJSON形式が正しくありません。')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outlineDraft])
+  const handleOutlineTitleChange = React.useCallback((value: string) => {
+    setOutline(prev => prev ? { ...prev, title: value } : prev)
+  }, [])
+
+  const handleH2TitleChange = React.useCallback((index: number, value: string) => {
+    setOutline(prev => {
+      if (!prev) return prev
+      const next = [...prev.h2]
+      next[index] = { ...next[index], title: value }
+      return { ...prev, h2: next }
+    })
+  }, [])
+
+  const handleH3Change = React.useCallback((index: number, value: string) => {
+    const lines = value.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+    setOutline(prev => {
+      if (!prev) return prev
+      const next = [...prev.h2]
+      next[index] = { ...next[index], h3: lines }
+      return { ...prev, h2: next }
+    })
+  }, [])
+
+  const addH2Block = React.useCallback(() => {
+    setOutline(prev => {
+      if (!prev) return prev
+      return { ...prev, h2: [...prev.h2, { title: '', h3: [] }] }
+    })
+  }, [])
+
+  const removeH2Block = React.useCallback((index: number) => {
+    setOutline(prev => {
+      if (!prev) return prev
+      const next = prev.h2.filter((_, i) => i !== index)
+      return { ...prev, h2: next }
+    })
+  }, [])
 
   async function onGenerateOutline() {
-    setError(''); setArticleHtml(''); setOutline(null); setOutlineDraft(''); setOutlineParseError('')
+    setError(''); setArticleHtml(''); setOutline(null)
     // ステップ1: 参照サイト未取得なら検索して一覧表示
     if (!sources.length) {
       setLoading(true)
@@ -145,19 +166,22 @@ export default function ToolsArticle() {
       try { res = await callPhp('/generate-outline', payload) } catch { res = await callCms('/generate-outline', payload) }
       if (!res?.ok || !res?.outline) throw new Error('Invalid response')
       const result = res.outline as Outline
-      setOutline(result)
-      setOutlineDraft(JSON.stringify(result, null, 2))
-      setOutlineParseError('')
+      const normalized: Outline = {
+        ...result,
+        h2: Array.isArray(result.h2)
+          ? result.h2.map(section => ({
+              title: section.title || '',
+              h3: Array.isArray(section.h3) ? section.h3 : [],
+            }))
+          : [],
+      }
+      setOutline(normalized)
     } catch (e:any) {
       setError(e?.message || 'アウトライン生成に失敗しました')
     } finally { setLoading(false) }
   }
 
   async function onGenerateArticle() {
-    if (outlineParseError) {
-      setError('アウトラインの形式を確認してください')
-      return
-    }
     if (!outline) {
       setError('先にアウトラインを作成してください')
       return
@@ -328,38 +352,45 @@ export default function ToolsArticle() {
           )}
 
           {outline && (
-            <div className="p-4 border rounded bg-card">
-              <div className="font-semibold mb-2">アウトライン</div>
-              <div className="text-sm text-muted-foreground mb-2">{outline.title}</div>
-              <ul className="list-disc pl-5 text-sm">
-                {outline.h2.map((s,i)=> (
-                  <li key={i} className="mb-1">
-                    <span className="font-medium">{s.title}</span>
-                    {s.h3 && s.h3.length>0 && (
-                      <ul className="list-[circle] pl-5">
-                        {s.h3.map((h,idx)=>(<li key={idx}>{h}</li>))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4">
-                <label className="block text-xs text-muted-foreground mb-1">アウトライン（JSON形式で編集できます）</label>
-                <textarea
-                  className="w-full border rounded p-2 font-mono text-xs h-64"
-                  value={outlineDraft}
-                  onChange={(e)=> setOutlineDraft(e.target.value)}
+            <div className="p-4 border rounded bg-card space-y-4">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">アウトラインタイトル</label>
+                <input
+                  className="border rounded px-2 py-1 w-full"
+                  value={outline.title || ''}
+                  onChange={(e)=> handleOutlineTitleChange(e.target.value)}
                 />
-                {outlineParseError && <p className="text-xs text-destructive mt-1">{outlineParseError}</p>}
-                <div className="mt-3 flex gap-2">
-                  <button
-                    disabled={loading||!outline||!!outlineParseError}
-                    onClick={onGenerateArticle}
-                    className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
-                  >
-                    本文を作成
-                  </button>
-                </div>
+              </div>
+              <div className="space-y-3">
+                {outline.h2.map((section, index) => (
+                  <div key={index} className="border rounded bg-background p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>H2 #{index + 1}</span>
+                      <button type="button" className="text-xs text-red-500" onClick={()=> removeH2Block(index)}>削除</button>
+                    </div>
+                    <input
+                      className="border rounded px-2 py-1 w-full"
+                      value={section.title || ''}
+                      onChange={(e)=> handleH2TitleChange(index, e.target.value)}
+                    />
+                    <label className="block text-xs text-muted-foreground">H3（各行1件）</label>
+                    <textarea
+                      className="border rounded px-2 py-1 w-full h-32 resize-y"
+                      value={(section.h3 || []).join('\n')}
+                      onChange={(e)=> handleH3Change(index, e.target.value)}
+                    />
+                  </div>
+                ))}
+                <button type="button" className="px-3 py-1 border rounded" onClick={addH2Block}>H2を追加</button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  disabled={loading || !(outline.h2 && outline.h2.length > 0)}
+                  onClick={onGenerateArticle}
+                  className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+                >
+                  本文を作成
+                </button>
               </div>
             </div>
           )}

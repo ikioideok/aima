@@ -37,6 +37,9 @@
       @media (min-width: 960px){ .headings-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
       .result-card label { display: flex; align-items: flex-start; gap: 10px; height: 100%; }
       .result-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; height: 100%; }
+      .outline-block { border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: #fff; }
+      .outline-block-head { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+      .outline-textarea { width: 100%; min-height: 150px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
       .outline-input { width: 100%; min-height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     </style>
   </head>
@@ -93,17 +96,7 @@
           </div>
         </div>
         <div id="outline" class="card hidden">
-          <div class="font-semibold">アウトライン</div>
-          <div id="outline-title" class="muted" style="margin-bottom:6px;"></div>
-          <div id="outline-preview"></div>
-          <div style="margin-top:12px;">
-            <div class="muted" style="margin-bottom:4px;">アウトライン（JSON形式で編集できます）</div>
-            <textarea id="outline-json" class="outline-input"></textarea>
-            <div id="outline-error" class="muted" style="color:#c00; margin-top:4px;"></div>
-            <div class="row" style="margin-top:8px;">
-              <button id="btn-article" class="btn primary" disabled>本文生成</button>
-            </div>
-          </div>
+          <div id="outline-editor"></div>
         </div>
         <div id="article" class="card hidden"></div>
       </div>
@@ -113,19 +106,15 @@
       const $ = (sel) => document.querySelector(sel)
       const kw = $('#kw'), provider = $('#provider'), model = $('#model')
       const err = $('#err')
-      const btnOutline = $('#btn-outline'), btnArticle = $('#btn-article')
+      const btnOutline = $('#btn-outline')
       const manual = $('#manual'), manualUrls = $('#manual-urls'), btnExtract = $('#btn-extract'), btnCancelManual = $('#btn-cancel-manual')
       const sourcesWrap = $('#sources'), sourcesList = $('#sources-list'), sourcesCount = $('#sources-count')
       const btnRetry = $('#btn-retry'), btnManual = $('#btn-manual'), btnBuildOutline = $('#btn-build-outline')
-      const outlineBox = $('#outline'), articleBox = $('#article')
-      const outlineTitle = $('#outline-title'), outlinePreview = $('#outline-preview')
-      const outlineJson = $('#outline-json')
-      const outlineError = $('#outline-error')
+      const outlineBox = $('#outline'), outlineEditor = $('#outline-editor'), articleBox = $('#article')
 
       let sources = []
       let selected = {}
       let outline = null
-      let outlineDraft = ''
 
       function setError(m){ err.textContent = m || '' }
       function show(el, v){ el.classList.toggle('hidden', !v) }
@@ -154,36 +143,114 @@
           sourcesList.appendChild(card)
         })
       }
-
-      function renderOutlinePreview(data){
-        if (!outlineTitle || !outlinePreview) return
-        if (!data) {
-          outlineTitle.textContent = ''
-          outlinePreview.innerHTML = ''
+      function renderOutlineEditor(){
+        if (!outlineEditor) return
+        if (!outline) {
+          show(outlineBox, false)
+          outlineEditor.innerHTML = ''
           return
         }
-        outlineTitle.textContent = data.title || ''
-        const items = (data.h2 || []).map((s) => {
-          const sub = s.h3 && s.h3.length ? `<ul class="list">${s.h3.map(h=>`<li>${h}</li>`).join('')}</ul>` : ''
-          return `<li><span style="font-weight:500;">${s.title}</span>${sub}</li>`
-        }).join('')
-        outlinePreview.innerHTML = `<ul class="list">${items}</ul>`
+        show(outlineBox, true)
+        const escapeHtml = (str = '') => str.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c] || c))
+        const sections = (outline.h2 || []).map((section, index) => `
+          <div class="outline-block" data-index="${index}">
+            <div class="outline-block-head">
+              <span>H2 #${index + 1}</span>
+              <button type="button" class="btn" data-action="remove-h2" data-index="${index}" style="padding:4px 8px;">削除</button>
+            </div>
+            <input type="text" class="border rounded px-2 py-1 w-full" data-role="h2-title" data-index="${index}" value="${escapeHtml(section.title || '')}">
+            <div class="muted">H3（各行1件）</div>
+            <textarea class="outline-textarea" data-role="h3-list" data-index="${index}">${escapeHtml((section.h3 || []).join('\n'))}</textarea>
+          </div>
+        `).join('')
+        outlineEditor.innerHTML = `
+          <div class="grid gap-2">
+            <label class="muted">アウトラインタイトル</label>
+            <input type="text" class="border rounded px-2 py-1 w-full" data-role="outline-title" value="${escapeHtml(outline.title || '')}">
+          </div>
+          <div class="space-y-3" data-role="outline-sections">
+            ${sections}
+          </div>
+          <button type="button" class="btn" data-action="add-h2">H2を追加</button>
+          <div class="row" style="margin-top:8px;">
+            <button type="button" class="btn primary" data-action="generate-article" ${outline.h2 && outline.h2.length ? '' : 'disabled'}>本文生成</button>
+          </div>
+        `
+
+        const titleInput = outlineEditor.querySelector('[data-role="outline-title"]')
+        if (titleInput) {
+          titleInput.addEventListener('input', (e) => {
+            outline.title = e.target.value
+          })
+        }
+
+        outlineEditor.querySelectorAll('[data-role="h2-title"]').forEach(el => {
+          el.addEventListener('input', (e) => {
+            const index = Number(e.target.getAttribute('data-index'))
+            if (!outline.h2) outline.h2 = []
+            outline.h2[index].title = e.target.value
+          })
+        })
+
+        outlineEditor.querySelectorAll('[data-role="h3-list"]').forEach(el => {
+          el.addEventListener('input', (e) => {
+            const index = Number(e.target.getAttribute('data-index'))
+            if (!outline.h2) outline.h2 = []
+            const lines = e.target.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+            outline.h2[index].h3 = lines
+          })
+        })
+
+        outlineEditor.querySelectorAll('[data-action="remove-h2"]').forEach(el => {
+          el.addEventListener('click', (e) => {
+            const index = Number(e.currentTarget.getAttribute('data-index'))
+            if (!outline.h2) outline.h2 = []
+            outline.h2.splice(index, 1)
+            renderOutlineEditor()
+          })
+        })
+
+        const addBtn = outlineEditor.querySelector('[data-action="add-h2"]')
+        if (addBtn) {
+          addBtn.addEventListener('click', () => {
+            if (!outline.h2) outline.h2 = []
+            outline.h2.push({ title: '', h3: [] })
+            renderOutlineEditor()
+          })
+        }
+
+        const articleBtn = outlineEditor.querySelector('[data-action="generate-article"]')
+        if (articleBtn) {
+          articleBtn.addEventListener('click', () => {
+            generateArticle(articleBtn as HTMLButtonElement)
+          })
+        }
       }
 
-      if (outlineJson) {
-        outlineJson.addEventListener('input', () => {
-          outlineDraft = outlineJson.value
-          try {
-            const parsed = JSON.parse(outlineDraft)
-            outline = parsed
-            if (outlineError) outlineError.textContent = ''
-            renderOutlinePreview(parsed)
-            btnArticle.disabled = false
-          } catch (e) {
-            if (outlineError) outlineError.textContent = 'JSONの形式が正しくありません'
-            btnArticle.disabled = true
-          }
-        })
+      async function generateArticle(button){
+        if (!outline) {
+          setError('先にアウトラインを作成してください')
+          return
+        }
+        setError('')
+        if (button) button.disabled = true
+        articleBox.innerHTML = ''
+        show(articleBox, false)
+        try {
+          const payload = { provider: provider.value, model: model.value, outline }
+          const params = new URLSearchParams()
+          params.append('provider', payload.provider)
+          params.append('model', payload.model)
+          params.append('outline', JSON.stringify(payload.outline || payload))
+          const res = await fetchJSON('/api/generate-article.php', { method: 'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
+          if (!res?.ok || !res?.article) throw new Error('Invalid response')
+          const a = res.article
+          articleBox.innerHTML = `<div style="font-weight:600; margin-bottom:6px;">${a.title}</div><div class="prose">${a.body}</div>`
+          show(articleBox, true)
+        } catch(e){ setError(e?.message||'本文生成に失敗しました') }
+        finally {
+          if (button) button.disabled = false
+        }
       }
 
       async function fetchJSON(url, opts){
@@ -214,23 +281,18 @@
       btnOutline.addEventListener('click', async ()=>{
         setError('')
         outline = null
-        outlineDraft = ''
+        renderOutlineEditor()
         articleBox.innerHTML = ''
         show(articleBox, false)
-        show(outlineBox, false)
-        if (outlineJson) outlineJson.value = ''
-        if (outlineError) outlineError.textContent = ''
-        renderOutlinePreview(null)
-        btnArticle.disabled = true
         sources = []
         selected = {}
         show(sourcesWrap, false)
         show(manual, false)
-        const keyword = kw.value.trim()
-        if (!keyword) { setError('キーワードを入力してください'); return }
+        const keywordValue = kw.value.trim()
+        if (!keywordValue) { setError('キーワードを入力してください'); return }
         btnOutline.disabled = true
         try {
-          const list = await getSearchResults(keyword)
+          const list = await getSearchResults(keywordValue)
           if (!list.length) {
             show(manual, true)
             return
@@ -263,9 +325,7 @@
 
       btnBuildOutline.addEventListener('click', async ()=>{
         setError('')
-        outline = null
-        show(outlineBox, false)
-        const keyword = kw.value.trim()
+        const keywordValue = kw.value.trim()
         const chosen = sources.filter(s => selected[s.url])
         if (!chosen.length) { setError('少なくとも1件選択してください'); return }
         btnBuildOutline.disabled = true
@@ -273,7 +333,7 @@
           const payload = {
             provider: provider.value,
             model: model.value,
-            keyword,
+            keyword: keywordValue,
             sources: chosen
           }
           const params = new URLSearchParams()
@@ -283,42 +343,22 @@
           params.append('sources', JSON.stringify(payload.sources))
           let res = await fetchJSON('/api/generate-outline.php', { method: 'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
           if (!res?.ok || !res?.outline) throw new Error('Invalid response')
-          outline = res.outline
-          outlineDraft = JSON.stringify(outline, null, 2)
-          if (outlineJson) outlineJson.value = outlineDraft
-          if (outlineError) outlineError.textContent = ''
-          renderOutlinePreview(outline)
-          show(outlineBox, true)
-          btnArticle.disabled = false
+          const result = res.outline || {}
+          outline = {
+            ...result,
+            h2: Array.isArray(result.h2)
+              ? result.h2.map((section) => ({
+                  title: section.title || '',
+                  h3: Array.isArray(section.h3) ? section.h3 : [],
+                }))
+              : [],
+          }
+          renderOutlineEditor()
         } catch(e){ setError(e?.message||'構成案の作成に失敗しました') }
         finally { btnBuildOutline.disabled = false }
       })
 
-      btnArticle.addEventListener('click', async ()=>{
-        if (!outlineJson) return
-        try {
-          outline = JSON.parse(outlineJson.value)
-        } catch (e) {
-          setError('アウトラインの形式を確認してください')
-          return
-        }
-        if (!outline) { setError('先にアウトラインを作成してください'); return }
-        setError('')
-        btnArticle.disabled = true
-        try {
-          const payload = { provider: provider.value, model: model.value, outline }
-          const params = new URLSearchParams()
-          params.append('provider', payload.provider)
-          params.append('model', payload.model)
-          params.append('outline', JSON.stringify(payload.outline))
-          let res = await fetchJSON('/api/generate-article.php', { method: 'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
-          if (!res?.ok || !res?.article) throw new Error('Invalid response')
-          const a = res.article
-          articleBox.innerHTML = `<div style="font-weight:600; margin-bottom:6px;">${a.title}</div><div class="prose">${a.body}</div>`
-          show(articleBox, true)
-        } catch(e){ setError(e?.message||'本文生成に失敗しました') }
-        finally { btnArticle.disabled = false }
-      })
+      renderOutlineEditor()
     </script>
   </body>
   </html>
