@@ -23,12 +23,9 @@
       .btn:disabled { opacity: .6; cursor: not-allowed; }
       .card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: #fff; }
       .muted { color: var(--muted); font-size: 12px; }
+      .cards { display: flex; flex-direction: column; gap: 16px; }
       .list { list-style: disc; padding-left: 18px; }
-      .layout { display: grid; gap: 16px; grid-template-columns: minmax(0,1fr); align-items: flex-start; }
-      @media (min-width: 960px){ .layout { grid-template-columns: 1fr 1.4fr; } }
-      .sidebar, .content { display: flex; flex-direction: column; gap: 16px; }
-      .results { display: grid; gap: 8px; grid-template-columns: minmax(0,1fr); }
-      @media (min-width: 960px){ .results { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+       .results { display: grid; gap: 8px; grid-template-columns: minmax(0,1fr); }
       .list-scroll { max-height: 130px; overflow-y: auto; padding-right: 4px; }
       .article { border:1px solid var(--border); border-radius:8px; padding:12px; background:#fff; }
       .prose h2 { font-size: 18px; margin: 16px 0 8px; }
@@ -44,8 +41,7 @@
   <body>
     <div class="container">
       <h1>AI記事生成（ベータ）</h1>
-      <div class="layout">
-        <div class="sidebar">
+      <div class="cards">
           <div class="card">
             <div class="grid">
               <label>
@@ -81,9 +77,7 @@
               <button id="btn-cancel-manual" class="btn">キャンセル</button>
             </div>
           </div>
-        </div>
-
-        <div class="content">
+        
           <div id="sources" class="card hidden">
             <div class="row" style="justify-content: space-between;">
               <div>参考にするサイトを選択</div>
@@ -96,10 +90,8 @@
               <button id="btn-build-outline" class="btn primary">選んだサイトを参考に構成案を作成</button>
             </div>
           </div>
-
-          <div id="outline" class="card hidden"></div>
-          <div id="article" class="card hidden"></div>
-        </div>
+        <div id="outline" class="card hidden"></div>
+        <div id="article" class="card hidden"></div>
       </div>
     </div>
 
