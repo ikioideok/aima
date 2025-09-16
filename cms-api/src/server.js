@@ -264,7 +264,7 @@ app.post('/search-top', async (req, res) => {
     // Fallback: try Bing if too few
     if (results.length < 5) {
       try {
-        const bingUrl = `https://www.bing.com/search?q=${q}`
+        const bingUrl = `https://www.bing.com/search?q=${q}&setlang=ja&cc=JP`
         const rb = await fetch(bingUrl, { headers })
         const hb = await rb.text()
         const reB = /<li class=\"b_algo\"[\s\S]*?<h2>[\s\S]*?<a[^>]+href=\"(https?:[^\"]+)\"/gi

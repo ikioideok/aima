@@ -285,6 +285,15 @@ jobs:
               foreach($m3[1] as $link){ $add($link); if (count($results)>=20) break; }
             }
           }
+          if (count($results) < 5) {
+            $bing = curl_get("https://www.bing.com/search?q={$q}&setlang=ja&cc=JP");
+            if ($bing && preg_match_all('/<li class="b_algo"[\s\S]*?<h2>[\s\S]*?<a[^>]+href="(https?:[^\"]+)"/i', $bing, $mb)) {
+              foreach ($mb[1] as $link) {
+                $add($link);
+                if (count($results) >= 20) break;
+              }
+            }
+          }
           if (count($results) > 10) { $results = array_slice($results,0,10); }
           if ((isset($_GET['debug']) && $_GET['debug']) || (isset($input['debug']) && $input['debug'])) {
             $m1 = 0; if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $mm1)) { $m1 = count($mm1[1]); }
