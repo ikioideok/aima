@@ -167,61 +167,61 @@ export default function ToolsArticle() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="w-full max-w-3xl mx-auto px-4 py-10">
+      <main className="w-full max-w-6xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold mb-4">AI記事生成（シンプル）</h1>
         {!canCall && (
           <div className="mb-4 p-3 border rounded text-sm text-destructive">
             管理トークン（VITE_ADMIN_TOKEN）が未設定のためAPIに接続できません。
           </div>
         )}
-        <div className="grid gap-3 mb-6">
-          <label className="grid gap-1">
-            <span className="text-sm">モデル</span>
-            <div className="flex gap-2">
-              <select className="border rounded px-2 py-1" value={modelProvider} onChange={(e)=>{
-                const v = e.target.value as 'openai'|'gemini'
-                setModelProvider(v)
-                const id = v==='gemini' ? 'gemini-2.5-pro' : 'gpt-5'
-                setModelId(id)
-                try { window.localStorage.setItem('aima-tools-model-provider', v); window.localStorage.setItem('aima-tools-model-id', id) } catch {}
-              }}>
-                <option value="openai">GPT-5（OpenAI）</option>
-                <option value="gemini">Gemini 2.5 Pro（Google）</option>
-              </select>
-              <input className="border rounded px-2 py-1 flex-1" value={modelId} onChange={(e)=>{ setModelId(e.target.value); try { window.localStorage.setItem('aima-tools-model-id', e.target.value) } catch {} }} />
+        <div className="grid gap-6 md:grid-cols-2 items-start">
+          <div className="space-y-6">
+            <div className="grid gap-3 p-4 border rounded bg-card">
+              <label className="grid gap-1">
+                <span className="text-sm">モデル</span>
+                <div className="flex gap-2">
+                  <select className="border rounded px-2 py-1" value={modelProvider} onChange={(e)=>{
+                    const v = e.target.value as 'openai'|'gemini'
+                    setModelProvider(v)
+                    const id = v==='gemini' ? 'gemini-2.5-pro' : 'gpt-5'
+                    setModelId(id)
+                    try { window.localStorage.setItem('aima-tools-model-provider', v); window.localStorage.setItem('aima-tools-model-id', id) } catch {}
+                  }}>
+                    <option value="openai">GPT-5（OpenAI）</option>
+                    <option value="gemini">Gemini 2.5 Pro（Google）</option>
+                  </select>
+                  <input className="border rounded px-2 py-1 flex-1" value={modelId} onChange={(e)=>{ setModelId(e.target.value); try { window.localStorage.setItem('aima-tools-model-id', e.target.value) } catch {} }} />
+                </div>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-sm">タイトル/キーワード</span>
+                <input className="border rounded px-2 py-2" value={keyword} onChange={(e)=>setKeyword(e.target.value)} placeholder="例：SEO内部対策チェックリスト" />
+              </label>
+              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+                <button
+                  disabled={loading||!keyword||!canCall}
+                  onClick={onGenerateOutline}
+                  className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+                >
+                  アウトライン作成
+                </button>
+                <button
+                  disabled={loading||!outline||!canCall}
+                  onClick={onGenerateArticle}
+                  className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+                >
+                  本文生成
+                </button>
+              </div>
             </div>
-          </label>
-          <label className="grid gap-1">
-            <span className="text-sm">タイトル/キーワード</span>
-            <input className="border rounded px-2 py-2" value={keyword} onChange={(e)=>setKeyword(e.target.value)} placeholder="例：SEO内部対策チェックリスト" />
-          </label>
-          
-          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
-            <button
-              disabled={loading||!keyword||!canCall}
-              onClick={onGenerateOutline}
-              className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
-            >
-              アウトライン作成
-            </button>
-            <button
-              disabled={loading||!outline||!canCall}
-              onClick={onGenerateArticle}
-              className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
-            >
-              本文生成
-            </button>
-          </div>
-        </div>
 
-        {/* 参照サイト一覧（ステップ1） */}
-        {/* 手動入力モード */}
-        {manualMode && !outline && (
-          <div className="mb-6 p-4 border rounded bg-card">
-            <div className="font-semibold mb-2">参照サイトを手動で入力</div>
-            <textarea className="w-full border rounded p-2 h-28" placeholder="1行に1URLを入力 (最大10件)" value={manualUrls} onChange={(e)=>setManualUrls(e.target.value)} />
-            <div className="mt-2 flex gap-2">
-              <button className="px-3 py-1 border rounded" onClick={async()=>{
+            {/* 手動入力モード */}
+            {manualMode && !outline && (
+              <div className="p-4 border rounded bg-card">
+                <div className="font-semibold mb-2">参照サイトを手動で入力</div>
+                <textarea className="w-full border rounded p-2 h-28" placeholder="1行に1URLを入力 (最大10件)" value={manualUrls} onChange={(e)=>setManualUrls(e.target.value)} />
+                <div className="mt-2 flex gap-2">
+                  <button className="px-3 py-1 border rounded" onClick={async()=>{
                 setError(''); setLoading(true)
                 try {
                   const urls = manualUrls.split(/\n+/).map(s=>s.trim()).filter(Boolean).slice(0,10)
@@ -251,82 +251,84 @@ export default function ToolsArticle() {
                   setError(e?.message || '抽出に失敗しました')
                 } finally { setLoading(false) }
               }}>見出しを取得</button>
-              <button className="px-3 py-1 border rounded" onClick={()=>{ setManualMode(false); }}>キャンセル</button>
-            </div>
-          </div>
-        )}
-
-        {!!sources.length && !outline && (
-          <div className="mb-6 p-4 border rounded bg-card">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold">検索結果（参考にするサイトを選択）</div>
-              <div className="text-xs text-muted-foreground">{sources.length}件</div>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {sources.map((s, i) => (
-                <div key={s.url} className="border rounded p-3 bg-background h-full">
-                  <label className="flex items-start gap-2 h-full">
-                    <input type="checkbox" checked={!!selected[s.url]} onChange={(e)=> setSelected(prev=>({...prev, [s.url]: e.target.checked}))} />
-                    <div className="min-w-0 flex flex-col h-full">
-                      <div className="text-sm font-medium truncate">{i+1}. {s.title || s.url}</div>
-                      <a className="text-xs text-blue-700 break-all" href={s.url} target="_blank" rel="noreferrer">{s.url}</a>
-                      <div className="mt-2 grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
-                        <div className="space-y-1">
-                          <div className="font-semibold">H2</div>
-                          <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h2||[]).slice(0,8).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="font-semibold">H3</div>
-                          <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h3||[]).slice(0,6).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="font-semibold">H4</div>
-                          <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h4||[]).slice(0,4).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
-                        </div>
-                      </div>
-                    </div>
-                  </label>
+                  <button className="px-3 py-1 border rounded" onClick={()=>{ setManualMode(false); }}>キャンセル</button>
                 </div>
-              ))}
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
-              <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
-              <button disabled={loading} onClick={()=> setManualMode(true)} className="px-3 py-1 border rounded">URLを手動入力</button>
-            </div>
+              </div>
+            )}
           </div>
-        )}
 
-        {error && <div className="mb-4 p-3 border rounded text-sm text-destructive">{error}</div>}
+          <div className="space-y-6">
+            {error && <div className="p-3 border rounded text-sm text-destructive">{error}</div>}
 
-        {outline && (
-          <div className="mb-6 p-4 border rounded bg-card">
-            <div className="font-semibold mb-2">アウトライン</div>
-            <div className="text-sm text-muted-foreground mb-2">{outline.title}</div>
-            <ul className="list-disc pl-5 text-sm">
-              {outline.h2.map((s,i)=> (
-                <li key={i} className="mb-1">
-                  <span className="font-medium">{s.title}</span>
-                  {s.h3 && s.h3.length>0 && (
-                    <ul className="list-[circle] pl-5">
-                      {s.h3.map((h,idx)=>(<li key={idx}>{h}</li>))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+            {!!sources.length && !outline && (
+              <div className="p-4 border rounded bg-card">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold">検索結果（参考にするサイトを選択）</div>
+                  <div className="text-xs text-muted-foreground">{sources.length}件</div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {sources.map((s, i) => (
+                    <div key={s.url} className="border rounded p-3 bg-background h-full">
+                      <label className="flex items-start gap-2 h-full">
+                        <input type="checkbox" checked={!!selected[s.url]} onChange={(e)=> setSelected(prev=>({...prev, [s.url]: e.target.checked}))} />
+                        <div className="min-w-0 flex flex-col h-full">
+                          <div className="text-sm font-medium truncate">{i+1}. {s.title || s.url}</div>
+                          <a className="text-xs text-blue-700 break-all" href={s.url} target="_blank" rel="noreferrer">{s.url}</a>
+                          <div className="mt-2 grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
+                            <div className="space-y-1">
+                              <div className="font-semibold">H2</div>
+                              <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h2||[]).slice(0,8).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-semibold">H3</div>
+                              <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h3||[]).slice(0,6).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-semibold">H4</div>
+                              <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h4||[]).slice(0,4).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
+                  <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
+                  <button disabled={loading} onClick={()=> setManualMode(true)} className="px-3 py-1 border rounded">URLを手動入力</button>
+                </div>
+              </div>
+            )}
 
-        {articleHtml && (
-          <div className="mb-4 p-4 border rounded bg-card">
-            <div className="font-semibold mb-1">出力</div>
-            <div className="text-lg font-bold mb-1">{articleTitle}</div>
-            {articleExcerpt && <p className="text-sm text-muted-foreground mb-2">{articleExcerpt}</p>}
-            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: articleHtml }} />
-            <div className="mt-3 flex gap-2">
-              <button className="px-3 py-1 border rounded" onClick={()=>download(`${outline?.slug||'article'}.html`, articleHtml, 'text/html')}>HTML保存</button>
-              <button className="px-3 py-1 border rounded" onClick={()=>{
+            {outline && (
+              <div className="p-4 border rounded bg-card">
+                <div className="font-semibold mb-2">アウトライン</div>
+                <div className="text-sm text-muted-foreground mb-2">{outline.title}</div>
+                <ul className="list-disc pl-5 text-sm">
+                  {outline.h2.map((s,i)=> (
+                    <li key={i} className="mb-1">
+                      <span className="font-medium">{s.title}</span>
+                      {s.h3 && s.h3.length>0 && (
+                        <ul className="list-[circle] pl-5">
+                          {s.h3.map((h,idx)=>(<li key={idx}>{h}</li>))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {articleHtml && (
+              <div className="p-4 border rounded bg-card">
+                <div className="font-semibold mb-1">出力</div>
+                <div className="text-lg font-bold mb-1">{articleTitle}</div>
+                {articleExcerpt && <p className="text-sm text-muted-foreground mb-2">{articleExcerpt}</p>}
+                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: articleHtml }} />
+                <div className="mt-3 flex gap-2">
+                  <button className="px-3 py-1 border rounded" onClick={()=>download(`${outline?.slug||'article'}.html`, articleHtml, 'text/html')}>HTML保存</button>
+                  <button className="px-3 py-1 border rounded" onClick={()=>{
                 const md = `# ${articleTitle}\n\n${articleExcerpt ? articleExcerpt+'\n\n' : ''}` +
                   articleHtml
                     .replace(/<h2>/g, '\n\n## ').replace(/<\/h2>/g, '\n\n')
@@ -337,9 +339,11 @@ export default function ToolsArticle() {
                     .replace(/<[^>]+>/g, '')
                 download(`${outline?.slug||'article'}.md`, md, 'text/markdown')
               }}>Markdown保存</button>
-            </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
     </div>
   )
