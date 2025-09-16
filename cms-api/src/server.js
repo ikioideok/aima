@@ -264,17 +264,15 @@ app.post('/search-top', async (req, res) => {
     // Fallback: try Bing if too few
     if (results.length < 5) {
       try {
-        const bingUrl = `https://www.bing.com/search?q=${q}&setlang=ja&cc=JP`
+        const bingUrl = `https://www.bing.com/search?q=${q}&setlang=ja&cc=JP&format=rss`
         const rb = await fetch(bingUrl, { headers })
         const hb = await rb.text()
-        const reB = /<li class=\"b_algo\"[\s\S]*?<h2>[\s\S]*?<a[^>]+href=\"(https?:[^\"]+)\"/gi
+        const itemRe = /<item>[\s\S]*?<link>(https?:[^<]+)<\/link>[\s\S]*?<title>([\s\S]*?)<\/title>/gi
         let mb
-        while ((mb = reB.exec(hb))) {
+        while ((mb = itemRe.exec(hb))) {
           try {
-            const u = decodeURIComponent(mb[1])
-            const host = new URL(u).hostname
-            if (/google\.|gstatic\./i.test(host)) continue
-            if (!urls.includes(u)) urls.push(u)
+            const rawLink = mb[1].replace(/&amp;/g, '&')
+            pushCandidate(rawLink)
             if (urls.length >= 20) break
           } catch {}
         }
