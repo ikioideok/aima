@@ -196,9 +196,21 @@ export default function ToolsArticle() {
             <input className="border rounded px-2 py-2" value={keyword} onChange={(e)=>setKeyword(e.target.value)} placeholder="例：SEO内部対策チェックリスト" />
           </label>
           
-          <div className="flex gap-2">
-            <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50">アウトライン作成</button>
-            <button disabled={loading||!outline||!canCall} onClick={onGenerateArticle} className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50">本文生成</button>
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+            <button
+              disabled={loading||!keyword||!canCall}
+              onClick={onGenerateOutline}
+              className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+            >
+              アウトライン作成
+            </button>
+            <button
+              disabled={loading||!outline||!canCall}
+              onClick={onGenerateArticle}
+              className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+            >
+              本文生成
+            </button>
           </div>
         </div>
 

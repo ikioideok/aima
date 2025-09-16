@@ -12,6 +12,7 @@
       h1 { font-size: 18px; margin: 0 0 12px; }
       .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
       .row > * { margin: 4px 0; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start; margin-top: 4px; }
       input[type=text], select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
       textarea { min-height: 120px; }
       .grid { display: grid; gap: 8px; }
@@ -52,10 +53,10 @@
               <div class="muted">モデル</div>
               <input id="model" type="text" value="gemini-2.5-pro" />
             </label>
-            <div class="row" style="margin-left:auto">
-              <button id="btn-outline" class="btn primary">アウトライン作成</button>
-              <button id="btn-article" class="btn" disabled>本文生成</button>
-            </div>
+          </div>
+          <div class="actions">
+            <button id="btn-outline" class="btn primary">アウトライン作成</button>
+            <button id="btn-article" class="btn" disabled>本文生成</button>
           </div>
         </div>
         <div id="err" class="muted" style="color:#c00; margin-top:8px;"></div>
