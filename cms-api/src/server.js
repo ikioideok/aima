@@ -183,37 +183,54 @@ app.post('/search-top', async (req, res) => {
     const html = await r.text()
     const urls = []
     const seen = new Set()
-    const linkRe = /<a[^>]+href="\/url\?q=([^"&]+)[^\"]*"/g
-    let m
-    while ((m = linkRe.exec(html))) {
-      try {
-        const u = decodeURIComponent(m[1])
-        if (!/^https?:\/\//i.test(u)) continue
-        if (/google\./i.test(u)) continue
-        if (/\.(google|gstatic)\./i.test(new URL(u).hostname)) continue
-        if (seen.has(u)) continue
-        seen.add(u)
-        urls.push(u)
-        if (urls.length >= 10) break
-      } catch {}
-    }
-    // Fallback: also scan direct absolute links if insufficient
-    if (urls.length < 10) {
-      const reAbs = /<a[^>]+href=\"(https?:[^\"]+)\"/gi
-      let m2
-      const seen2 = new Set(urls)
-      while ((m2 = reAbs.exec(html))) {
-        try {
-          const u = decodeURIComponent(m2[1])
-          if (!/^https?:\/\//i.test(u)) continue
-          const host = new URL(u).hostname
-          if (/google\./i.test(host) || /gstatic\./i.test(host)) continue
-          if (seen2.has(u)) continue
-          seen2.add(u)
-          urls.push(u)
-          if (urls.length >= 10) break
-        } catch {}
+    const normalizeLink = (raw) => {
+      if (!raw) return ''
+      const decoded = raw.replace(/&amp;/g, '&')
+      const ensureUrl = (value) => {
+        if (!value) return ''
+        if (/^https?:/i.test(value)) return value
+        return ''
       }
+      try {
+        if (decoded.startsWith('/')) {
+          const tmp = new URL(decoded, 'https://www.google.com')
+          if (tmp.hostname.includes('google.') && tmp.pathname === '/url') {
+            const target = ensureUrl(tmp.searchParams.get('q') || tmp.searchParams.get('url'))
+            if (target) return target
+          }
+          return tmp.href
+        }
+        const url = new URL(decoded)
+        if (url.hostname.includes('google.') && url.pathname === '/url') {
+          const target = ensureUrl(url.searchParams.get('q') || url.searchParams.get('url'))
+          if (target) return target
+        }
+        return url.href
+      } catch {
+        return decoded
+      }
+    }
+    const pushCandidate = (raw) => {
+      const normalized = normalizeLink(raw)
+      if (!/^https?:\/\//i.test(normalized)) return
+      try {
+        const host = new URL(normalized).hostname
+        if (/google\./i.test(host) || /gstatic\./i.test(host)) return
+      } catch {}
+      if (seen.has(normalized)) return
+      seen.add(normalized)
+      urls.push(normalized)
+    }
+
+    const linkRe = /<a[^>]+href="([^"#]+)"/gi
+    let m
+    while ((m = linkRe.exec(html)) && urls.length < 20) {
+      pushCandidate(m[1])
+    }
+    const dataHrefRe = /data-href="(https?:[^"#]+)"/gi
+    let m3
+    while ((m3 = dataHrefRe.exec(html)) && urls.length < 20) {
+      pushCandidate(m3[1])
     }
     async function fetchPage(u) {
       try {

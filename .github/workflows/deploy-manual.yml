@@ -241,42 +241,51 @@ jobs:
           $html = '';
           foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
           $results = [];
-          if ($html) {
-            $seen = [];
-            // Pattern 1: /url?q=
-            if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $m)){
-              foreach($m[1] as $link){
-                $u = urldecode($link);
-                if (strpos($u,'http')!==0) continue;
-                if (preg_match('/google\\./i',$u)) continue;
-                if (in_array($u,$seen,true)) continue; $seen[]=$u;
-                $tx = curl_get($u);
-                $title = '';
-                if (preg_match('/<title[^>]*>([\\s\\S]*?)<\\/title>/i', $tx, $mm)){
-                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
+          if (!function_exists('extract_tags')) {
+            function extract_tags($tx,$tag,$limit){ $out=[]; $re = '/<'.$tag.'[^>]*>([\\s\\S]*?)<\\/'.$tag.'>/i'; if (preg_match_all($re,$tx,$ms)){ foreach($ms[1] as $s){ $t = trim(preg_replace('/<[^>]+>/', ' ', $s)); if ($t!=='') $out[]=$t; if (count($out)>=$limit) break; } } return $out; }
+          }
+          $normalize = function($raw){
+            $raw = trim(htmlspecialchars_decode($raw, ENT_QUOTES));
+            if ($raw === '') return '';
+            if ($raw[0] === '/') {
+              $raw = 'https://www.google.com'.$raw;
+            }
+            if (stripos($raw, 'http') !== 0) return '';
+            $parts = @parse_url($raw);
+            if ($parts && isset($parts['host']) && preg_match('/google\./i', $parts['host']) && isset($parts['path']) && $parts['path'] === '/url'){
+              $query = isset($parts['query']) ? $parts['query'] : '';
+              if ($query){
+                parse_str($query, $qs);
+                foreach (['q','url'] as $key){
+                  if (!empty($qs[$key]) && stripos($qs[$key], 'http') === 0) return $qs[$key];
                 }
-                function extract_tags($tx,$tag,$limit){ $out=[]; $re = '/<'.$tag.'[^>]*>([\\s\\S]*?)<\\/'.$tag.'>/i'; if (preg_match_all($re,$tx,$ms)){ foreach($ms[1] as $s){ $t = trim(preg_replace('/<[^>]+>/', ' ', $s)); if ($t!=='') $out[]=$t; if (count($out)>=$limit) break; } } return $out; }
-                $results[] = ['url'=>$u,'title'=>$title,'headings'=>['h1'=>extract_tags($tx,'h1',10),'h2'=>extract_tags($tx,'h2',30),'h3'=>extract_tags($tx,'h3',30),'h4'=>extract_tags($tx,'h4',20)]];
-                if (count($results)>=10) break;
               }
             }
-            // Pattern 2: absolute link href
-            if (count($results) < 10 && preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $m2)){
-              foreach($m2[1] as $link){
-                $u = urldecode($link);
-                if (strpos($u,'http')!==0) continue;
-                if (preg_match('/google\.|gstatic\./i',$u)) continue;
-                if (in_array($u,$seen,true)) continue; $seen[]=$u;
-                $tx = curl_get($u);
-                $title = '';
-                if (preg_match('/<title[^>]*>([\s\S]*?)<\/title>/i', $tx, $mm)){
-                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
-                }
-                $results[] = ['url'=>$u,'title'=>$title,'headings'=>['h1'=>extract_tags($tx,'h1',10),'h2'=>extract_tags($tx,'h2',30),'h3'=>extract_tags($tx,'h3',30),'h4'=>extract_tags($tx,'h4',20)]];
-                if (count($results)>=10) break;
-              }
+            return $raw;
+          };
+          $seen = [];
+          $add = function($href) use (&$seen, &$results, $normalize){
+            $u = $normalize($href);
+            if (!$u || stripos($u,'http')!==0) return;
+            $host = @parse_url($u, PHP_URL_HOST);
+            if ($host && preg_match('/(google|gstatic)\./i',$host)) return;
+            if (in_array($u,$seen,true)) return; $seen[] = $u;
+            $tx = curl_get($u);
+            $title = '';
+            if (preg_match('/<title[^>]*>([\\s\\S]*?)<\\/title>/i', $tx, $mm)){
+              $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
+            }
+            $results[] = ['url'=>$u,'title'=>$title,'headings'=>['h1'=>extract_tags($tx,'h1',10),'h2'=>extract_tags($tx,'h2',30),'h3'=>extract_tags($tx,'h3',30),'h4'=>extract_tags($tx,'h4',20)]];
+          };
+          if ($html) {
+            if (preg_match_all('/<a[^>]+href="([^"#]+)"/i', $html, $m)){
+              foreach($m[1] as $link){ $add($link); if (count($results)>=20) break; }
+            }
+            if (count($results) < 20 && preg_match_all('/data-href="(https?:[^"#]+)"/i', $html, $m3)){
+              foreach($m3[1] as $link){ $add($link); if (count($results)>=20) break; }
             }
           }
+          if (count($results) > 10) { $results = array_slice($results,0,10); }
           if ((isset($_GET['debug']) && $_GET['debug']) || (isset($input['debug']) && $input['debug'])) {
             $m1 = 0; if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $mm1)) { $m1 = count($mm1[1]); }
             $m2 = 0; if (preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $mm2)) { $m2 = count($mm2[1]); }
