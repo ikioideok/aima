@@ -89,7 +89,7 @@ jobs:
           # Routing of sub-apps is handled by their own .htaccess (e.g., /media/, /jinzai/)
           HT
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; bye"
+            "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess -o .htaccess; bye"
 
       - name: Deploy /tools static pages (root)
         env:
@@ -403,7 +403,7 @@ jobs:
           # Routing is handled by sub-app .htaccess (e.g., /media/, /jinzai/)
           HT
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; cd ${ALT_ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess; mv _root_htaccess .htaccess; bye"
+            "set sftp:auto-confirm yes; cd ${ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess -o .htaccess; cd ${ALT_ROOT_REMOTE_DIR}; rm -f .htaccess; put _root_htaccess -o .htaccess; bye"
 
       - name: Verify /jinzai health
         run: |
