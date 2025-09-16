@@ -262,33 +262,33 @@ export default function ToolsArticle() {
               <div className="font-semibold">検索結果（参考にするサイトを選択）</div>
               <div className="text-xs text-muted-foreground">{sources.length}件</div>
             </div>
-            <ul className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
               {sources.map((s, i) => (
-                <li key={s.url} className="border rounded p-3 bg-background">
-                  <label className="flex items-start gap-2">
+                <div key={s.url} className="border rounded p-3 bg-background h-full">
+                  <label className="flex items-start gap-2 h-full">
                     <input type="checkbox" checked={!!selected[s.url]} onChange={(e)=> setSelected(prev=>({...prev, [s.url]: e.target.checked}))} />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex flex-col h-full">
                       <div className="text-sm font-medium truncate">{i+1}. {s.title || s.url}</div>
                       <a className="text-xs text-blue-700 break-all" href={s.url} target="_blank" rel="noreferrer">{s.url}</a>
-                      <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                        <div>
+                      <div className="mt-2 grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
+                        <div className="space-y-1">
                           <div className="font-semibold">H2</div>
-                          <ul className="list-disc pl-4">{(s.headings?.h2||[]).slice(0,8).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                          <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h2||[]).slice(0,8).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
                         </div>
-                        <div>
+                        <div className="space-y-1">
                           <div className="font-semibold">H3</div>
-                          <ul className="list-disc pl-4">{(s.headings?.h3||[]).slice(0,6).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                          <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h3||[]).slice(0,6).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
                         </div>
-                        <div>
+                        <div className="space-y-1">
                           <div className="font-semibold">H4</div>
-                          <ul className="list-disc pl-4">{(s.headings?.h4||[]).slice(0,4).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
+                          <ul className="list-disc pl-4 max-h-32 overflow-y-auto pr-1">{(s.headings?.h4||[]).slice(0,4).map((h,idx)=>(<li key={idx}>{h}</li>))}</ul>
                         </div>
                       </div>
                     </div>
                   </label>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
             <div className="mt-3 flex gap-2">
               <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
               <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
