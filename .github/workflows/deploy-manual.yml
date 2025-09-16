@@ -241,6 +241,7 @@ jobs:
           $html = '';
           foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
           $results = [];
+          $debugInfo = ['google_added'=>0,'bing_added'=>0];
           if (!function_exists('extract_tags')) {
             function extract_tags($tx,$tag,$limit){ $out=[]; $re = '/<'.$tag.'[^>]*>([\\s\\S]*?)<\\/'.$tag.'>/i'; if (preg_match_all($re,$tx,$ms)){ foreach($ms[1] as $s){ $t = trim(preg_replace('/<[^>]+>/', ' ', $s)); if ($t!=='') $out[]=$t; if (count($out)>=$limit) break; } } return $out; }
           }
@@ -285,6 +286,7 @@ jobs:
               foreach($m3[1] as $link){ $add($link); if (count($results)>=20) break; }
             }
           }
+          $debugInfo['google_added'] = count($results);
           if (count($results) < 5) {
             $bing = curl_get("https://www.bing.com/search?q={$q}&setlang=ja&cc=JP");
             if ($bing && preg_match_all('/<li class="b_algo"[\s\S]*?<h2>[\s\S]*?<a[^>]+href="(https?:[^\"]+)"/i', $bing, $mb)) {
@@ -292,6 +294,7 @@ jobs:
                 $add($link);
                 if (count($results) >= 20) break;
               }
+              $debugInfo['bing_added'] = count($results) - $debugInfo['google_added'];
             }
           }
           if (count($results) > 10) { $results = array_slice($results,0,10); }
@@ -300,7 +303,7 @@ jobs:
             $m2 = 0; if (preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $mm2)) { $m2 = count($mm2[1]); }
             $m3 = 0; if (preg_match_all('/data-href=\"(https?:[^\"]+)\"/i', $html, $mm3)) { $m3 = count($mm3[1]); }
             $blocked = (bool)preg_match('/(unusual traffic|enable javascript|consent)/i', $html);
-            echo json_encode(['ok'=>true,'results'=>$results,'debug'=>['html_len'=>strlen($html),'m1'=>$m1,'m2'=>$m2,'m3'=>$m3,'blocked'=>$blocked]], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+            echo json_encode(['ok'=>true,'results'=>$results,'debug'=>['html_len'=>strlen($html),'m1'=>$m1,'m2'=>$m2,'m3'=>$m3,'blocked'=>$blocked,'google_added'=>$debugInfo['google_added'],'bing_added'=>$debugInfo['bing_added']]], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           } else {
             echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           }
