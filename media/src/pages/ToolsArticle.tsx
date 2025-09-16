@@ -36,6 +36,8 @@ export default function ToolsArticle() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string>('')
   const [outline, setOutline] = React.useState<Outline|null>(null)
+  const [outlineDraft, setOutlineDraft] = React.useState<string>('')
+  const [outlineParseError, setOutlineParseError] = React.useState<string>('')
   const [articleHtml, setArticleHtml] = React.useState<string>('')
   const [articleTitle, setArticleTitle] = React.useState<string>('')
   const [articleExcerpt, setArticleExcerpt] = React.useState<string>('')
@@ -87,8 +89,23 @@ export default function ToolsArticle() {
 
   const provider = modelProvider === 'gemini' ? 'gemini' : 'openai'
 
+  React.useEffect(() => {
+    if (!outlineDraft.trim()) {
+      setOutlineParseError('')
+      return
+    }
+    try {
+      const parsed = JSON.parse(outlineDraft) as Outline
+      setOutline(parsed)
+      setOutlineParseError('')
+    } catch (err) {
+      setOutlineParseError('アウトラインのJSON形式が正しくありません。')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outlineDraft])
+
   async function onGenerateOutline() {
-    setError(''); setArticleHtml(''); setOutline(null)
+    setError(''); setArticleHtml(''); setOutline(null); setOutlineDraft(''); setOutlineParseError('')
     // ステップ1: 参照サイト未取得なら検索して一覧表示
     if (!sources.length) {
       setLoading(true)
@@ -127,14 +144,24 @@ export default function ToolsArticle() {
       let res: any = null
       try { res = await callPhp('/generate-outline', payload) } catch { res = await callCms('/generate-outline', payload) }
       if (!res?.ok || !res?.outline) throw new Error('Invalid response')
-      setOutline(res.outline as Outline)
+      const result = res.outline as Outline
+      setOutline(result)
+      setOutlineDraft(JSON.stringify(result, null, 2))
+      setOutlineParseError('')
     } catch (e:any) {
       setError(e?.message || 'アウトライン生成に失敗しました')
     } finally { setLoading(false) }
   }
 
   async function onGenerateArticle() {
-    if (!outline) return
+    if (outlineParseError) {
+      setError('アウトラインの形式を確認してください')
+      return
+    }
+    if (!outline) {
+      setError('先にアウトラインを作成してください')
+      return
+    }
     setError(''); setLoading(true); setArticleHtml('')
     try {
       const payload = {
@@ -212,13 +239,6 @@ export default function ToolsArticle() {
                 className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
               >
                 アウトライン作成
-              </button>
-              <button
-                disabled={loading||!outline||!canCall}
-                onClick={onGenerateArticle}
-                className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
-              >
-                本文生成
               </button>
             </div>
           </div>
@@ -323,6 +343,24 @@ export default function ToolsArticle() {
                   </li>
                 ))}
               </ul>
+              <div className="mt-4">
+                <label className="block text-xs text-muted-foreground mb-1">アウトライン（JSON形式で編集できます）</label>
+                <textarea
+                  className="w-full border rounded p-2 font-mono text-xs h-64"
+                  value={outlineDraft}
+                  onChange={(e)=> setOutlineDraft(e.target.value)}
+                />
+                {outlineParseError && <p className="text-xs text-destructive mt-1">{outlineParseError}</p>}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    disabled={loading||!outline||!!outlineParseError}
+                    onClick={onGenerateArticle}
+                    className="px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+                  >
+                    本文を作成
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

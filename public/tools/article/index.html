@@ -37,6 +37,7 @@
       @media (min-width: 960px){ .headings-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
       .result-card label { display: flex; align-items: flex-start; gap: 10px; height: 100%; }
       .result-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; height: 100%; }
+      .outline-input { width: 100%; min-height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     </style>
   </head>
   <body>
@@ -79,19 +80,31 @@
             </div>
           </div>
         
-          <div id="sources" class="card hidden">
-            <div class="row" style="justify-content: space-between;">
-              <div>参考にするサイトを選択</div>
-              <div id="sources-count" class="muted"></div>
-            </div>
-            <div id="sources-list" class="results"></div>
+        <div id="sources" class="card hidden">
+          <div class="row" style="justify-content: space-between;">
+            <div>参考にするサイトを選択</div>
+            <div id="sources-count" class="muted"></div>
+          </div>
+          <div id="sources-list" class="results"></div>
+          <div class="row" style="margin-top:8px;">
+            <button id="btn-retry" class="btn">検索をやり直す</button>
+            <button id="btn-manual" class="btn">URLを手動入力</button>
+            <button id="btn-build-outline" class="btn primary">選んだサイトを参考に構成案を作成</button>
+          </div>
+        </div>
+        <div id="outline" class="card hidden">
+          <div class="font-semibold">アウトライン</div>
+          <div id="outline-title" class="muted" style="margin-bottom:6px;"></div>
+          <div id="outline-preview"></div>
+          <div style="margin-top:12px;">
+            <div class="muted" style="margin-bottom:4px;">アウトライン（JSON形式で編集できます）</div>
+            <textarea id="outline-json" class="outline-input"></textarea>
+            <div id="outline-error" class="muted" style="color:#c00; margin-top:4px;"></div>
             <div class="row" style="margin-top:8px;">
-              <button id="btn-retry" class="btn">検索をやり直す</button>
-              <button id="btn-manual" class="btn">URLを手動入力</button>
-              <button id="btn-build-outline" class="btn primary">選んだサイトを参考に構成案を作成</button>
+              <button id="btn-article" class="btn primary" disabled>本文生成</button>
             </div>
           </div>
-        <div id="outline" class="card hidden"></div>
+        </div>
         <div id="article" class="card hidden"></div>
       </div>
     </div>
@@ -105,10 +118,14 @@
       const sourcesWrap = $('#sources'), sourcesList = $('#sources-list'), sourcesCount = $('#sources-count')
       const btnRetry = $('#btn-retry'), btnManual = $('#btn-manual'), btnBuildOutline = $('#btn-build-outline')
       const outlineBox = $('#outline'), articleBox = $('#article')
+      const outlineTitle = $('#outline-title'), outlinePreview = $('#outline-preview')
+      const outlineJson = $('#outline-json')
+      const outlineError = $('#outline-error')
 
       let sources = []
       let selected = {}
       let outline = null
+      let outlineDraft = ''
 
       function setError(m){ err.textContent = m || '' }
       function show(el, v){ el.classList.toggle('hidden', !v) }
@@ -135,6 +152,37 @@
             selected[s.url] = e.target.checked
           })
           sourcesList.appendChild(card)
+        })
+      }
+
+      function renderOutlinePreview(data){
+        if (!outlineTitle || !outlinePreview) return
+        if (!data) {
+          outlineTitle.textContent = ''
+          outlinePreview.innerHTML = ''
+          return
+        }
+        outlineTitle.textContent = data.title || ''
+        const items = (data.h2 || []).map((s) => {
+          const sub = s.h3 && s.h3.length ? `<ul class="list">${s.h3.map(h=>`<li>${h}</li>`).join('')}</ul>` : ''
+          return `<li><span style="font-weight:500;">${s.title}</span>${sub}</li>`
+        }).join('')
+        outlinePreview.innerHTML = `<ul class="list">${items}</ul>`
+      }
+
+      if (outlineJson) {
+        outlineJson.addEventListener('input', () => {
+          outlineDraft = outlineJson.value
+          try {
+            const parsed = JSON.parse(outlineDraft)
+            outline = parsed
+            if (outlineError) outlineError.textContent = ''
+            renderOutlinePreview(parsed)
+            btnArticle.disabled = false
+          } catch (e) {
+            if (outlineError) outlineError.textContent = 'JSONの形式が正しくありません'
+            btnArticle.disabled = true
+          }
         })
       }
 
@@ -166,9 +214,14 @@
       btnOutline.addEventListener('click', async ()=>{
         setError('')
         outline = null
+        outlineDraft = ''
         articleBox.innerHTML = ''
         show(articleBox, false)
         show(outlineBox, false)
+        if (outlineJson) outlineJson.value = ''
+        if (outlineError) outlineError.textContent = ''
+        renderOutlinePreview(null)
+        btnArticle.disabled = true
         sources = []
         selected = {}
         show(sourcesWrap, false)
@@ -231,11 +284,10 @@
           let res = await fetchJSON('/api/generate-outline.php', { method: 'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
           if (!res?.ok || !res?.outline) throw new Error('Invalid response')
           outline = res.outline
-          outlineBox.innerHTML = ''
-          const t = document.createElement('div'); t.style.fontWeight = '600'; t.textContent = outline.title; outlineBox.appendChild(t)
-          const ul = document.createElement('ul'); ul.className = 'list';
-          outline.h2.forEach(s=>{ const li=document.createElement('li'); li.innerHTML = `<div style="font-weight:500;">${s.title}</div>` + (s.h3 && s.h3.length? `<ul class="list">${s.h3.map(h=>`<li>${h}</li>`).join('')}</ul>` : ''); ul.appendChild(li) })
-          outlineBox.appendChild(ul)
+          outlineDraft = JSON.stringify(outline, null, 2)
+          if (outlineJson) outlineJson.value = outlineDraft
+          if (outlineError) outlineError.textContent = ''
+          renderOutlinePreview(outline)
           show(outlineBox, true)
           btnArticle.disabled = false
         } catch(e){ setError(e?.message||'構成案の作成に失敗しました') }
@@ -243,7 +295,14 @@
       })
 
       btnArticle.addEventListener('click', async ()=>{
-        if (!outline) return
+        if (!outlineJson) return
+        try {
+          outline = JSON.parse(outlineJson.value)
+        } catch (e) {
+          setError('アウトラインの形式を確認してください')
+          return
+        }
+        if (!outline) { setError('先にアウトラインを作成してください'); return }
         setError('')
         btnArticle.disabled = true
         try {
