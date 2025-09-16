@@ -289,15 +289,10 @@ jobs:
           $debugInfo['google_added'] = count($results);
           if (count($results) < 5) {
             $bing = curl_get("https://www.bing.com/search?q={$q}&setlang=ja&cc=JP&format=rss");
-            if ($bing) {
-              $xml = @simplexml_load_string($bing);
-              if ($xml && isset($xml->channel) && isset($xml->channel->item)) {
-                foreach ($xml->channel->item as $item) {
-                  $link = isset($item->link) ? trim((string)$item->link) : '';
-                  if ($link === '') continue;
-                  $add($link);
-                  if (count($results) >= 20) break;
-                }
+            if ($bing && preg_match_all('/<item>[\\s\\S]*?<link>(https?:[^<]+)<\\/link>/i', $bing, $mb)) {
+              foreach ($mb[1] as $link) {
+                $add($link);
+                if (count($results) >= 20) break;
               }
               $debugInfo['bing_added'] = max(0, count($results) - $debugInfo['google_added']);
             }
