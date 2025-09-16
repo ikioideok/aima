@@ -264,7 +264,8 @@ app.post('/search-top', async (req, res) => {
     // Fallback: try Bing if too few
     if (results.length < 5) {
       try {
-        const bingUrl = `https://www.bing.com/search?q=${q}&setlang=ja&cc=JP&mkt=ja-JP&ensearch=0&format=rss`
+        const bingQuery = encodeURIComponent(`site:.jp ${keyword}`)
+        const bingUrl = `https://www.bing.com/search?q=${bingQuery}&setlang=ja&cc=JP&mkt=ja-JP&ensearch=0&format=rss`
         const rb = await fetch(bingUrl, { headers })
         const hb = await rb.text()
         const itemRe = /<item>[\s\S]*?<link>(https?:[^<]+)<\/link>[\s\S]*?<title>([\s\S]*?)<\/title>/gi

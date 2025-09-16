@@ -238,6 +238,7 @@ jobs:
             "https://www.google.co.jp/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
             "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&client=ms-android-google&q={$q}"
           ];
+          $bing_q = urlencode('site:.jp '.$keyword);
           $html = '';
           foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
           $results = [];
@@ -288,7 +289,7 @@ jobs:
           }
           $debugInfo['google_added'] = count($results);
           if (count($results) < 5) {
-            $bing = curl_get("https://www.bing.com/search?q={$q}&setlang=ja&cc=JP&mkt=ja-JP&ensearch=0&format=rss");
+            $bing = curl_get("https://www.bing.com/search?q={$bing_q}&setlang=ja&cc=JP&mkt=ja-JP&ensearch=0&format=rss");
             if ($bing && preg_match_all('/<item>[\\s\\S]*?<link>(https?:[^<]+)<\\/link>/i', $bing, $mb)) {
               foreach ($mb[1] as $link) {
                 $add($link);
