@@ -258,7 +258,7 @@ export default function ToolsArticle() {
 
             <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
               <button
-                disabled={loading||!keyword||!canCall}
+                disabled={loading || !keyword.trim() || !canCall}
                 onClick={onGenerateOutline}
                 className="w-full px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
               >
@@ -345,7 +345,7 @@ export default function ToolsArticle() {
               </div>
               <div className="mt-3 flex gap-2">
                 <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
-                <button disabled={loading||!keyword||!canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
+                <button disabled={loading || !keyword.trim() || !canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
                 <button disabled={loading} onClick={()=> setManualMode(true)} className="px-3 py-1 border rounded">URLを手動入力</button>
               </div>
             </div>
