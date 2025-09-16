@@ -87,6 +87,37 @@ export default function ToolsArticle() {
 
   const provider = modelProvider === 'gemini' ? 'gemini' : 'openai'
 
+  const sanitizeOutline = React.useCallback(
+    (data: Outline): Outline => {
+      const slugify = (str: string) =>
+        str
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'article'
+
+      const title = (data.title || '').trim()
+      const cleanH2 = (data.h2 || []).reduce<Outline['h2']>((acc, section) => {
+        const h2Title = (section.title || '').trim()
+        if (!h2Title) return acc
+        const h3List = (section.h3 || []).map((h) => h.trim()).filter(Boolean)
+        acc.push({ title: h2Title, h3: h3List })
+        return acc
+      }, [])
+
+      return {
+        ...data,
+        title: title || data.title || 'アウトライン',
+        slug: (data.slug || slugify(title || data.slug || data.title || 'article')) as string,
+        keyword: data.keyword || keyword,
+        h2: cleanH2,
+      }
+    },
+    [keyword]
+  )
+
   const handleOutlineTitleChange = React.useCallback((value: string) => {
     setOutline(prev => prev ? { ...prev, title: value } : prev)
   }, [])
@@ -175,7 +206,7 @@ export default function ToolsArticle() {
             }))
           : [],
       }
-      setOutline(normalized)
+      setOutline(sanitizeOutline(normalized))
     } catch (e:any) {
       setError(e?.message || 'アウトライン生成に失敗しました')
     } finally { setLoading(false) }
@@ -186,12 +217,18 @@ export default function ToolsArticle() {
       setError('先にアウトラインを作成してください')
       return
     }
+    const sanitizedOutline = sanitizeOutline(outline)
+    if (!sanitizedOutline.h2 || sanitizedOutline.h2.length === 0) {
+      setError('アウトラインに見出しがありません')
+      return
+    }
+    setOutline(sanitizedOutline)
     setError(''); setLoading(true); setArticleHtml('')
     try {
       const payload = {
         provider,
         model: modelId,
-        outline,
+        outline: sanitizedOutline,
       }
       let res: any = null
       try {
@@ -345,7 +382,7 @@ export default function ToolsArticle() {
               </div>
               <div className="mt-3 flex gap-2">
                 <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
-                <button disabled={loading || !keyword.trim() || !canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
+                  <button disabled={loading || !keyword.trim() || !canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
                 <button disabled={loading} onClick={()=> setManualMode(true)} className="px-3 py-1 border rounded">URLを手動入力</button>
               </div>
             </div>

@@ -118,6 +118,34 @@
 
       function setError(m){ err.textContent = m || '' }
       function show(el, v){ el.classList.toggle('hidden', !v) }
+      const slugify = (str) =>
+        (str || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'article'
+
+      function sanitizeOutline(data){
+        if (!data) return null
+        const title = (data.title || '').trim()
+        const cleanH2 = (data.h2 || []).reduce((acc, section) => {
+          const h2Title = (section.title || '').trim()
+          if (!h2Title) return acc
+          const h3List = (section.h3 || []).map((h) => h.trim()).filter(Boolean)
+          acc.push({ title: h2Title, h3: h3List })
+          return acc
+        }, [])
+        return {
+          ...data,
+          title: title || data.title || 'アウトライン',
+          slug: data.slug || slugify(title || data.slug || data.title || 'article'),
+          keyword: data.keyword || kw.value.trim(),
+          h2: cleanH2,
+        }
+      }
+
       function renderSources(){
         sourcesList.innerHTML = ''
         sourcesCount.textContent = sources.length + '件'
@@ -228,8 +256,9 @@
       }
 
       async function generateArticle(button){
-        if (!outline) {
-          setError('先にアウトラインを作成してください')
+        outline = sanitizeOutline(outline)
+        if (!outline || !(outline.h2 && outline.h2.length)) {
+          setError('アウトラインに見出しがありません')
           return
         }
         setError('')
@@ -344,7 +373,7 @@
           let res = await fetchJSON('/api/generate-outline.php', { method: 'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() })
           if (!res?.ok || !res?.outline) throw new Error('Invalid response')
           const result = res.outline || {}
-          outline = {
+          outline = sanitizeOutline({
             ...result,
             h2: Array.isArray(result.h2)
               ? result.h2.map((section) => ({
@@ -352,7 +381,7 @@
                   h3: Array.isArray(section.h3) ? section.h3 : [],
                 }))
               : [],
-          }
+          })
           renderOutlineEditor()
         } catch(e){ setError(e?.message||'構成案の作成に失敗しました') }
         finally { btnBuildOutline.disabled = false }
