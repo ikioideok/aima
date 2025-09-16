@@ -68,7 +68,7 @@ jobs:
           RewriteRule . index.html [L]
           HT
           lftp -u "${SAKURA_USER},${LFTP_PASSWORD}" sftp://"${SAKURA_HOST}" -e \
-            "set sftp:auto-confirm yes; cd ${SAKURA_REMOTE_DIR}; rm -f .htaccess; put _media_htaccess; mv _media_htaccess .htaccess; bye"
+            "set sftp:auto-confirm yes; cd ${SAKURA_REMOTE_DIR}; rm -f .htaccess; put _media_htaccess -o .htaccess; bye"
 
       - name: Update root .htaccess (ensure static served)
         env:

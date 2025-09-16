@@ -187,7 +187,7 @@ jobs:
           RewriteRule . index.html [L]
           HT
           lftp -u "$SAKURA_USER_ENV,${LFTP_PASSWORD}" sftp://"$SAKURA_HOST_ENV" -e \
-            "set sftp:auto-confirm yes; cd ${SAKURA_REMOTE_DIR_ENV}; rm -f .htaccess; put _media_htaccess; mv _media_htaccess .htaccess; bye"
+            "set sftp:auto-confirm yes; cd ${SAKURA_REMOTE_DIR_ENV}; rm -f .htaccess; put _media_htaccess -o .htaccess; bye"
 
       - name: Deploy jinzai via SFTP to Sakura (legacy)
         if: ${{ false }}
