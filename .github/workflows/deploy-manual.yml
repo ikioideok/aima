@@ -269,7 +269,7 @@ jobs:
             $u = $normalize($href);
             if (!$u || stripos($u,'http')!==0) return;
             $host = @parse_url($u, PHP_URL_HOST);
-            if ($host && preg_match('/(google|gstatic)\./i',$host)) return;
+            if ($host && preg_match('/(google|gstatic|yahoo)\./i',$host)) return;
             if (in_array($u,$seen,true)) return; $seen[] = $u;
             $tx = curl_get($u);
             $title = '';

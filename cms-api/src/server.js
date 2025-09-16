@@ -215,7 +215,7 @@ app.post('/search-top', async (req, res) => {
       if (!/^https?:\/\//i.test(normalized)) return
       try {
         const host = new URL(normalized).hostname
-        if (/google\./i.test(host) || /gstatic\./i.test(host)) return
+        if (/google\./i.test(host) || /gstatic\./i.test(host) || /yahoo\./i.test(host)) return
       } catch {}
       if (seen.has(normalized)) return
       seen.add(normalized)
