@@ -238,11 +238,10 @@ jobs:
             "https://www.google.co.jp/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
             "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&client=ms-android-google&q={$q}"
           ];
-          $bing_q = urlencode('site:.jp '.$keyword);
           $html = '';
           foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
           $results = [];
-          $debugInfo = ['google_added'=>0,'bing_added'=>0];
+          $debugInfo = ['google_added'=>0,'yahoo_added'=>0];
           if (!function_exists('extract_tags')) {
             function extract_tags($tx,$tag,$limit){ $out=[]; $re = '/<'.$tag.'[^>]*>([\\s\\S]*?)<\\/'.$tag.'>/i'; if (preg_match_all($re,$tx,$ms)){ foreach($ms[1] as $s){ $t = trim(preg_replace('/<[^>]+>/', ' ', $s)); if ($t!=='') $out[]=$t; if (count($out)>=$limit) break; } } return $out; }
           }
@@ -289,20 +288,18 @@ jobs:
           }
           $debugInfo['google_added'] = count($results);
           if (count($results) < 5) {
-            $bing = curl_get("https://www.bing.com/search?q={$bing_q}&setlang=ja&cc=JP&mkt=ja-JP&ensearch=0&format=rss");
-            if ($bing && preg_match_all('/<item>[\\s\\S]*?<link>(https?:[^<]+)<\\/link>/i', $bing, $mb)) {
-              $jpLinks = [];
-              $otherLinks = [];
-              foreach ($mb[1] as $link) {
-                $host = @parse_url($link, PHP_URL_HOST);
-                if ($host && preg_match('/\\.jp$/i', $host)) $jpLinks[] = $link; else $otherLinks[] = $link;
+            $yahoo = curl_get("https://search.yahoo.co.jp/search?ei=UTF-8&p={$q}");
+            if ($yahoo) {
+              if (preg_match('/<div id="web">([\\s\\S]*?)<div id="/i', $yahoo, $mweb)) {
+                $yahoo = $mweb[1];
               }
-              foreach (array_merge($jpLinks, $otherLinks) as $link) {
-                $add($link);
-                if (count($results) >= 20) break;
+              if (preg_match_all('/<li[^>]*>\s*<a href=\"(https?:[^\\"#]+)\"/i', $yahoo, $ym)) {
+                foreach ($ym[1] as $link) {
+                  $add(str_replace('&amp;', '&', $link));
+                  if (count($results) >= 20) break;
+                }
               }
-              $debugInfo['bing_added'] = max(0, count($results) - $debugInfo['google_added']);
-              $debugInfo['bing_jp'] = count($jpLinks);
+              $debugInfo['yahoo_added'] = max(0, count($results) - $debugInfo['google_added']);
             }
           }
           if (count($results) > 10) { $results = array_slice($results,0,10); }
@@ -311,7 +308,7 @@ jobs:
             $m2 = 0; if (preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $mm2)) { $m2 = count($mm2[1]); }
             $m3 = 0; if (preg_match_all('/data-href=\"(https?:[^\"]+)\"/i', $html, $mm3)) { $m3 = count($mm3[1]); }
             $blocked = (bool)preg_match('/(unusual traffic|enable javascript|consent)/i', $html);
-            echo json_encode(['ok'=>true,'results'=>$results,'debug'=>['html_len'=>strlen($html),'m1'=>$m1,'m2'=>$m2,'m3'=>$m3,'blocked'=>$blocked,'google_added'=>$debugInfo['google_added'],'bing_added'=>$debugInfo['bing_added']]], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+            echo json_encode(['ok'=>true,'results'=>$results,'debug'=>['html_len'=>strlen($html),'m1'=>$m1,'m2'=>$m2,'m3'=>$m3,'blocked'=>$blocked,'google_added'=>$debugInfo['google_added'],'yahoo_added'=>($debugInfo['yahoo_added'] ?? 0)]], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           } else {
             echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           }

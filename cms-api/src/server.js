@@ -264,25 +264,19 @@ app.post('/search-top', async (req, res) => {
     // Fallback: try Bing if too few
     if (results.length < 5) {
       try {
-        const bingQuery = encodeURIComponent(`site:.jp ${keyword}`)
-        const bingUrl = `https://www.bing.com/search?q=${bingQuery}&setlang=ja&cc=JP&mkt=ja-JP&ensearch=0&format=rss`
-        const rb = await fetch(bingUrl, { headers })
-        const hb = await rb.text()
-        const itemRe = /<item>[\s\S]*?<link>(https?:[^<]+)<\/link>[\s\S]*?<title>([\s\S]*?)<\/title>/gi
-        const jpLinks = []
-        const otherLinks = []
-        let mb
-        while ((mb = itemRe.exec(hb))) {
-          const rawLink = mb[1].replace(/&amp;/g, '&')
-          try {
-            const host = new URL(rawLink).hostname || ''
-            if (/\.jp$/i.test(host)) jpLinks.push(rawLink)
-            else otherLinks.push(rawLink)
-          } catch {
-            otherLinks.push(rawLink)
-          }
+        const yahooUrl = `https://search.yahoo.co.jp/search?ei=UTF-8&p=${q}`
+        const ry = await fetch(yahooUrl, { headers })
+        const hy = await ry.text()
+        const sectionMatch = hy.match(/<div id="web">([\s\S]*?)<div id="/i)
+        const section = sectionMatch ? sectionMatch[1] : hy
+        const linkRe = /<li[^>]*>\s*<a href="(https?:[^"#]+)"[^>]*>/gi
+        const links = []
+        let my
+        while ((my = linkRe.exec(section))) {
+          const rawLink = my[1].replace(/&amp;/g, '&')
+          links.push(rawLink)
         }
-        for (const link of [...jpLinks, ...otherLinks]) {
+        for (const link of links) {
           pushCandidate(link)
           if (urls.length >= 20) break
         }
