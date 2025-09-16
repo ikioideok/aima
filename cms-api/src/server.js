@@ -19,6 +19,9 @@ const {
   GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta',
 } = process.env
 
+const GOOGLE_CSE_KEY = process.env.GOOGLE_CSE_KEY || 'AIzaSyA1vO-rJigxg5xv9GfO4Wcdr6_DRCvjXFc'
+const GOOGLE_CSE_CX = process.env.GOOGLE_CSE_CX || '6688d0f354fa74657'
+
 if (!GITHUB_TOKEN || !GITHUB_REPO_OWNER || !GITHUB_REPO_NAME) {
   console.error('Missing required env vars: GITHUB_TOKEN, GITHUB_REPO_OWNER, GITHUB_REPO_NAME')
   process.exit(1)
@@ -173,65 +176,51 @@ app.post('/search-top', async (req, res) => {
   try {
     const keyword = String(req.body?.keyword || '').trim()
     if (!keyword) return res.status(400).json({ error: 'keyword is required' })
-    const q = encodeURIComponent(keyword)
-    const serpUrl = `https://www.google.com/search?hl=ja&gl=jp&num=10&q=${q}`
+    if (!GOOGLE_CSE_KEY || !GOOGLE_CSE_CX) {
+      return res.status(500).json({ error: 'Google Custom Search API key or CX is not configured' })
+    }
+
+    const params = new URLSearchParams({
+      key: GOOGLE_CSE_KEY,
+      cx: GOOGLE_CSE_CX,
+      q: keyword,
+      num: '10',
+      lr: 'lang_ja',
+      gl: 'jp',
+      safe: 'off',
+    })
+    const apiUrl = `https://www.googleapis.com/customsearch/v1?${params.toString()}`
+    const apiRes = await fetch(apiUrl, { headers: { Accept: 'application/json' } })
+    const apiText = await apiRes.text()
+    if (!apiRes.ok) {
+      return res.status(apiRes.status).json({ error: 'Google API error', detail: apiText })
+    }
+    let data
+    try {
+      data = JSON.parse(apiText)
+    } catch (err) {
+      return res.status(502).json({ error: 'Failed to parse Google API response', detail: String(err?.message || '') })
+    }
+    const items = Array.isArray(data?.items) ? data.items : []
+    const urls = []
+    const seen = new Set()
+    for (const item of items) {
+      const link = typeof item?.link === 'string' ? item.link.trim() : ''
+      if (!link || !/^https?:\/\//i.test(link)) continue
+      if (seen.has(link)) continue
+      seen.add(link)
+      urls.push(link)
+      if (urls.length >= 10) break
+    }
+    if (!urls.length) return res.json({ ok: true, results: [], debug: { apiItems: items.length } })
+
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       'Accept-Language': 'ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7',
-    }
-    const r = await fetch(serpUrl, { headers })
-    const html = await r.text()
-    const urls = []
-    const seen = new Set()
-    const normalizeLink = (raw) => {
-      if (!raw) return ''
-      const decoded = raw.replace(/&amp;/g, '&')
-      const ensureUrl = (value) => {
-        if (!value) return ''
-        if (/^https?:/i.test(value)) return value
-        return ''
-      }
-      try {
-        if (decoded.startsWith('/')) {
-          const tmp = new URL(decoded, 'https://www.google.com')
-          if (tmp.hostname.includes('google.') && tmp.pathname === '/url') {
-            const target = ensureUrl(tmp.searchParams.get('q') || tmp.searchParams.get('url'))
-            if (target) return target
-          }
-          return tmp.href
-        }
-        const url = new URL(decoded)
-        if (url.hostname.includes('google.') && url.pathname === '/url') {
-          const target = ensureUrl(url.searchParams.get('q') || url.searchParams.get('url'))
-          if (target) return target
-        }
-        return url.href
-      } catch {
-        return decoded
-      }
-    }
-    const pushCandidate = (raw) => {
-      const normalized = normalizeLink(raw)
-      if (!/^https?:\/\//i.test(normalized)) return
-      try {
-        const host = new URL(normalized).hostname
-        if (/google\./i.test(host) || /gstatic\./i.test(host) || /yahoo\./i.test(host)) return
-      } catch {}
-      if (seen.has(normalized)) return
-      seen.add(normalized)
-      urls.push(normalized)
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
     }
 
-    const linkRe = /<a[^>]+href="([^"#]+)"/gi
-    let m
-    while ((m = linkRe.exec(html)) && urls.length < 20) {
-      pushCandidate(m[1])
-    }
-    const dataHrefRe = /data-href="(https?:[^"#]+)"/gi
-    let m3
-    while ((m3 = dataHrefRe.exec(html)) && urls.length < 20) {
-      pushCandidate(m3[1])
-    }
     async function fetchPage(u) {
       try {
         const rr = await fetch(u, { headers, redirect: 'follow' })
@@ -248,12 +237,13 @@ app.post('/search-top', async (req, res) => {
           return out
         }
         const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(tx)
-        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g,' ').trim() : ''
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : ''
         return { url: u, title, headings: { h1: get('h1'), h2: get('h2'), h3: get('h3'), h4: get('h4') } }
       } catch (e) {
         return { url: u, title: '', headings: { h1: [], h2: [], h3: [], h4: [] } }
       }
     }
+
     const results = []
     for (const u of urls) {
       // sequential to avoid hammering
@@ -261,38 +251,7 @@ app.post('/search-top', async (req, res) => {
       const item = await fetchPage(u)
       results.push(item)
     }
-    // Fallback: try Bing if too few
-    if (results.length < 5) {
-      try {
-        const yahooUrl = `https://search.yahoo.co.jp/search?ei=UTF-8&p=${q}`
-        const ry = await fetch(yahooUrl, { headers })
-        const hy = await ry.text()
-        const sectionMatch = hy.match(/<div id="web">([\s\S]*?)<div id="/i)
-        const section = sectionMatch ? sectionMatch[1] : hy
-        const linkRe = /<li[^>]*>\s*<a href="(https?:[^"#]+)"[^>]*>/gi
-        const links = []
-        let my
-        while ((my = linkRe.exec(section))) {
-          const rawLink = my[1].replace(/&amp;/g, '&')
-          links.push(rawLink)
-        }
-        for (const link of links) {
-          pushCandidate(link)
-          if (urls.length >= 20) break
-        }
-        while (results.length < 10 && results.length < urls.length) {
-          const next = urls[results.length]
-          // eslint-disable-next-line no-await-in-loop
-          const item = await fetchPage(next)
-          results.push(item)
-        }
-      } catch {}
-    }
-    if (!results.length) {
-      const blocked = /unusual traffic|enable javascript|consent/i.test(html)
-      return res.status(502).json({ error: blocked ? 'Googleにブロックされました（時間をおいて再試行）' : 'SERP解析に失敗しました' })
-    }
-    res.json({ ok: true, results })
+    res.json({ ok: true, results, debug: { apiItems: items.length } })
   } catch (e) {
     res.status(500).json({ error: 'search failed', detail: String(e?.message || '') })
   }

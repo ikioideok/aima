@@ -231,84 +231,77 @@ jobs:
           if ($_SERVER['REQUEST_METHOD'] === 'GET') { $input = $_GET; } else if (strpos($ct,'application/json') !== false) { $input = json_decode($raw, true); } else { $input = $_POST; if (!$input && $raw) { parse_str($raw, $input); } }
           $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
           if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
-          $q = urlencode($keyword);
-          function curl_get($u){ $ch = curl_init($u); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,CURLOPT_ENCODING=>'',CURLOPT_HTTPHEADER=>['Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7','Cache-Control: no-cache','Pragma: no-cache','Cookie: CONSENT=YES+','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36']]); $res=curl_exec($ch); curl_close($ch); return $res?:''; }
-          $candidates = [
-            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
-            "https://www.google.co.jp/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
-            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&client=ms-android-google&q={$q}"
-          ];
-          $html = '';
-          foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
-          $results = [];
-          $debugInfo = ['google_added'=>0,'yahoo_added'=>0];
+          $apiKey = getenv('GOOGLE_CSE_API_KEY') ?: 'AIzaSyA1vO-rJigxg5xv9GfO4Wcdr6_DRCvjXFc';
+          $cx = getenv('GOOGLE_CSE_CX') ?: '6688d0f354fa74657';
+          if (!$apiKey || !$cx) { http_response_code(500); echo json_encode(['error'=>'Google Custom Search is not configured']); exit; }
+
+          function curl_get_json($url){
+            $ch = curl_init($url);
+            curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,CURLOPT_HTTPHEADER=>['Accept: application/json']]);
+            $res = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            return [$code, $res?:''];
+          }
+
+          function curl_get_html($u){
+            $ch = curl_init($u);
+            curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,CURLOPT_ENCODING=>'',CURLOPT_HTTPHEADER=>['Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7','Cache-Control: no-cache','Pragma: no-cache','Cookie: CONSENT=YES+','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36']]);
+            $res = curl_exec($ch);
+            curl_close($ch);
+            return $res?:'';
+          }
+
           if (!function_exists('extract_tags')) {
             function extract_tags($tx,$tag,$limit){ $out=[]; $re = '/<'.$tag.'[^>]*>([\\s\\S]*?)<\\/'.$tag.'>/i'; if (preg_match_all($re,$tx,$ms)){ foreach($ms[1] as $s){ $t = trim(preg_replace('/<[^>]+>/', ' ', $s)); if ($t!=='') $out[]=$t; if (count($out)>=$limit) break; } } return $out; }
           }
-          $normalize = function($raw){
-            $raw = trim(htmlspecialchars_decode($raw, ENT_QUOTES));
-            if ($raw === '') return '';
-            if ($raw[0] === '/') {
-              $raw = 'https://www.google.com'.$raw;
+
+          $query = http_build_query([
+            'key' => $apiKey,
+            'cx' => $cx,
+            'q' => $keyword,
+            'num' => 10,
+            'lr' => 'lang_ja',
+            'gl' => 'jp',
+            'safe' => 'off',
+          ], '', '&', PHP_QUERY_RFC3986);
+          [$status, $body] = curl_get_json('https://www.googleapis.com/customsearch/v1?'.$query);
+          if ($status >= 400) {
+            http_response_code($status);
+            echo json_encode(['error'=>'Google API error','detail'=>$body]);
+            exit;
+          }
+          $data = json_decode($body, true);
+          $items = (isset($data['items']) && is_array($data['items'])) ? $data['items'] : [];
+          $urls = [];
+          foreach ($items as $item) {
+            $link = isset($item['link']) ? trim($item['link']) : '';
+            if ($link && stripos($link,'http')===0 && !in_array($link,$urls,true)) {
+              $urls[] = $link;
+              if (count($urls) >= 10) break;
             }
-            if (stripos($raw, 'http') !== 0) return '';
-            $parts = @parse_url($raw);
-            if ($parts && isset($parts['host']) && preg_match('/google\./i', $parts['host']) && isset($parts['path']) && $parts['path'] === '/url'){
-              $query = isset($parts['query']) ? $parts['query'] : '';
-              if ($query){
-                parse_str($query, $qs);
-                foreach (['q','url'] as $key){
-                  if (!empty($qs[$key]) && stripos($qs[$key], 'http') === 0) return $qs[$key];
-                }
-              }
-            }
-            return $raw;
-          };
-          $seen = [];
-          $add = function($href) use (&$seen, &$results, $normalize){
-            $u = $normalize($href);
-            if (!$u || stripos($u,'http')!==0) return;
-            $host = @parse_url($u, PHP_URL_HOST);
-            if ($host && preg_match('/(google|gstatic|yahoo)\./i',$host)) return;
-            if (in_array($u,$seen,true)) return; $seen[] = $u;
-            $tx = curl_get($u);
+          }
+          $results = [];
+          foreach ($urls as $link) {
+            $html = curl_get_html($link);
             $title = '';
-            if (preg_match('/<title[^>]*>([\\s\\S]*?)<\\/title>/i', $tx, $mm)){
+            if (preg_match('/<title[^>]*>([\\s\\S]*?)<\\/title>/i', $html, $mm)) {
               $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
             }
-            $results[] = ['url'=>$u,'title'=>$title,'headings'=>['h1'=>extract_tags($tx,'h1',10),'h2'=>extract_tags($tx,'h2',30),'h3'=>extract_tags($tx,'h3',30),'h4'=>extract_tags($tx,'h4',20)]];
-          };
-          if ($html) {
-            if (preg_match_all('/<a[^>]+href="([^"#]+)"/i', $html, $m)){
-              foreach($m[1] as $link){ $add($link); if (count($results)>=20) break; }
-            }
-            if (count($results) < 20 && preg_match_all('/data-href="(https?:[^"#]+)"/i', $html, $m3)){
-              foreach($m3[1] as $link){ $add($link); if (count($results)>=20) break; }
-            }
+            $results[] = [
+              'url' => $link,
+              'title' => $title,
+              'headings' => [
+                'h1' => extract_tags($html,'h1',10),
+                'h2' => extract_tags($html,'h2',30),
+                'h3' => extract_tags($html,'h3',30),
+                'h4' => extract_tags($html,'h4',20),
+              ],
+            ];
           }
-          $debugInfo['google_added'] = count($results);
-          if (count($results) < 5) {
-            $yahoo = curl_get("https://search.yahoo.co.jp/search?ei=UTF-8&p={$q}");
-            if ($yahoo) {
-              if (preg_match('/<div id="web">([\\s\\S]*?)<div id="/i', $yahoo, $mweb)) {
-                $yahoo = $mweb[1];
-              }
-              if (preg_match_all('/<li[^>]*>\s*<a href=\"(https?:[^\\"#]+)\"/i', $yahoo, $ym)) {
-                foreach ($ym[1] as $link) {
-                  $add(str_replace('&amp;', '&', $link));
-                  if (count($results) >= 20) break;
-                }
-              }
-              $debugInfo['yahoo_added'] = max(0, count($results) - $debugInfo['google_added']);
-            }
-          }
-          if (count($results) > 10) { $results = array_slice($results,0,10); }
+
           if ((isset($_GET['debug']) && $_GET['debug']) || (isset($input['debug']) && $input['debug'])) {
-            $m1 = 0; if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $mm1)) { $m1 = count($mm1[1]); }
-            $m2 = 0; if (preg_match_all('/<a[^>]+href=\"(https?:[^\"]+)\"/i', $html, $mm2)) { $m2 = count($mm2[1]); }
-            $m3 = 0; if (preg_match_all('/data-href=\"(https?:[^\"]+)\"/i', $html, $mm3)) { $m3 = count($mm3[1]); }
-            $blocked = (bool)preg_match('/(unusual traffic|enable javascript|consent)/i', $html);
-            echo json_encode(['ok'=>true,'results'=>$results,'debug'=>['html_len'=>strlen($html),'m1'=>$m1,'m2'=>$m2,'m3'=>$m3,'blocked'=>$blocked,'google_added'=>$debugInfo['google_added'],'yahoo_added'=>($debugInfo['yahoo_added'] ?? 0)]], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+            echo json_encode(['ok'=>true,'results'=>$results,'debug'=>['api_items'=>count($items)]], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           } else {
             echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           }

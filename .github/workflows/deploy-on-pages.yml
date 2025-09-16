@@ -122,7 +122,7 @@ jobs:
           esac
           ROOT_REMOTE_DIR="${ROOT_REMOTE_DIR%/}/"
           mkdir -p api
-          # search-top.php: Google検索上位10件を取得し、各ページの見出しを抽出
+          # search-top.php: Googleカスタム検索APIを利用して結果と見出しを抽出
           cat > api/search-top.php <<'PHP'
           <?php
           header('Content-Type: application/json; charset=utf-8');
@@ -131,20 +131,32 @@ jobs:
           header('Access-Control-Allow-Headers: Content-Type');
           if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
           if (isset($_GET['ping'])) { echo json_encode(['ok'=>true]); exit; }
-          // Read JSON or form-urlencoded
           $raw = file_get_contents('php://input');
           $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';
           if ($_SERVER['REQUEST_METHOD'] === 'GET') { $input = $_GET; } else if (strpos($ct,'application/json') !== false) { $input = json_decode($raw, true); } else { $input = $_POST; if (!$input && $raw) { parse_str($raw, $input); } }
           $keyword = isset($input['keyword']) ? trim($input['keyword']) : '';
           if (!$keyword) { http_response_code(400); echo json_encode(['error'=>'keyword required']); exit; }
-          $q = urlencode($keyword);
-          function curl_get($u){
+          $apiKey = getenv('GOOGLE_CSE_API_KEY') ?: 'AIzaSyA1vO-rJigxg5xv9GfO4Wcdr6_DRCvjXFc';
+          $cx = getenv('GOOGLE_CSE_CX') ?: '6688d0f354fa74657';
+          if (!$apiKey || !$cx) { http_response_code(500); echo json_encode(['error'=>'Google Custom Search is not configured']); exit; }
+
+          function curl_get_json($url){
+            $ch = curl_init($url);
+            curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,CURLOPT_HTTPHEADER=>['Accept: application/json']]);
+            $res = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            return [$code, $res?:''];
+          }
+
+          function curl_get_html($u){
             $ch = curl_init($u);
             curl_setopt_array($ch,[
               CURLOPT_RETURNTRANSFER=>true,
               CURLOPT_FOLLOWLOCATION=>true,
               CURLOPT_CONNECTTIMEOUT=>8,
               CURLOPT_TIMEOUT=>20,
+              CURLOPT_ENCODING=>'',
               CURLOPT_HTTPHEADER=>[
                 'Accept-Language: ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7',
                 'Cache-Control: no-cache',
@@ -153,80 +165,61 @@ jobs:
                 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
               ]
             ]);
-            $res = curl_exec($ch); curl_close($ch); return $res ?: '';
+            $res = curl_exec($ch);
+            curl_close($ch);
+            return $res ?: '';
           }
-          $candidates = [
-            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
-            "https://www.google.co.jp/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&q={$q}",
-            "https://www.google.com/search?hl=ja&gl=jp&pws=0&nfpr=1&num=20&client=ms-android-google&q={$q}"
-          ];
-          $html = '';
-          foreach ($candidates as $gu) { $html = curl_get($gu); if ($html) break; }
+
+          if (!function_exists('extract_tags')) {
+            function extract_tags($tx,$tag,$limit){ $out=[]; $re = '/<'.$tag.'[^>]*>([\s\S]*?)<\/'.$tag.'>/i'; if (preg_match_all($re,$tx,$ms)){ foreach($ms[1] as $s){ $t = trim(preg_replace('/<[^>]+>/', ' ', $s)); if ($t!=='') $out[]=$t; if (count($out)>=$limit) break; } } return $out; }
+          }
+
+          $query = http_build_query([
+            'key' => $apiKey,
+            'cx' => $cx,
+            'q' => $keyword,
+            'num' => 10,
+            'lr' => 'lang_ja',
+            'gl' => 'jp',
+            'safe' => 'off',
+          ], '', '&', PHP_QUERY_RFC3986);
+          [$status, $body] = curl_get_json('https://www.googleapis.com/customsearch/v1?'.$query);
+          if ($status >= 400) {
+            http_response_code($status);
+            echo json_encode(['error'=>'Google API error','detail'=>$body]);
+            exit;
+          }
+          $data = json_decode($body, true);
+          $items = (isset($data['items']) && is_array($data['items'])) ? $data['items'] : [];
+          $urls = [];
+          foreach ($items as $item) {
+            $link = isset($item['link']) ? trim($item['link']) : '';
+            if ($link && stripos($link,'http')===0 && !in_array($link,$urls,true)) {
+              $urls[] = $link;
+              if (count($urls) >= 10) break;
+            }
+          }
           $results = [];
-          if ($html) {
-            $seen = [];
-            if (preg_match_all('/<a[^>]+href="\\/url\\?q=([^"&]+)[^"]*"/i', $html, $m)){
-              foreach($m[1] as $link){
-                $u = urldecode($link);
-                if (strpos($u,'http')!==0) continue;
-                if (preg_match('/google\\./i',$u)) continue;
-                if (in_array($u,$seen,true)) continue; $seen[]=$u;
-                // fetch page and extract headings
-                $tx = curl_get($u);
-                $title = '';
-                if (preg_match('/<title[^>]*>([\\s\\S]*?)<\\/title>/i', $tx, $mm)){
-                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
-                }
-                function extract_tags($tx,$tag,$limit){
-                  $out=[]; $re = '/<'.$tag.'[^>]*>([\\s\\S]*?)<\\/'.$tag.'>/i';
-                  if (preg_match_all($re,$tx,$ms)){
-                    foreach($ms[1] as $s){
-                      $t = trim(preg_replace('/<[^>]+>/', ' ', $s));
-                      if ($t!=='') $out[]=$t; if (count($out)>=$limit) break;
-                    }
-                  }
-                  return $out;
-                }
-                $results[] = [
-                  'url'=>$u,
-                  'title'=>$title,
-                  'headings'=>[
-                    'h1'=>extract_tags($tx,'h1',10),
-                    'h2'=>extract_tags($tx,'h2',30),
-                    'h3'=>extract_tags($tx,'h3',30),
-                    'h4'=>extract_tags($tx,'h4',20),
-                  ]
-                ];
-                if (count($results)>=10) break;
-              }
+          foreach ($urls as $link) {
+            $html = curl_get_html($link);
+            $title = '';
+            if (preg_match('/<title[^>]*>([\s\S]*?)<\/title>/i', $html, $mm)) {
+              $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
             }
-            if (count($results) < 10 && preg_match_all('/<a[^>]+href="(https?:[^"]+)"/i', $html, $m2)){
-              foreach($m2[1] as $link){
-                $u = urldecode($link);
-                if (strpos($u,'http')!==0) continue;
-                if (preg_match('/google\.|gstatic\./i',$u)) continue;
-                if (in_array($u,$seen,true)) continue; $seen[]=$u;
-                $tx = curl_get($u);
-                $title = '';
-                if (preg_match('/<title[^>]*>([\s\S]*?)<\/title>/i', $tx, $mm)){
-                  $title = trim(preg_replace('/<[^>]+>/', ' ', $mm[1]));
-                }
-                $results[] = [
-                  'url'=>$u,
-                  'title'=>$title,
-                  'headings'=>[
-                    'h1'=>extract_tags($tx,'h1',10),
-                    'h2'=>extract_tags($tx,'h2',30),
-                    'h3'=>extract_tags($tx,'h3',30),
-                    'h4'=>extract_tags($tx,'h4',20),
-                  ]
-                ];
-                if (count($results)>=10) break;
-              }
-            }
+            $results[] = [
+              'url'=>$link,
+              'title'=>$title,
+              'headings'=>[
+                'h1'=>extract_tags($html,'h1',10),
+                'h2'=>extract_tags($html,'h2',30),
+                'h3'=>extract_tags($html,'h3',30),
+                'h4'=>extract_tags($html,'h4',20),
+              ]
+            ];
           }
           echo json_encode(['ok'=>true,'results'=>$results], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
           PHP
+
           # extract-headings.php: 1 URLから見出し抽出
           cat > api/extract-headings.php <<'PHP'
           <?php
