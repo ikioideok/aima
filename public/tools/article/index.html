@@ -24,68 +24,83 @@
       .card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: #fff; }
       .muted { color: var(--muted); font-size: 12px; }
       .list { list-style: disc; padding-left: 18px; }
-      .results { display: grid; gap: 8px; }
+      .layout { display: grid; gap: 16px; grid-template-columns: minmax(0,1fr); align-items: flex-start; }
+      @media (min-width: 960px){ .layout { grid-template-columns: 1fr 1.4fr; } }
+      .sidebar, .content { display: flex; flex-direction: column; gap: 16px; }
+      .results { display: grid; gap: 8px; grid-template-columns: minmax(0,1fr); }
+      @media (min-width: 960px){ .results { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+      .list-scroll { max-height: 130px; overflow-y: auto; padding-right: 4px; }
       .article { border:1px solid var(--border); border-radius:8px; padding:12px; background:#fff; }
       .prose h2 { font-size: 18px; margin: 16px 0 8px; }
       .prose h3 { font-size: 16px; margin: 14px 0 6px; }
       .prose p { margin: 8px 0; }
       .hidden { display: none; }
+      .headings-grid { display: grid; gap: 8px; grid-template-columns: minmax(0,1fr); margin-top: 8px; }
+      @media (min-width: 960px){ .headings-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+      .result-card label { display: flex; align-items: flex-start; gap: 10px; height: 100%; }
+      .result-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; height: 100%; }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>AI記事生成（ベータ）</h1>
-      <div class="card">
-        <div class="grid">
-          <label>
-            <div class="muted">キーワード</div>
-            <input id="kw" type="text" placeholder="例：SEO 内部対策 チェックリスト" />
-          </label>
-          <div class="row">
-            <label>
-              <div class="muted">プロバイダ</div>
-              <select id="provider">
-                <option value="gemini">Gemini</option>
-                <option value="openai">OpenAI</option>
-              </select>
-            </label>
-            <label style="flex:1 1 auto">
-              <div class="muted">モデル</div>
-              <input id="model" type="text" value="gemini-2.5-pro" />
-            </label>
+      <div class="layout">
+        <div class="sidebar">
+          <div class="card">
+            <div class="grid">
+              <label>
+                <div class="muted">キーワード</div>
+                <input id="kw" type="text" placeholder="例：SEO 内部対策 チェックリスト" />
+              </label>
+              <div class="row">
+                <label>
+                  <div class="muted">プロバイダ</div>
+                  <select id="provider">
+                    <option value="gemini">Gemini</option>
+                    <option value="openai">OpenAI</option>
+                  </select>
+                </label>
+                <label style="flex:1 1 auto">
+                  <div class="muted">モデル</div>
+                  <input id="model" type="text" value="gemini-2.5-pro" />
+                </label>
+              </div>
+              <div class="actions">
+                <button id="btn-outline" class="btn primary">アウトライン作成</button>
+                <button id="btn-article" class="btn" disabled>本文生成</button>
+              </div>
+            </div>
+            <div id="err" class="muted" style="color:#c00; margin-top:8px;"></div>
           </div>
-          <div class="actions">
-            <button id="btn-outline" class="btn primary">アウトライン作成</button>
-            <button id="btn-article" class="btn" disabled>本文生成</button>
+
+          <div id="manual" class="card hidden">
+            <div class="muted" style="margin-bottom:6px;">検索で取得できない場合、URLを手動で入力（1行1件・最大10件）</div>
+            <textarea id="manual-urls" placeholder="https://example.com/....\nhttps://...\n..."></textarea>
+            <div class="row" style="margin-top:6px;">
+              <button id="btn-extract" class="btn">見出しを取得</button>
+              <button id="btn-cancel-manual" class="btn">キャンセル</button>
+            </div>
           </div>
         </div>
-        <div id="err" class="muted" style="color:#c00; margin-top:8px;"></div>
-      </div>
 
-      <div id="manual" class="card hidden" style="margin-top:12px;">
-        <div class="muted" style="margin-bottom:6px;">検索で取得できない場合、URLを手動で入力（1行1件・最大10件）</div>
-        <textarea id="manual-urls" placeholder="https://example.com/....\nhttps://...\n..."></textarea>
-        <div class="row" style="margin-top:6px;">
-          <button id="btn-extract" class="btn">見出しを取得</button>
-          <button id="btn-cancel-manual" class="btn">キャンセル</button>
+        <div class="content">
+          <div id="sources" class="card hidden">
+            <div class="row" style="justify-content: space-between;">
+              <div>参考にするサイトを選択</div>
+              <div id="sources-count" class="muted"></div>
+            </div>
+            <div id="sources-list" class="results"></div>
+            <div class="row" style="margin-top:8px;">
+              <button id="btn-retry" class="btn">検索をやり直す</button>
+              <button id="btn-manual" class="btn">URLを手動入力</button>
+              <button id="btn-build-outline" class="btn primary">選んだサイトを参考に構成案を作成</button>
+            </div>
+          </div>
+
+          <div id="outline" class="card hidden"></div>
+          <div id="article" class="card hidden"></div>
         </div>
       </div>
-
-      <div id="sources" class="card hidden" style="margin-top:12px;">
-        <div class="row" style="justify-content: space-between;">
-          <div>参考にするサイトを選択</div>
-          <div id="sources-count" class="muted"></div>
-        </div>
-        <div id="sources-list" class="results"></div>
-        <div class="row" style="margin-top:8px;">
-          <button id="btn-retry" class="btn">検索をやり直す</button>
-          <button id="btn-manual" class="btn">URLを手動入力</button>
-          <button id="btn-build-outline" class="btn primary">選んだサイトを参考に構成案を作成</button>
-        </div>
-      </div>
-
-      <div id="outline" class="card hidden" style="margin-top:12px;"></div>
-      <div id="article" class="card hidden" style="margin-top:12px;"></div>
     </div>
 
     <script>
@@ -109,17 +124,17 @@
         sourcesCount.textContent = sources.length + '件'
         sources.forEach((s, i) => {
           const card = document.createElement('div')
-          card.className = 'card'
+          card.className = 'card result-card'
           card.innerHTML = `
-            <label class="row" style="align-items:flex-start; gap:10px;">
+            <label>
               <input type="checkbox" data-url="${s.url}" ${selected[s.url]?'checked':''} />
-              <div style="flex:1 1 auto; min-width:0;">
-                <div style="font-weight:600;">${i+1}. ${s.title || s.url}</div>
+              <div class="result-body">
+                <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${i+1}. ${s.title || s.url}</div>
                 <a href="${s.url}" target="_blank" rel="noreferrer" class="muted" style="word-break: break-all;">${s.url}</a>
-                <div class="grid grid-3" style="margin-top:6px;">
-                  <div><div class="muted">H2</div><ul class="list">${(s.headings?.h2||[]).slice(0,8).map(h=>`<li>${h}</li>`).join('')}</ul></div>
-                  <div><div class="muted">H3</div><ul class="list">${(s.headings?.h3||[]).slice(0,6).map(h=>`<li>${h}</li>`).join('')}</ul></div>
-                  <div><div class="muted">H4</div><ul class="list">${(s.headings?.h4||[]).slice(0,4).map(h=>`<li>${h}</li>`).join('')}</ul></div>
+                <div class="headings-grid">
+                  <div><div class="muted">H2</div><ul class="list list-scroll">${(s.headings?.h2||[]).slice(0,8).map(h=>`<li>${h}</li>`).join('')}</ul></div>
+                  <div><div class="muted">H3</div><ul class="list list-scroll">${(s.headings?.h3||[]).slice(0,6).map(h=>`<li>${h}</li>`).join('')}</ul></div>
+                  <div><div class="muted">H4</div><ul class="list list-scroll">${(s.headings?.h4||[]).slice(0,4).map(h=>`<li>${h}</li>`).join('')}</ul></div>
                 </div>
               </div>
             </label>`
