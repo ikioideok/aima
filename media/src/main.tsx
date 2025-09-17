@@ -18,7 +18,7 @@ import SubscribePage from "./pages/SubscribePage.tsx";
 import ConsultPage from "./pages/ConsultPage.tsx";
 import SeoChecklistPage from "./pages/SeoChecklistPage.tsx";
 import Admin from "./pages/Admin.tsx";
-import ToolsArticle from "./pages/ToolsArticle.tsx";
+import LegacyToolsRedirect from "./pages/LegacyToolsRedirect.tsx";
 import "./styles/globals.css";
 
 function ScrollToTop() {
@@ -51,7 +51,7 @@ createRoot(document.getElementById("root")!).render(
       <Route path="/subscribe" element={<SubscribePage />} />
       <Route path="/consult" element={<ConsultPage />} />
       <Route path="/admin" element={<Admin />} />
-      <Route path="/tools/article" element={<ToolsArticle />} />
+      <Route path="/tools/article" element={<LegacyToolsRedirect />} />
     </Routes>
   </BrowserRouter>
 );

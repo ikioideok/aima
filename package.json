@@ -40,6 +40,7 @@
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.22.3",
     "react-hook-form": "^7.55.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
@@ -58,7 +59,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "./node_modules/.bin/vite build && node scripts/prerender.mjs",
+    "build": "./node_modules/.bin/vite build && npm run build:tools && node scripts/prerender.mjs",
+    "build:tools": "./node_modules/.bin/vite build --config tools/vite.config.ts",
     "postbuild": "cd media && npm ci && ../node_modules/.bin/vite build && node scripts/prerender.mjs"
   }
 }

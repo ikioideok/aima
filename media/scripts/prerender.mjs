@@ -109,7 +109,6 @@ const routes = [
   '/media/featured/',
   '/media/special/',
   '/media/resources/',
-  '/media/tools/article/',
   '/media/search/',
   '/media/privacy/',
   '/media/terms/',
