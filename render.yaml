@@ -25,6 +25,28 @@ services:
         name: X-Frame-Options
         value: SAMEORIGIN
 
+  - type: static
+    name: aima-tools
+    env: node
+    buildCommand: npm ci && npm run build && npm run postbuild
+    publishPath: dist/tools
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_CMS_API_BASE
+        fromService:
+          type: web
+          name: aima-cms-api
+          property: url
+      - key: VITE_ADMIN_TOKEN
+        sync: false
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+
   # CMS API（Node.js, Express）
   - type: web
     name: aima-cms-api
