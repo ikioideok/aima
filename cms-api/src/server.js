@@ -594,6 +594,68 @@ function normalizeOutlineData(input, { keyword, category, tone, target_audience,
   }
 }
 
+const ALLOWED_INTENT_LABELS = new Set(['Do', 'Know', 'Buy', 'Go'])
+
+function clampText(value, max) {
+  const str = typeof value === 'string' ? value.trim() : ''
+  if (!str) return ''
+  return str.length > max ? str.slice(0, max) : str
+}
+
+function sanitizeAnalysisInput(raw) {
+  const result = {
+    persona: '',
+    articleDirection: '',
+    userNeeds: [],
+    solution: '',
+    notes: '',
+    safeIntent: '',
+    intentSummary: '',
+    outlineBlock: '',
+    articleLines: [],
+  }
+  if (!raw || typeof raw !== 'object') return result
+
+  const intentLabel = clampText(raw.intent_label, 10)
+  const safeIntent = ALLOWED_INTENT_LABELS.has(intentLabel) ? intentLabel : ''
+  const intentSummary = clampText(raw.intent_summary, 200)
+  const persona = clampText(raw.persona, 160)
+  const articleDirection = clampText(raw.article_direction, 220)
+  const userNeeds = Array.isArray(raw.user_needs)
+    ? raw.user_needs.map((v) => clampText(v, 120)).filter(Boolean)
+    : []
+  const solution = clampText(raw.solution, 220)
+  const notes = clampText(raw.notes, 200)
+
+  const outlineLines = []
+  if (safeIntent) outlineLines.push(`検索意図: ${safeIntent}${intentSummary ? `（${intentSummary}）` : ''}`)
+  if (persona) outlineLines.push(`想定ペルソナ: ${persona}`)
+  if (articleDirection) outlineLines.push(`記事の方向性: ${articleDirection}`)
+  if (userNeeds.length) outlineLines.push(`主要ニーズ:\n${userNeeds.map((n) => `  - ${n}`).join('\n')}`)
+  if (solution) outlineLines.push(`ニーズ解決策: ${solution}`)
+  if (notes) outlineLines.push(`補足: ${notes}`)
+
+  const articleLines = []
+  if (persona) articleLines.push(`- 想定ペルソナ: ${persona}`)
+  if (articleDirection) articleLines.push(`- 記事の方向性: ${articleDirection}`)
+  if (userNeeds.length) articleLines.push(`- 想定ニーズ:\n${userNeeds.map((n) => `  - ${n}`).join('\n')}`)
+  if (solution) articleLines.push(`- 解決策の打ち出し: ${solution}`)
+  if (notes) articleLines.push(`- 補足事項: ${notes}`)
+  if (safeIntent) articleLines.push(`- 想定検索意図: ${safeIntent}${intentSummary ? `（${intentSummary}）` : ''}`)
+
+  return {
+    persona,
+    articleDirection,
+    userNeeds,
+    solution,
+    notes,
+    safeIntent,
+    intentSummary,
+    outlineBlock: outlineLines.length ? `\n- 検索意図・ニーズ分析:\n${outlineLines.join('\n')}` : '',
+    articleLines,
+  }
+}
+
 // --- AI: Generate Outline ---
 app.post('/generate-outline', requireAdmin, async (req, res) => {
   try {
@@ -610,37 +672,9 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'keyword is required' })
     }
 
-    const clamp = (value, max) => {
-      const str = typeof value === 'string' ? value.trim() : ''
-      if (!str) return ''
-      return str.length > max ? str.slice(0, max) : str
-    }
-
-    const analysisInput = req.body?.analysis && typeof req.body.analysis === 'object' ? req.body.analysis : null
-    const allowedIntent = new Set(['Do', 'Know', 'Buy', 'Go'])
-    let analysisBlock = ''
-    let analysisPersona = ''
-    if (analysisInput) {
-      const intentLabel = clamp(analysisInput.intent_label, 10)
-      const safeIntent = allowedIntent.has(intentLabel) ? intentLabel : ''
-      const intentSummary = clamp(analysisInput.intent_summary, 200)
-      const persona = clamp(analysisInput.persona, 160)
-      const direction = clamp(analysisInput.article_direction, 220)
-      const needs = Array.isArray(analysisInput.user_needs)
-        ? analysisInput.user_needs.map((v) => clamp(v, 120)).filter(Boolean)
-        : []
-      const solution = clamp(analysisInput.solution, 220)
-      const notes = clamp(analysisInput.notes, 200)
-      const lines = []
-      if (safeIntent) lines.push(`検索意図: ${safeIntent}${intentSummary ? `（${intentSummary}）` : ''}`)
-      if (persona) lines.push(`想定ペルソナ: ${persona}`)
-      if (direction) lines.push(`記事の方向性: ${direction}`)
-      if (needs.length) lines.push(`主要ニーズ:\n${needs.map((n) => `  - ${n}`).join('\n')}`)
-      if (solution) lines.push(`ニーズ解決策: ${solution}`)
-      if (notes) lines.push(`補足: ${notes}`)
-      analysisBlock = lines.length ? `\n- 検索意図・ニーズ分析:\n${lines.join('\n')}` : ''
-      analysisPersona = persona
-    }
+    const analysisDetails = sanitizeAnalysisInput(req.body?.analysis)
+    const analysisBlock = analysisDetails.outlineBlock
+    const analysisPersona = analysisDetails.persona
 
     const schema = {
       type: 'object',
@@ -771,13 +805,24 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
       return `${i + 1}. ${sec.title}${h3 ? `\n${h3}` : ''}`
     }).join('\n')
 
+    const analysisDetails = sanitizeAnalysisInput(req.body?.analysis)
+    const toneText = clampText(outline.tone, 120) || 'わかりやすく丁寧'
+    const audienceText = clampText(outline.target_audience, 160) || analysisDetails.persona || 'このテーマに関心のある人'
+    const premiseLines = [
+      `- トーン: ${toneText}`,
+      `- 想定読者: ${audienceText}`,
+      `- 目標文字数: 約${targetWords}文字`,
+    ]
+    const analysisPremiseLines = analysisDetails.articleLines
+    const premiseBlock = [...premiseLines, ...analysisPremiseLines, `- 見出し構成:\n${outlineText}`].join('\n')
+
     const system = 'あなたは日本語のプロ編集者・ライターです。専門的なテーマでも読み手が理解しやすいよう構成と文章を整えます。冗長・誇張を避け、段落中心で読みやすいHTML構造にまとめてください。'
     const exampleArticle = {
       title: '家庭で備える防災対策ガイド',
       excerpt: '家庭で実践できる防災対策をまとめたガイド。日頃の備えから避難時の行動まで、家族で共有したいポイントを整理します。',
       body: '<p>この記事では、家庭で備えておきたい防災対策を整理します。日頃の準備と緊急時の行動を分けて確認し、家族で共有できる形にまとめましょう。</p>\n<h2>日頃から整えておく備え</h2>\n<p>飲料水や非常食、常備薬などの備蓄は家族の人数とライフスタイルに合わせて用意します。</p>\n<p>懐中電灯やモバイルバッテリー、防災ラジオなどは定期的に点検し、いざという時に使える状態を維持しましょう。</p>\n<h2>避難時に意識したい行動</h2>\n<p>自宅や職場周辺のハザードマップを確認し、避難経路や集合場所を事前に決めておきます。</p>\n<p>災害発生時は最新情報をこまめに確認し、安全を最優先に落ち着いて行動することが大切です。</p>'
     }
-    const user = `前提:\n- サイト: AIMA（AIとマーケティングの知見を扱うメディア）\n- トーン: ${outline.tone || 'わかりやすく丁寧'}\n- 想定読者: ${outline.target_audience || 'このテーマに関心のある人'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。<p>を主体に、各セクションは段落から始める。\n- 箇条書きは必要な場合のみ。各<h2>セクションで<ul>は最大1回、3〜5項目まで。連続した<ul>は禁止。\n- 各<h2>は少なくとも2つの<p>を含む。各<h3>も少なくとも1つの<p>を含む。\n- 導入で期待値を提示し、各見出しでは段落で解説→必要なら要点を<ul>で補足。最後はまとめの段落で締める。\n- 根拠のない断定や最新情報の言い切りは避ける。`
+    const user = `前提:\n${premiseBlock}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。<p>を主体に、各セクションは段落から始める。\n- 箇条書きは必要な場合のみ。各<h2>セクションで<ul>は最大1回、3〜5項目まで。連続した<ul>は禁止。\n- 各<h2>は少なくとも2つの<p>を含む。各<h3>も少なくとも1つの<p>を含む。\n- 導入で期待値を提示し、各見出しでは段落で解説→必要なら要点を<ul>で補足。最後はまとめの段落で締める。\n- 根拠のない断定や最新情報の言い切りは避ける。`
 
     let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 16384, model })
 
