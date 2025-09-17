@@ -26,6 +26,18 @@ type Outline = {
 type SourceHeadings = { h1?: string[]; h2?: string[]; h3?: string[]; h4?: string[] }
 type SourceResult = { url: string; title: string; headings: SourceHeadings }
 
+type IntentLabel = 'Do' | 'Know' | 'Buy' | 'Go'
+
+type SerpAnalysis = {
+  intent_label: IntentLabel
+  intent_summary: string
+  persona: string
+  article_direction: string
+  user_needs: string[]
+  solution: string
+  notes?: string
+}
+
 export default function ToolsArticle() {
   const CMS_BASE = useCMSBase()
   const ADMIN_TOKEN = (import.meta as any).env?.VITE_ADMIN_TOKEN || ''
@@ -44,6 +56,8 @@ export default function ToolsArticle() {
   const [selected, setSelected] = React.useState<Record<string, boolean>>({})
   const [manualUrls, setManualUrls] = React.useState<string>('')
   const [manualMode, setManualMode] = React.useState<boolean>(false)
+  const [analysis, setAnalysis] = React.useState<SerpAnalysis|null>(null)
+  const [analysisLoading, setAnalysisLoading] = React.useState(false)
 
   // Sakura 直下の /api を優先して呼ぶため、管理トークン前提のブロックは外す
   const canCall = true
@@ -87,6 +101,69 @@ export default function ToolsArticle() {
 
   const provider = modelProvider === 'gemini' ? 'gemini' : 'openai'
 
+  const selectedSources = React.useMemo(() => sources.filter((s) => selected[s.url]), [sources, selected])
+
+  const sanitizeAnalysis = React.useCallback((data: any): SerpAnalysis => {
+    const allowed: IntentLabel[] = ['Do', 'Know', 'Buy', 'Go']
+    const clamp = (value: any, max: number) => {
+      const str = typeof value === 'string' ? value.trim() : ''
+      if (!str) return ''
+      return str.length > max ? str.slice(0, max) : str
+    }
+    const intentLabelRaw = typeof data?.intent_label === 'string' ? data.intent_label.trim() : ''
+    const intent_label = (allowed.includes(intentLabelRaw as IntentLabel) ? intentLabelRaw : 'Know') as IntentLabel
+    const needs = Array.isArray(data?.user_needs)
+      ? data.user_needs.map((item: any) => clamp(item, 120)).filter(Boolean)
+      : []
+    const keywordText = keyword.trim()
+    const defaultPersona = keywordText ? `${keywordText}に関心のある人` : 'このテーマに関心のある人'
+    const defaultNeed = keywordText ? `${keywordText}の基本や活用方法を知りたい` : 'テーマの基本を理解したい'
+    const defaultSolution = keywordText
+      ? `${keywordText}に関する主要な疑問へ体系的に答えるコンテンツを用意する`
+      : '主要な疑問に順番に答える構成にする'
+    const defaultDirection = '検索ユーザーの疑問を序盤から順番に解消する構成にする'
+    return {
+      intent_label,
+      intent_summary: clamp(data?.intent_summary, 200),
+      persona: clamp(data?.persona, 120) || defaultPersona,
+      article_direction: clamp(data?.article_direction, 200) || defaultDirection,
+      user_needs: needs.length ? needs : [defaultNeed],
+      solution: clamp(data?.solution, 220) || defaultSolution,
+      notes: clamp(data?.notes, 220) || undefined,
+    }
+  }, [keyword])
+
+  const runSerpAnalysis = React.useCallback(async (force = false) => {
+    if (!canCall) return
+    if (!keyword.trim()) return
+    if (!selectedSources.length) return
+    if (analysis && !force) return
+    setAnalysisLoading(true)
+    try {
+      const payload = { provider, model: modelId, keyword, sources: selectedSources }
+      let res: any = null
+      try {
+        res = await callPhp('/analyze-serp', payload)
+      } catch (err) {
+        res = await callCms('/analyze-serp', payload)
+      }
+      if (!res?.ok || !res?.analysis) throw new Error('AI分析の取得に失敗しました')
+      setAnalysis(sanitizeAnalysis(res.analysis))
+    } catch (e: any) {
+      setError(e?.message || 'AI分析の生成に失敗しました')
+    } finally {
+      setAnalysisLoading(false)
+    }
+  }, [analysis, canCall, callCms, callPhp, keyword, modelId, provider, sanitizeAnalysis, selectedSources, setError])
+
+  React.useEffect(() => {
+    if (!sources.length) return
+    if (!selectedSources.length) return
+    if (analysis || analysisLoading) return
+    if (!keyword.trim()) return
+    runSerpAnalysis(false)
+  }, [analysis, analysisLoading, keyword, runSerpAnalysis, selectedSources, sources.length])
+
   const sanitizeOutline = React.useCallback(
     (data: Outline): Outline => {
       const slugify = (str: string) =>
@@ -99,6 +176,11 @@ export default function ToolsArticle() {
           .replace(/^-+|-+$/g, '') || 'article'
 
       const title = (data.title || '').trim()
+      const persona = typeof data.persona === 'string' ? data.persona.trim() : ''
+      const targetAudience = typeof data.target_audience === 'string' ? data.target_audience.trim() : ''
+      const tone = typeof data.tone === 'string' ? data.tone.trim() : ''
+      const wcNumber = Number(data.word_count_target)
+      const wordCount = Number.isFinite(wcNumber) && wcNumber > 0 ? Math.round(wcNumber) : undefined
       const cleanH2 = (data.h2 || []).reduce<Outline['h2']>((acc, section) => {
         const h2Title = (section.title || '').trim()
         if (!h2Title) return acc
@@ -112,6 +194,10 @@ export default function ToolsArticle() {
         title: title || data.title || 'アウトライン',
         slug: (data.slug || slugify(title || data.slug || data.title || 'article')) as string,
         keyword: data.keyword || keyword,
+        persona,
+        target_audience: targetAudience,
+        tone,
+        word_count_target: wordCount,
         h2: cleanH2,
       }
     },
@@ -120,6 +206,22 @@ export default function ToolsArticle() {
 
   const handleOutlineTitleChange = React.useCallback((value: string) => {
     setOutline(prev => prev ? { ...prev, title: value } : prev)
+  }, [])
+
+  const handleOutlineMetaChange = React.useCallback((key: 'persona' | 'target_audience' | 'tone', value: string) => {
+    setOutline(prev => {
+      if (!prev) return prev
+      return { ...prev, [key]: value } as Outline
+    })
+  }, [])
+
+  const handleOutlineWordCountChange = React.useCallback((value: string) => {
+    setOutline(prev => {
+      if (!prev) return prev
+      const num = parseInt(value, 10)
+      const next = Number.isFinite(num) && num > 0 ? num : undefined
+      return { ...prev, word_count_target: next }
+    })
   }, [])
 
   const handleH2TitleChange = React.useCallback((index: number, value: string) => {
@@ -183,6 +285,7 @@ export default function ToolsArticle() {
         const initSel: Record<string, boolean> = {}
         for (const it of list) initSel[it.url] = true
         setSelected(initSel)
+        setAnalysis(null)
       } catch (e:any) {
         setError(e?.message || '検索に失敗しました')
       } finally { setLoading(false) }
@@ -192,7 +295,18 @@ export default function ToolsArticle() {
     setLoading(true)
     try {
       const chosen = sources.filter(s => selected[s.url])
-      const payload = { provider, model: modelId, keyword, sources: chosen }
+      const analysisPayload = analysis
+        ? {
+            intent_label: analysis.intent_label,
+            intent_summary: analysis.intent_summary.trim(),
+            persona: analysis.persona.trim(),
+            article_direction: analysis.article_direction.trim(),
+            user_needs: analysis.user_needs.map((item) => item.trim()).filter(Boolean),
+            solution: analysis.solution.trim(),
+            ...(analysis.notes ? { notes: analysis.notes.trim() } : {}),
+          }
+        : null
+      const payload = { provider, model: modelId, keyword, sources: chosen, ...(analysisPayload ? { analysis: analysisPayload } : {}) }
       let res: any = null
       try { res = await callPhp('/generate-outline', payload) } catch { res = await callCms('/generate-outline', payload) }
       if (!res?.ok || !res?.outline) throw new Error('Invalid response')
@@ -335,6 +449,7 @@ export default function ToolsArticle() {
                   const initSel: Record<string, boolean> = {}
                   for (const it of out) initSel[it.url] = true
                   setSelected(initSel)
+                  setAnalysis(null)
                   setManualMode(false)
                 } catch (e:any) {
                   setError(e?.message || '抽出に失敗しました')
@@ -381,10 +496,105 @@ export default function ToolsArticle() {
                 ))}
               </div>
               <div className="mt-3 flex gap-2">
-                <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
+                  <button disabled={loading||!canCall} onClick={()=>{ setSources([]); setSelected({}); setOutline(null); setAnalysis(null); }} className="px-3 py-1 border rounded">検索をやり直す</button>
                   <button disabled={loading || !keyword.trim() || !canCall} onClick={onGenerateOutline} className="px-3 py-1 rounded bg-primary text-primary-foreground disabled:opacity-50">選んだサイトを参考に構成案を作成</button>
                 <button disabled={loading} onClick={()=> setManualMode(true)} className="px-3 py-1 border rounded">URLを手動入力</button>
               </div>
+            </div>
+          )}
+
+          {(sources.length > 0 || analysis) && (
+            <div className="p-4 border rounded bg-card space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <div className="font-semibold">検索意図・ニーズ分析</div>
+                  <p className="text-xs text-muted-foreground">検索結果をもとにAIが意図・ペルソナ・ニーズを整理します。必要に応じて編集してください。</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={analysisLoading || !selectedSources.length || loading}
+                    onClick={()=>{ setAnalysis(null); runSerpAnalysis(true) }}
+                    className="px-3 py-1 border rounded disabled:opacity-50"
+                  >
+                    {analysis ? 'AI分析を再生成' : 'AI分析を生成'}
+                  </button>
+                </div>
+              </div>
+              {analysisLoading && !analysis && (
+                <div className="text-sm text-muted-foreground">AIが分析中です…</div>
+              )}
+              {analysis && (
+                <div className="grid gap-3">
+                  <div className="grid gap-1">
+                    <label className="text-xs text-muted-foreground">検索意図</label>
+                    <div className="grid gap-2 sm:grid-cols-[140px,1fr] sm:items-center">
+                      <select
+                        className="border rounded px-2 py-1"
+                        value={analysis.intent_label}
+                        onChange={(e)=>{
+                          const value = e.target.value as IntentLabel
+                          setAnalysis(prev => prev ? { ...prev, intent_label: value } : prev)
+                        }}
+                      >
+                        <option value="Know">Know（情報収集）</option>
+                        <option value="Do">Do（課題解決・実行）</option>
+                        <option value="Buy">Buy（比較・購入検討）</option>
+                        <option value="Go">Go（場所・サービス指名）</option>
+                      </select>
+                      <textarea
+                        className="border rounded px-2 py-1 w-full h-16 resize-y"
+                        value={analysis.intent_summary}
+                        onChange={(e)=> setAnalysis(prev => prev ? { ...prev, intent_summary: e.target.value } : prev)}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-xs text-muted-foreground">想定ペルソナ</label>
+                    <input
+                      className="border rounded px-2 py-1"
+                      value={analysis.persona}
+                      onChange={(e)=> setAnalysis(prev => prev ? { ...prev, persona: e.target.value } : prev)}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-xs text-muted-foreground">どのような方向性の記事にするか</label>
+                    <textarea
+                      className="border rounded px-2 py-1 h-20 resize-y"
+                      value={analysis.article_direction}
+                      onChange={(e)=> setAnalysis(prev => prev ? { ...prev, article_direction: e.target.value } : prev)}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-xs text-muted-foreground">ユーザーの抱えているニーズ（1行につき1つ）</label>
+                    <textarea
+                      className="border rounded px-2 py-1 h-24 resize-y"
+                      value={analysis.user_needs.join('\n')}
+                      onChange={(e)=>{
+                        const lines = e.target.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+                        setAnalysis(prev => prev ? { ...prev, user_needs: lines } : prev)
+                      }}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-xs text-muted-foreground">ニーズを解決するには</label>
+                    <textarea
+                      className="border rounded px-2 py-1 h-20 resize-y"
+                      value={analysis.solution}
+                      onChange={(e)=> setAnalysis(prev => prev ? { ...prev, solution: e.target.value } : prev)}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-xs text-muted-foreground">メモ（任意）</label>
+                    <textarea
+                      className="border rounded px-2 py-1 h-16 resize-y"
+                      value={analysis.notes ?? ''}
+                      placeholder="補足したいポイントや注意書きがあれば入力"
+                      onChange={(e)=> setAnalysis(prev => prev ? { ...prev, notes: e.target.value } : prev)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -397,6 +607,45 @@ export default function ToolsArticle() {
                   value={outline.title || ''}
                   onChange={(e)=> handleOutlineTitleChange(e.target.value)}
                 />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1">
+                  <span className="text-xs text-muted-foreground">ペルソナ</span>
+                  <input
+                    className="border rounded px-2 py-1"
+                    value={outline.persona || ''}
+                    onChange={(e)=> handleOutlineMetaChange('persona', e.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs text-muted-foreground">想定読者</span>
+                  <input
+                    className="border rounded px-2 py-1"
+                    value={outline.target_audience || ''}
+                    onChange={(e)=> handleOutlineMetaChange('target_audience', e.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1">
+                  <span className="text-xs text-muted-foreground">トーン</span>
+                  <input
+                    className="border rounded px-2 py-1"
+                    value={outline.tone || ''}
+                    onChange={(e)=> handleOutlineMetaChange('tone', e.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs text-muted-foreground">目標文字数</span>
+                  <input
+                    type="number"
+                    min={0}
+                    className="border rounded px-2 py-1"
+                    value={outline.word_count_target ?? ''}
+                    onChange={(e)=> handleOutlineWordCountChange(e.target.value)}
+                    placeholder="例：1800"
+                  />
+                </label>
               </div>
               <div className="space-y-3">
                 {outline.h2.map((section, index) => (
