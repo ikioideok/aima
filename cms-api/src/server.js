@@ -289,6 +289,89 @@ app.post('/extract-headings', async (req, res) => {
   }
 })
 
+app.post('/analyze-serp', requireAdmin, async (req, res) => {
+  try {
+    const { provider = 'gemini', model } = req.body || {}
+    if (provider === 'gemini') { if (!ensureGemini(res)) return } else { if (!ensureOpenAI(res)) return }
+    const keyword = String(req.body?.keyword || '').trim()
+    if (!keyword) return res.status(400).json({ error: 'keyword is required' })
+    const rawSources = Array.isArray(req.body?.sources) ? req.body.sources : []
+    if (!rawSources.length) return res.status(400).json({ error: 'sources are required' })
+
+    const sourcesText = rawSources.slice(0, 6).map((s, idx) => {
+      const title = typeof s?.title === 'string' ? s.title : ''
+      const url = typeof s?.url === 'string' ? s.url : ''
+      const h2 = Array.isArray(s?.headings?.h2) ? s.headings.h2.slice(0, 6).map((v) => `- ${String(v).slice(0, 60)}`).join('\n') : ''
+      const h3 = Array.isArray(s?.headings?.h3) ? s.headings.h3.slice(0, 4).map((v) => `- ${String(v).slice(0, 60)}`).join('\n') : ''
+      return `#${idx + 1} ${title || url}\nURL: ${url}\n主なH2:\n${h2 || '-'}\n主なH3:\n${h3 || '-'}`
+    }).join('\n\n')
+
+    const schema = {
+      type: 'object',
+      required: ['intent_label', 'intent_summary', 'persona', 'article_direction', 'user_needs', 'solution'],
+      additionalProperties: false,
+      properties: {
+        intent_label: { type: 'string', enum: ['Do', 'Know', 'Buy', 'Go'] },
+        intent_summary: { type: 'string' },
+        persona: { type: 'string' },
+        article_direction: { type: 'string' },
+        user_needs: { type: 'array', items: { type: 'string' }, minItems: 1 },
+        solution: { type: 'string' },
+        notes: { type: 'string' }
+      }
+    }
+
+    const system = 'あなたは日本語のSEOコンテンツストラテジストです。検索結果を精査し、読者インサイトと記事の狙いを短く整理します。冗長な言い回しは避け、実務的かつ端的にまとめてください。'
+    const user = `前提\n- キーワード: ${keyword}\n- 参照した検索結果:\n${sourcesText || '-'}\n\nタスク\n1. 検索意図を Do / Know / Buy / Go のいずれかで分類し、根拠を1〜2文で整理する。\n2. 想定ペルソナ（立場・役割・課題感）を一文でまとめる。\n3. 記事の方向性（狙う切り口・ゴール）を具体的に示す。\n4. ペルソナが抱える主要ニーズを3つ前後の箇条書きで整理する。\n5. そのニーズを満たすための解決方針を一段落で説明する。\n必要ならnotesにメモを追加してよい。\n\n出力形式（JSONのみ）:\n{"intent_label":"Do|Know|Buy|Go","intent_summary":"根拠","persona":"一文","article_direction":"一文","user_needs":["ニーズ1","ニーズ2"],"solution":"解決策","notes":"任意"}\n制約:\n- すべて日本語。\n- 箇条書きは簡潔に。\n- JSON以外の文字列・コードフェンスは禁止。`
+
+    const maxTokens = provider === 'gemini' ? 3072 : 2048
+    let json
+    try {
+      json = await llmChatJSON({ provider, system, user, schema, temperature: 0.4, max_tokens: maxTokens, model })
+    } catch (e) {
+      throw e
+    }
+
+    const clamp = (value, max) => {
+      const str = typeof value === 'string' ? value.trim() : ''
+      if (!str) return ''
+      return str.length > max ? str.slice(0, max) : str
+    }
+    const allowed = new Set(['Do', 'Know', 'Buy', 'Go'])
+    let intentLabel = clamp(json?.intent_label, 10)
+    if (!allowed.has(intentLabel)) intentLabel = 'Know'
+    const persona = clamp(json?.persona, 160)
+    const direction = clamp(json?.article_direction, 220)
+    const summary = clamp(json?.intent_summary, 220)
+    const solution = clamp(json?.solution, 260)
+    const notes = clamp(json?.notes, 260)
+    const needs = Array.isArray(json?.user_needs)
+      ? json.user_needs.map((v) => clamp(v, 120)).filter(Boolean)
+      : []
+
+    const defaultPersona = keyword ? `${keyword}に関心のある人` : 'このテーマに関心のある人'
+    const defaultNeeds = keyword ? [`${keyword}の基本や活用方法を知りたい`] : ['テーマの基本を理解したい']
+    const defaultSolution = keyword
+      ? `${keyword}に関する主要な疑問へ体系的に答えるコンテンツを用意する`
+      : '主要な疑問に順番に答える構成にする'
+    const defaultDirection = '検索意図に沿って読者の疑問を順番に解消する構成にする'
+    const analysis = {
+      intent_label: intentLabel,
+      intent_summary: summary,
+      persona: persona || defaultPersona,
+      article_direction: direction || defaultDirection,
+      user_needs: needs.length ? needs : defaultNeeds,
+      solution: solution || defaultSolution,
+      notes: notes || undefined,
+    }
+
+    res.json({ ok: true, analysis })
+  } catch (e) {
+    console.error('analyze-serp error:', e?.message || e)
+    res.status(500).json({ error: 'Failed to analyze SERP', detail: String(e?.message || '') })
+  }
+})
+
 // --- LLM helpers ---
 function ensureOpenAI(res) {
   if (!OPENAI_API_KEY) {
@@ -452,11 +535,13 @@ async function llmChatJSON({ provider = 'openai', ...opts }) {
 // slugify is defined above (shared helpers)
 
 function normalizeOutlineData(input, { keyword, category, tone, target_audience, word_count_target }) {
-  const title = String(input?.title || keyword || '').slice(0, 160) || `${keyword}のガイド`
+  const keywordText = String(keyword || '').trim()
+  const title = String(input?.title || keywordText || '').slice(0, 160) || `${keywordText}のガイド`
   const slug = slugify(input?.slug || title)
-  const persona = input?.persona || 'マーケター'
+  const defaultPersona = keywordText ? `${keywordText}に関心のある人` : 'このテーマに関心のある人'
+  const persona = input?.persona || defaultPersona
   const seo = input?.seo && typeof input.seo === 'object' ? input.seo : {}
-  const ta = input?.target_audience || target_audience
+  const ta = input?.target_audience || target_audience || defaultPersona
   const tn = input?.tone || tone
   const wc = Number(input?.word_count_target || word_count_target)
 
@@ -483,14 +568,15 @@ function normalizeOutlineData(input, { keyword, category, tone, target_audience,
   }
 
   if (!h2 || h2.length === 0) {
+    const theme = keywordText || 'テーマ'
     h2 = [
-      { title: 'イントロダクション', h3: [] },
-      { title: `${keyword}の基礎`, h3: ['定義', '重要性', '適用領域'] },
-      { title: `${keyword}の実務活用`, h3: ['手順', 'テンプレート', 'チェックリスト'] },
-      { title: '成功事例とベストプラクティス', h3: [] },
-      { title: '計測とKPI設定', h3: ['指標', 'レポート例'] },
-      { title: 'よくある落とし穴と対策', h3: [] },
-      { title: 'まとめ・次のアクション', h3: [] },
+      { title: `${theme}とは`, h3: ['背景', '基本の考え方'] },
+      { title: `${theme}の特徴とメリット`, h3: ['メリット', '注意点'] },
+      { title: `${theme}の始め方`, h3: ['準備', '手順', 'チェックポイント'] },
+      { title: `${theme}の活用シーン`, h3: ['活用例', '参考になる取り組み'] },
+      { title: `${theme}をより良くするヒント`, h3: ['コツ', 'よくある課題と対策'] },
+      { title: `${theme}に関するよくある質問`, h3: [] },
+      { title: 'まとめ', h3: ['押さえておきたいポイント', '次のステップ'] },
     ]
   }
 
@@ -516,12 +602,44 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     const {
       keyword,
       category = '',
-      tone = '実務的で明快',
-      target_audience = 'マーケ担当者・事業責任者',
+      tone = 'わかりやすく丁寧',
+      target_audience = 'このテーマに関心のある人',
       word_count_target = 1800,
     } = req.body || {}
     if (!keyword || typeof keyword !== 'string') {
       return res.status(400).json({ error: 'keyword is required' })
+    }
+
+    const clamp = (value, max) => {
+      const str = typeof value === 'string' ? value.trim() : ''
+      if (!str) return ''
+      return str.length > max ? str.slice(0, max) : str
+    }
+
+    const analysisInput = req.body?.analysis && typeof req.body.analysis === 'object' ? req.body.analysis : null
+    const allowedIntent = new Set(['Do', 'Know', 'Buy', 'Go'])
+    let analysisBlock = ''
+    let analysisPersona = ''
+    if (analysisInput) {
+      const intentLabel = clamp(analysisInput.intent_label, 10)
+      const safeIntent = allowedIntent.has(intentLabel) ? intentLabel : ''
+      const intentSummary = clamp(analysisInput.intent_summary, 200)
+      const persona = clamp(analysisInput.persona, 160)
+      const direction = clamp(analysisInput.article_direction, 220)
+      const needs = Array.isArray(analysisInput.user_needs)
+        ? analysisInput.user_needs.map((v) => clamp(v, 120)).filter(Boolean)
+        : []
+      const solution = clamp(analysisInput.solution, 220)
+      const notes = clamp(analysisInput.notes, 200)
+      const lines = []
+      if (safeIntent) lines.push(`検索意図: ${safeIntent}${intentSummary ? `（${intentSummary}）` : ''}`)
+      if (persona) lines.push(`想定ペルソナ: ${persona}`)
+      if (direction) lines.push(`記事の方向性: ${direction}`)
+      if (needs.length) lines.push(`主要ニーズ:\n${needs.map((n) => `  - ${n}`).join('\n')}`)
+      if (solution) lines.push(`ニーズ解決策: ${solution}`)
+      if (notes) lines.push(`補足: ${notes}`)
+      analysisBlock = lines.length ? `\n- 検索意図・ニーズ分析:\n${lines.join('\n')}` : ''
+      analysisPersona = persona
     }
 
     const schema = {
@@ -570,8 +688,8 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
     }).join('\\n\\n')
     const refBlock = sourcesText ? `\n\n参考サイトの見出しを参考に、重複・コピペを避けて最適な構成を作ること:\n${sourcesText}` : ''
 
-    const userOpenAI = `前提\n- キーワード: ${keyword}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}${refBlock}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n\n注意:\n- h3の数は章の内容に応じて柔軟に増減させてください。例えば、h3が0個や5個以上になることもあります。\n- JSON以外のテキスト（説明、注釈、コードフェンスなど）は絶対に出力しないでください。`
-    const userGemini = `前提\n- キーワード: ${keyword}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}${refBlock}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n注意:\n- 各h2見出しに含めるh3見出しの数は、内容の複雑さに応じて調整してください。h3が不要な場合もあれば、多数必要な場合もあります。\n- 説明文やコードフェンスは禁止。JSON以外の出力は禁止。`
+    const userOpenAI = `前提\n- キーワード: ${keyword}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}${analysisBlock}${refBlock}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n\n注意:\n- h3の数は章の内容に応じて柔軟に増減させてください。例えば、h3が0個や5個以上になることもあります。\n- JSON以外のテキスト（説明、注釈、コードフェンスなど）は絶対に出力しないでください。`
+    const userGemini = `前提\n- キーワード: ${keyword}\n- トーン: ${tone}\n- 想定読者: ${target_audience}\n- 目標文字数: ${word_count_target}${analysisBlock}${refBlock}\n\n出力形式（JSONのみ）：\n{"title":string,"slug":string,"persona":string,"target_audience":string,"tone":string,"word_count_target":number,"seo":{"keywords":string[],"meta_description":string,"cta":string},"h2":[{"title":"章タイトル","h3":["小見出し1", "小見出し2", "..."]}] }\n注意:\n- 各h2見出しに含めるh3見出しの数は、内容の複雑さに応じて調整してください。h3が不要な場合もあれば、多数必要な場合もあります。\n- 説明文やコードフェンスは禁止。JSON以外の出力は禁止。`
     const user = provider === 'gemini' ? userGemini : userOpenAI
 
     let json
@@ -598,6 +716,12 @@ app.post('/generate-outline', requireAdmin, async (req, res) => {
       }
     }
     const outline = normalizeOutlineData(json, { keyword, category, tone, target_audience, word_count_target })
+    if (analysisPersona && (!outline.persona || !String(outline.persona).trim())) {
+      outline.persona = analysisPersona
+    }
+    if (analysisPersona && (!outline.target_audience || !String(outline.target_audience).trim())) {
+      outline.target_audience = analysisPersona
+    }
     res.json({ ok: true, outline })
   } catch (e) {
     console.error('generate-outline error:', e?.message || e)
@@ -647,13 +771,13 @@ app.post('/generate-article', requireAdmin, async (req, res) => {
       return `${i + 1}. ${sec.title}${h3 ? `\n${h3}` : ''}`
     }).join('\n')
 
-    const system = 'あなたは日本語のプロ編集者・ライターです。専門的で実務に役立つ記事を、検証可能な情報と具体例で執筆します。冗長・誇張を避け、段落中心で読みやすいHTML構造に整えます。'
+    const system = 'あなたは日本語のプロ編集者・ライターです。専門的なテーマでも読み手が理解しやすいよう構成と文章を整えます。冗長・誇張を避け、段落中心で読みやすいHTML構造にまとめてください。'
     const exampleArticle = {
-      title: 'B2BのSEOで成果を出すコンテンツ戦略ガイド',
-      excerpt: 'B2B企業がパイプラインを伸ばすためのSEO/コンテンツ戦略。検索意図、トピッククラスター、E-E-A-T、計測まで実務視点で解説。',
-      body: '<p>本稿では、B2Bで成果に直結するSEOの考え方と実装手順を解説します。まず全体像を掴み、次に実務で使える型へ落とし込みます。</p>\n<h2>検索意図の分解と優先順位付け</h2>\n<p>まず重要なのは、見込み顧客の文脈に沿って検索意図を分解することです。単語ではなく課題の表現として捉え、業界・職種・熟達度で粒度を合わせます。</p>\n<p>意図ごとに必要なコンテンツの役割は異なります。情報収集段階では用語の定義や判断基準、比較検討では差異化ポイントや導入条件が響きます。</p>\n<h3>意図分類の実務メモ</h3>\n<p>現場では、検索クエリの原文をそのままグルーピングするより、営業やCSの会話ログと突き合わせて課題表現に変換すると精度が上がります。</p>\n<ul><li>情報（課題理解）：定義、背景、判断軸</li><li>比較（解決策検討）：差異化、適用条件</li><li>取引（意思決定）：要件、導入プロセス</li></ul>\n<h2>まとめ・次のアクション</h2>\n<p>小さく検証し、勝ち筋の型をテンプレート化して横展開します。効果測定はリードの質と商談化率で確認します。</p>'
+      title: '家庭で備える防災対策ガイド',
+      excerpt: '家庭で実践できる防災対策をまとめたガイド。日頃の備えから避難時の行動まで、家族で共有したいポイントを整理します。',
+      body: '<p>この記事では、家庭で備えておきたい防災対策を整理します。日頃の準備と緊急時の行動を分けて確認し、家族で共有できる形にまとめましょう。</p>\n<h2>日頃から整えておく備え</h2>\n<p>飲料水や非常食、常備薬などの備蓄は家族の人数とライフスタイルに合わせて用意します。</p>\n<p>懐中電灯やモバイルバッテリー、防災ラジオなどは定期的に点検し、いざという時に使える状態を維持しましょう。</p>\n<h2>避難時に意識したい行動</h2>\n<p>自宅や職場周辺のハザードマップを確認し、避難経路や集合場所を事前に決めておきます。</p>\n<p>災害発生時は最新情報をこまめに確認し、安全を最優先に落ち着いて行動することが大切です。</p>'
     }
-    const user = `前提:\n- サイト: AIMA（AIマーケティング）\n- トーン: ${outline.tone || '実務的で明快'}\n- 想定読者: ${outline.target_audience || 'マーケ担当者'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。<p>を主体に、各セクションは段落から始める。\n- 箇条書きは必要な場合のみ。各<h2>セクションで<ul>は最大1回、3〜5項目まで。連続した<ul>は禁止。\n- 各<h2>は少なくとも2つの<p>を含む。各<h3>も少なくとも1つの<p>を含む。\n- 導入で期待値を提示し、各見出しでは段落で解説→必要なら要点を<ul>で補足。最後はまとめの段落で締める。\n- 根拠のない断定や最新情報の言い切りは避ける。`
+    const user = `前提:\n- サイト: AIMA（生成AIやデジタル活用の知見を、業種を問わず読者目線で解説するメディア）\n- トーン: ${outline.tone || 'わかりやすく丁寧'}\n- 想定読者: ${outline.target_audience || 'このテーマに関心のある人'}\n- 目標文字数: 約${targetWords}文字\n- 見出し構成:\n${outlineText}\n\n出力要件:\n- JSONのみ返す（title, excerpt, body）。前後の説明やコードフェンスは不要。\n- bodyはHTMLで、<h2>/<h3>/<p>/<ul>/<li>のみ使用。<p>を主体に、各セクションは段落から始める。\n- 箇条書きは必要な場合のみ。各<h2>セクションで<ul>は最大1回、3〜5項目まで。連続した<ul>は禁止。\n- 各<h2>は少なくとも2つの<p>を含む。各<h3>も少なくとも1つの<p>を含む。\n- 導入で期待値を提示し、各見出しでは段落で解説→必要なら要点を<ul>で補足。最後はまとめの段落で締める。\n- 根拠のない断定や最新情報の言い切りは避ける。`
 
     let json = await llmChatJSON({ provider, system, user, schema, temperature: 0.7, max_tokens: 16384, model })
 
