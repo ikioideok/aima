@@ -180,6 +180,8 @@ export default function ToolsArticle() {
     setAnalysisLoading(true)
     try {
       const payload = { provider, model: modelId, keyword, sources: selectedSources }
+
+      codex/analyze-current-cms-state-3yx7h4
       const res = await callWithFallback(
         '/analyze-serp',
         payload,
@@ -192,6 +194,7 @@ export default function ToolsArticle() {
     } finally {
       setAnalysisLoading(false)
     }
+codex/analyze-current-cms-state-3yx7h4
   }, [analysis, canCall, callWithFallback, keyword, modelId, provider, sanitizeAnalysis, selectedSources, setError])
 
   React.useEffect(() => {
@@ -217,6 +220,7 @@ export default function ToolsArticle() {
       const persona = typeof data.persona === 'string' ? data.persona.trim() : ''
       const targetAudience = typeof data.target_audience === 'string' ? data.target_audience.trim() : ''
       const tone = typeof data.tone === 'string' ? data.tone.trim() : ''
+codex/analyze-current-cms-state-3yx7h4
       const keywordText = keyword.trim()
       const fallbackPersona = keywordText ? `${keywordText}に関心のある人` : 'このテーマに関心のある人'
       const fallbackTone = '中立的でわかりやすい文体'
@@ -235,6 +239,7 @@ export default function ToolsArticle() {
         title: title || data.title || 'アウトライン',
         slug: (data.slug || slugify(title || data.slug || data.title || 'article')) as string,
         keyword: data.keyword || keyword,
+codex/analyze-current-cms-state-3yx7h4
         persona: persona || fallbackPersona,
         target_audience: targetAudience || fallbackPersona,
         tone: tone || fallbackTone,
@@ -349,6 +354,7 @@ export default function ToolsArticle() {
           }
         : null
       const payload = { provider, model: modelId, keyword, sources: chosen, ...(analysisPayload ? { analysis: analysisPayload } : {}) }
+codex/analyze-current-cms-state-3yx7h4
       const res = await callWithFallback(
         '/generate-outline',
         payload,
