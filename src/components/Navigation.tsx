@@ -14,14 +14,46 @@ export function Navigation() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = [
+  type NavItem = {
+    name: string;
+    href: string;
+    action?: 'openPlayground';
+  };
+
+  const navItems: NavItem[] = [
     { name: 'HOME', href: '#home' },
     { name: 'ABOUT', href: '#about' },
     { name: 'SERVICE', href: '#service' },
     { name: 'MEDIA', href: '#media' },
-    { name: 'APP', href: '#playground' },
+    { name: 'APP', href: '#playground', action: 'openPlayground' },
     { name: 'CONTACT', href: '#contact' },
   ];
+
+  const emitPlaygroundOpen = () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('playground:open'));
+  };
+
+  const handleDesktopItemClick = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    item: NavItem,
+  ) => {
+    if (item.action === 'openPlayground') {
+      event.preventDefault();
+      emitPlaygroundOpen();
+    }
+  };
+
+  const handleMobileItemClick = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    item: NavItem,
+  ) => {
+    if (item.action === 'openPlayground') {
+      event.preventDefault();
+      emitPlaygroundOpen();
+    }
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <motion.nav
@@ -64,6 +96,7 @@ export function Navigation() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className="relative group text-sm font-medium tracking-wider text-black hover:text-red-500 transition-colors duration-300"
+                onClick={(event) => handleDesktopItemClick(event, item)}
               >
                 <span>{item.name}</span>
                 <motion.div
@@ -120,7 +153,7 @@ export function Navigation() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={(event) => handleMobileItemClick(event, item)}
                   className="block text-lg font-medium text-black hover:text-red-500 transition-colors duration-300 tracking-wider"
                 >
                   {item.name}

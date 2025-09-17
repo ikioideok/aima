@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Task {
@@ -22,10 +22,236 @@ const filterLabels: Record<FilterKey, string> = {
   done: '完了',
 };
 
+interface TaskPanelContentProps {
+  variant: 'inline' | 'standalone';
+  inputValue: string;
+  onInputChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  suggestions: string[];
+  onAddSuggestion: (value: string) => void;
+  filter: FilterKey;
+  onFilterChange: (value: FilterKey) => void;
+  filteredTasks: Task[];
+  onToggleTask: (id: number) => void;
+  onRemoveTask: (id: number) => void;
+  totalCount: number;
+  completedCount: number;
+  remainingCount: number;
+  completionRate: number;
+}
+
+function TaskPanelContent({
+  variant,
+  inputValue,
+  onInputChange,
+  onSubmit,
+  suggestions,
+  onAddSuggestion,
+  filter,
+  onFilterChange,
+  filteredTasks,
+  onToggleTask,
+  onRemoveTask,
+  totalCount,
+  completedCount,
+  remainingCount,
+  completionRate,
+}: TaskPanelContentProps) {
+  const isStandalone = variant === 'standalone';
+
+  return (
+    <>
+      <div
+        className={`border-b border-white/10 px-8 py-6 ${
+          isStandalone ? 'bg-white/5 backdrop-blur' : ''
+        }`}
+      >
+        <div className="flex flex-wrap items-center gap-6 text-sm">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-slate-200/70">タスク数</p>
+            <p className="text-2xl font-bold text-white">{totalCount}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-slate-200/70">完了済み</p>
+            <p className="text-2xl font-bold text-emerald-300">{completedCount}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-slate-200/70">残り</p>
+            <p className="text-2xl font-bold text-amber-200">{Math.max(remainingCount, 0)}</p>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-xs uppercase tracking-widest text-slate-200/70">達成率</p>
+            <p className="text-2xl font-bold text-rose-200">{completionRate}%</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={`px-8 py-6 space-y-6 ${
+          isStandalone ? 'flex-1 overflow-y-auto pb-8 pr-2 md:pr-3' : ''
+        }`}
+      >
+        <form onSubmit={onSubmit} className="space-y-4">
+          <label className="block text-sm font-medium text-slate-100/90" htmlFor="task-input">
+            タスクを追加
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              id="task-input"
+              value={inputValue}
+              onChange={(event) => onInputChange(event.target.value)}
+              placeholder="例：レポートのドラフトを確認"
+              className="flex-1 rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+              aria-label="タスクを入力"
+            />
+            <motion.button
+              type="submit"
+              whileTap={{ scale: 0.98 }}
+              className="inline-flex items-center justify-center rounded-2xl bg-rose-500 px-5 py-3 font-semibold tracking-wide text-white shadow-lg shadow-rose-500/30 transition-colors hover:bg-rose-400"
+              aria-label="タスクを追加"
+            >
+              追加
+            </motion.button>
+          </div>
+        </form>
+
+        <div className="flex flex-wrap gap-2 text-xs text-slate-100/80">
+          {suggestions.map((suggestion) => (
+            <motion.button
+              key={suggestion}
+              type="button"
+              onClick={() => onAddSuggestion(suggestion)}
+              whileTap={{ scale: 0.98 }}
+              className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 transition hover:border-rose-200/60 hover:bg-rose-500/20"
+              aria-label={`${suggestion} を追加`}
+            >
+              + {suggestion}
+            </motion.button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {(Object.keys(filterLabels) as FilterKey[]).map((key) => {
+            const isActive = filter === key;
+            return (
+              <motion.button
+                key={key}
+                type="button"
+                onClick={() => onFilterChange(key)}
+                whileTap={{ scale: 0.95 }}
+                className={`rounded-full px-3 py-1.5 font-medium transition ${
+                  isActive
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                    : 'bg-white/5 text-slate-100/70 hover:bg-white/10'
+                }`}
+                aria-pressed={isActive}
+              >
+                {filterLabels[key]}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div
+          className={`rounded-2xl border border-white/10 bg-black/40 ${
+            isStandalone ? 'max-h-[28rem] overflow-y-auto' : ''
+          }`}
+        >
+          <AnimatePresence initial={false}>
+            {filteredTasks.length > 0 ? (
+              <motion.ul
+                key="task-list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="divide-y divide-white/5"
+              >
+                {filteredTasks.map((task) => (
+                  <motion.li
+                    key={task.id}
+                    layout
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                    className="flex items-center gap-4 px-5 py-4"
+                  >
+                    <motion.button
+                      type="button"
+                      onClick={() => onToggleTask(task.id)}
+                      whileTap={{ scale: 0.9 }}
+                      className={`relative flex h-5 w-5 items-center justify-center rounded-full border-2 transition ${
+                        task.done
+                          ? 'border-emerald-300 bg-emerald-300/20'
+                          : 'border-white/40 hover:border-white/70'
+                      }`}
+                      aria-pressed={task.done}
+                      aria-label={`タスク「${task.text}」を${task.done ? '未完了に戻す' : '完了にする'}`}
+                    >
+                      {task.done && (
+                        <motion.span
+                          layoutId="checkmark"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          exit={{ scale: 0 }}
+                          className="block h-2 w-2 rounded-full bg-emerald-200"
+                        />
+                      )}
+                    </motion.button>
+                    <div className="flex-1">
+                      <p
+                        className={`text-sm font-medium transition ${
+                          task.done ? 'text-slate-400 line-through' : 'text-white'
+                        }`}
+                      >
+                        {task.text}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        作成:{' '}
+                        {new Date(task.createdAt).toLocaleString('ja-JP', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <motion.button
+                      type="button"
+                      onClick={() => onRemoveTask(task.id)}
+                      whileTap={{ scale: 0.9 }}
+                      className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-200/70 transition hover:bg-red-500/30 hover:text-white"
+                      aria-label={`タスク「${task.text}」を削除`}
+                    >
+                      削除
+                    </motion.button>
+                  </motion.li>
+                ))}
+              </motion.ul>
+            ) : (
+              <motion.div
+                key="empty-state"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="px-6 py-10 text-center text-sm text-slate-300"
+              >
+                <p className="font-medium text-slate-200">まだタスクがありません。</p>
+                <p className="mt-2 text-slate-400">
+                  右上のテンプレートや自由入力で、まずは1件追加してみましょう。
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function PlaygroundSection() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [isStandaloneOpen, setIsStandaloneOpen] = useState(false);
 
   const { completedCount, completionRate, filteredTasks } = useMemo(() => {
     const done = tasks.filter((task) => task.done).length;
@@ -74,6 +300,77 @@ export function PlaygroundSection() {
     setTasks((prev) => prev.filter((task) => task.id !== id));
   };
 
+  const openStandalone = useCallback(() => {
+    setIsStandaloneOpen(true);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('playground', '1');
+      url.hash = 'playground-app';
+      window.history.replaceState(null, '', url.toString());
+    }
+  }, []);
+
+  const closeStandalone = useCallback(() => {
+    setIsStandaloneOpen(false);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('playground');
+      if (url.hash === '#playground-app') {
+        url.hash = '';
+      }
+      window.history.replaceState(null, '', url.toString());
+    }
+  }, []);
+
+  const openInNewTab = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('playground', '1');
+    url.hash = 'playground-app';
+    window.open(url.toString(), '_blank', 'noopener,noreferrer');
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('playground') === '1' || window.location.hash === '#playground-app') {
+      openStandalone();
+    }
+    const handleHashChange = () => {
+      if (window.location.hash === '#playground-app') {
+        openStandalone();
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [openStandalone]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOpen = () => openStandalone();
+    window.addEventListener('playground:open' as any, handleOpen);
+    return () => window.removeEventListener('playground:open' as any, handleOpen);
+  }, [openStandalone]);
+
+  useEffect(() => {
+    if (!isStandaloneOpen || typeof window === 'undefined') return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeStandalone();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isStandaloneOpen, closeStandalone]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.style.overflow = isStandaloneOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isStandaloneOpen]);
+
   return (
     <section
       id="playground"
@@ -110,6 +407,33 @@ export function PlaygroundSection() {
             </h2>
             <p className="text-base md:text-lg text-slate-200 leading-relaxed">
               すばやくアイデアを書き出したり、小さなTODOをまとめたりできるミニアプリです。入力して追加、タップで完了。シンプルな体験で、忙しい日でもやるべきことを見える化しましょう。
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <motion.button
+                type="button"
+                onClick={openStandalone}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center justify-center rounded-full bg-rose-500/90 px-5 py-2.5 text-sm font-semibold tracking-wide text-white shadow-lg shadow-rose-500/40 transition hover:bg-rose-400"
+                aria-label="タスクアプリを全画面で開く"
+              >
+                全画面で試す
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={openInNewTab}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold tracking-wide text-white transition hover:border-white/40 hover:bg-white/20"
+                aria-label="タスクアプリを新しいタブで開く"
+              >
+                別タブで開く
+              </motion.button>
+            </div>
+            <p className="text-xs text-slate-400/90">
+              URLの末尾に{' '}
+              <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-rose-100">
+                ?playground=1#playground-app
+              </span>{' '}
+              を付けると、ブラウザからコードを見ることなくこのアプリだけを開けます。
             </p>
             <div className="grid sm:grid-cols-2 gap-6 text-sm text-slate-200/90">
               <motion.div
@@ -148,177 +472,92 @@ export function PlaygroundSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl shadow-2xl shadow-red-500/10"
+            className="rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl shadow-2xl shadow-red-500/10 flex flex-col overflow-hidden"
           >
-            <div className="border-b border-white/10 px-8 py-6">
-              <div className="flex flex-wrap items-center gap-6 text-sm">
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-slate-200/70">タスク数</p>
-                  <p className="text-2xl font-bold text-white">{tasks.length}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-slate-200/70">完了済み</p>
-                  <p className="text-2xl font-bold text-emerald-300">{completedCount}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-slate-200/70">残り</p>
-                  <p className="text-2xl font-bold text-amber-200">{Math.max(remainingCount, 0)}</p>
-                </div>
-                <div className="ml-auto text-right">
-                  <p className="text-xs uppercase tracking-widest text-slate-200/70">達成率</p>
-                  <p className="text-2xl font-bold text-rose-200">{completionRate}%</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-8 py-6 space-y-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <label className="block text-sm font-medium text-slate-100/90" htmlFor="task-input">
-                  タスクを追加
-                </label>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    id="task-input"
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    placeholder="例：レポートのドラフトを確認"
-                    className="flex-1 rounded-2xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-                    aria-label="タスクを入力"
-                  />
-                  <motion.button
-                    type="submit"
-                    whileTap={{ scale: 0.98 }}
-                    className="inline-flex items-center justify-center rounded-2xl bg-rose-500 px-5 py-3 font-semibold tracking-wide text-white shadow-lg shadow-rose-500/30 transition-colors hover:bg-rose-400"
-                    aria-label="タスクを追加"
-                  >
-                    追加
-                  </motion.button>
-                </div>
-              </form>
-
-              <div className="flex flex-wrap gap-2 text-xs text-slate-100/80">
-                {suggestionSeeds.map((suggestion) => (
-                  <motion.button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => handleAddTask(suggestion)}
-                    whileTap={{ scale: 0.98 }}
-                    className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 transition hover:border-rose-200/60 hover:bg-rose-500/20"
-                    aria-label={`${suggestion} を追加`}
-                  >
-                    + {suggestion}
-                  </motion.button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                {(Object.keys(filterLabels) as FilterKey[]).map((key) => {
-                  const isActive = filter === key;
-                  return (
-                    <motion.button
-                      key={key}
-                      type="button"
-                      onClick={() => setFilter(key)}
-                      whileTap={{ scale: 0.95 }}
-                      className={`rounded-full px-3 py-1.5 font-medium transition ${
-                        isActive
-                          ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                          : 'bg-white/5 text-slate-100/70 hover:bg-white/10'
-                      }`}
-                      aria-pressed={isActive}
-                    >
-                      {filterLabels[key]}
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/40">
-                <AnimatePresence initial={false}>
-                  {filteredTasks.length > 0 ? (
-                    <motion.ul
-                      key="task-list"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="divide-y divide-white/5"
-                    >
-                      {filteredTasks.map((task) => (
-                        <motion.li
-                          key={task.id}
-                          layout
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                          className="flex items-center gap-4 px-5 py-4"
-                        >
-                          <motion.button
-                            type="button"
-                            onClick={() => toggleTask(task.id)}
-                            whileTap={{ scale: 0.9 }}
-                            className={`relative flex h-5 w-5 items-center justify-center rounded-full border-2 transition ${
-                              task.done
-                                ? 'border-emerald-300 bg-emerald-300/20'
-                                : 'border-white/40 hover:border-white/70'
-                            }`}
-                            aria-pressed={task.done}
-                            aria-label={`タスク「${task.text}」を${task.done ? '未完了に戻す' : '完了にする'}`}
-                          >
-                            {task.done && (
-                              <motion.span
-                                layoutId="checkmark"
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0 }}
-                                className="block h-2 w-2 rounded-full bg-emerald-200"
-                              />
-                            )}
-                          </motion.button>
-                          <div className="flex-1">
-                            <p
-                              className={`text-sm font-medium transition ${
-                                task.done ? 'text-slate-400 line-through' : 'text-white'
-                              }`}
-                            >
-                              {task.text}
-                            </p>
-                            <p className="text-[11px] text-slate-400">
-                              作成: {new Date(task.createdAt).toLocaleString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                          <motion.button
-                            type="button"
-                            onClick={() => removeTask(task.id)}
-                            whileTap={{ scale: 0.9 }}
-                            className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-200/70 transition hover:bg-red-500/30 hover:text-white"
-                            aria-label={`タスク「${task.text}」を削除`}
-                          >
-                            削除
-                          </motion.button>
-                        </motion.li>
-                      ))}
-                    </motion.ul>
-                  ) : (
-                    <motion.div
-                      key="empty-state"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="px-6 py-10 text-center text-sm text-slate-300"
-                    >
-                      <p className="font-medium text-slate-200">まだタスクがありません。</p>
-                      <p className="mt-2 text-slate-400">
-                        右上のテンプレートや自由入力で、まずは1件追加してみましょう。
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+            <TaskPanelContent
+              variant="inline"
+              inputValue={input}
+              onInputChange={(value) => setInput(value)}
+              onSubmit={handleSubmit}
+              suggestions={suggestionSeeds}
+              onAddSuggestion={handleAddTask}
+              filter={filter}
+              onFilterChange={(value) => setFilter(value)}
+              filteredTasks={filteredTasks}
+              onToggleTask={toggleTask}
+              onRemoveTask={removeTask}
+              totalCount={tasks.length}
+              completedCount={completedCount}
+              remainingCount={remainingCount}
+              completionRate={completionRate}
+            />
           </motion.div>
         </div>
       </div>
+      <AnimatePresence>
+        {isStandaloneOpen && (
+          <motion.div
+            key="playground-standalone"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/90 px-4 py-10 backdrop-blur"
+            onClick={closeStandalone}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35 }}
+              className="w-full max-w-3xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="playground-dialog-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl shadow-2xl shadow-rose-500/20 flex flex-col overflow-hidden max-h-[90vh]">
+                <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-rose-200/80">Mini App Lab</p>
+                    <h3 id="playground-dialog-title" className="mt-1 text-lg font-semibold text-white">
+                      ブラウザでそのまま操作
+                    </h3>
+                  </div>
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.9 }}
+                    onClick={closeStandalone}
+                    className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-100/80 transition hover:border-white/40 hover:bg-white/20"
+                    aria-label="プレイグラウンドを閉じる"
+                  >
+                    閉じる
+                  </motion.button>
+                </div>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <TaskPanelContent
+                    variant="standalone"
+                    inputValue={input}
+                    onInputChange={(value) => setInput(value)}
+                    onSubmit={handleSubmit}
+                    suggestions={suggestionSeeds}
+                    onAddSuggestion={handleAddTask}
+                    filter={filter}
+                    onFilterChange={(value) => setFilter(value)}
+                    filteredTasks={filteredTasks}
+                    onToggleTask={toggleTask}
+                    onRemoveTask={removeTask}
+                    totalCount={tasks.length}
+                    completedCount={completedCount}
+                    remainingCount={remainingCount}
+                    completionRate={completionRate}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
+
