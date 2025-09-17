@@ -6,6 +6,7 @@ import { AboutSection } from './components/AboutSection';
 import { ServiceSection } from './components/ServiceSection';
 import { MediaSection } from './components/MediaSection';
 import { ContactSection } from './components/ContactSection';
+import { PlaygroundSection } from './components/PlaygroundSection';
 import { Footer } from './components/Footer';
 
 export default function App() {
@@ -48,6 +49,7 @@ export default function App() {
         <AboutSection />
         <ServiceSection />
         <MediaSection />
+        <PlaygroundSection />
         <ContactSection />
       </main>
       <Footer />

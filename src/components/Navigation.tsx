@@ -19,6 +19,7 @@ export function Navigation() {
     { name: 'ABOUT', href: '#about' },
     { name: 'SERVICE', href: '#service' },
     { name: 'MEDIA', href: '#media' },
+    { name: 'APP', href: '#playground' },
     { name: 'CONTACT', href: '#contact' },
   ];
 
