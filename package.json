@@ -60,7 +60,7 @@
   "scripts": {
     "dev": "vite",
     "build": "./node_modules/.bin/vite build && npm run build:tools && node scripts/prerender.mjs",
-    "build:tools": "./node_modules/.bin/vite build --config tools/vite.config.ts",
+    "build:tools": "node ./tools/scripts/ensure-media-deps.cjs && ./node_modules/.bin/vite build --config tools/vite.config.ts",
     "postbuild": "cd media && npm ci && ../node_modules/.bin/vite build && node scripts/prerender.mjs"
   }
 }

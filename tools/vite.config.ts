@@ -1,8 +1,54 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
-import tailwindcss from '../media/node_modules/tailwindcss'
 import autoprefixer from 'autoprefixer'
+import { createRequire } from 'module'
+
+const rootRequire = createRequire(import.meta.url)
+
+const mediaRequire = (() => {
+  try {
+    return createRequire(path.resolve(__dirname, '../media/package.json'))
+  } catch {
+    return null
+  }
+})()
+
+const resolveTailwindPlugin = () => {
+  type NodeRequireFn = ReturnType<typeof createRequire>
+  const tryLoad = (loader: NodeRequireFn | null, specifier: string) => {
+    if (!loader) return null
+    try {
+      const mod = loader(specifier)
+      return mod?.default ?? mod
+    } catch {
+      return null
+    }
+  }
+
+  const attempts: Array<{
+    loader: NodeRequireFn | null
+    specifier: string
+  }> = [
+    { loader: mediaRequire, specifier: 'tailwindcss' },
+    { loader: rootRequire, specifier: 'tailwindcss-tools' },
+  ]
+
+  for (const attempt of attempts) {
+    const plugin = tryLoad(attempt.loader, attempt.specifier)
+    if (plugin) {
+      return plugin
+    }
+  }
+
+  throw new Error(
+    'Tailwind CSS for the tools build was not found. Install media dependencies with "npm --prefix media ci" before building.'
+  )
+}
+
+const tailwind = resolveTailwindPlugin()
+
+const tailwindOptions = { config: path.resolve(__dirname, '../media/tailwind.config.js') }
 
 export default defineConfig({
   root: path.resolve(__dirname, '..'),
@@ -27,7 +73,7 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        tailwindcss({ config: path.resolve(__dirname, '../media/tailwind.config.js') }),
+        tailwind(tailwindOptions),
         autoprefixer(),
       ],
     },
