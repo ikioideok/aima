@@ -324,7 +324,7 @@ export function ContactSection() {
                         whileHover={{ x: submissionStatus !== 'submitting' ? 5 : 0 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
                       >
-                        {submissionStatus === 'submitting' ? '送信中...' : '無料で相談する（24h以内に返信）'}
+                        {submissionStatus === 'submitting' ? '送信中...' : '送信する（24時間以内に返信）'}
                         {submissionStatus !== 'submitting' && (
                           <motion.div
                             whileHover={{ rotate: 45, scale: 1.2 }}
