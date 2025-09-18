@@ -59,8 +59,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "./node_modules/.bin/vite build && npm run build:tools && node scripts/prerender.mjs",
-    "build:tools": "./node_modules/.bin/vite build --config tools/vite.config.ts",
+    "ensure:media": "node scripts/ensure-media-deps.cjs",
+    "build": "npm run ensure:media && ./node_modules/.bin/vite build && ./node_modules/.bin/vite build --config tools/vite.config.ts && node scripts/prerender.mjs",
+    "build:tools": "npm run ensure:media && ./node_modules/.bin/vite build --config tools/vite.config.ts",
     "postbuild": "cd media && npm ci && ../node_modules/.bin/vite build && node scripts/prerender.mjs"
   }
 }
