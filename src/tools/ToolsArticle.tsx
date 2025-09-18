@@ -304,18 +304,10 @@ export default function ToolsArticle() {
     setLoading(true)
     try {
       const chosen = sources.filter(s => selected[s.url])
-      const analysisPayload = analysis
-        ? {
-            intent_label: analysis.intent_label,
-            intent_summary: analysis.intent_summary.trim(),
-            persona: analysis.persona.trim(),
-            article_direction: analysis.article_direction.trim(),
-            user_needs: analysis.user_needs.map((item) => item.trim()).filter(Boolean),
-            solution: analysis.solution.trim(),
-            ...(analysis.notes ? { notes: analysis.notes.trim() } : {}),
-          }
-        : null
-      const payload = { provider, model: modelId, keyword, sources: chosen, ...(analysisPayload ? { analysis: analysisPayload } : {}) }
+      const sanitizedAnalysis = analysis ? sanitizeAnalysis(analysis) : null
+      const payload = sanitizedAnalysis
+        ? { provider, model: modelId, keyword, sources: chosen, analysis: sanitizedAnalysis }
+        : { provider, model: modelId, keyword, sources: chosen }
       let res: any = null
       try { res = await callPhp('/generate-outline', payload) } catch { res = await callCms('/generate-outline', payload) }
       if (!res?.ok || !res?.outline) throw new Error('Invalid response')
