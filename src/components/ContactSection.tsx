@@ -97,29 +97,6 @@ export function ContactSection() {
   return (
     <section id="contact" className="py-20 bg-white relative overflow-hidden">
       <div ref={ref} className="max-w-7xl mx-auto px-6 relative z-10">
-        {/* FAQ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6 }}
-          className="mb-12"
-        >
-          <h3 className="text-xl font-bold text-black mb-4">よくある質問</h3>
-          <div className="space-y-3">
-            <div className="border border-black/10 p-4">
-              <p className="font-semibold">費用感はどのくらいですか？</p>
-              <p className="text-sm text-gray-600 mt-1">内容により異なりますが、スポット支援で数十万円〜、継続支援で月額数十万円〜を目安にご提案します。</p>
-            </div>
-            <div className="border border-black/10 p-4">
-              <p className="font-semibold">最短いつから開始できますか？</p>
-              <p className="text-sm text-gray-600 mt-1">ヒアリング後、最短1〜2週間で開始可能です。急ぎのご相談も調整いたします。</p>
-            </div>
-            <div className="border border-black/10 p-4">
-              <p className="font-semibold">既存の体制やツールのまま相談できますか？</p>
-              <p className="text-sm text-gray-600 mt-1">可能です。現状のツール・体制に合わせて効果が出る運用に最適化します。</p>
-            </div>
-          </div>
-        </motion.div>
         {/* Section Header */}
         <motion.div
           initial="hidden"
