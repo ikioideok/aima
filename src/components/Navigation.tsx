@@ -74,16 +74,6 @@ export function Navigation() {
                 />
               </motion.a>
             ))}
-            {/* Header CTA */}
-            <motion.a
-              href="#contact"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center justify-center px-4 py-2 bg-black text-white text-sm font-bold tracking-wide hover:bg-red-500 transition-colors"
-              aria-label="無料相談はこちら"
-            >
-              無料相談
-            </motion.a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -125,17 +115,6 @@ export function Navigation() {
                   {item.name}
                 </motion.a>
               ))}
-              <motion.a
-                href="#contact"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: navItems.length * 0.1 }}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex items-center justify-center w-full px-4 py-3 bg-black text-white font-bold tracking-wide hover:bg-red-500 transition-colors"
-                aria-label="無料相談はこちら"
-              >
-                無料相談
-              </motion.a>
             </div>
           </motion.div>
         )}
