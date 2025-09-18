@@ -1,8 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
-import tailwindcss from '../media/node_modules/tailwindcss'
 import autoprefixer from 'autoprefixer'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+
+const tailwindcss = (() => {
+  const load = (specifier: string) => {
+    const mod = require(specifier)
+    return mod?.default ?? mod
+  }
+  try {
+    return load('../media/node_modules/tailwindcss')
+  } catch {
+    return load('tailwindcss')
+  }
+})()
 
 export default defineConfig({
   root: path.resolve(__dirname, '..'),

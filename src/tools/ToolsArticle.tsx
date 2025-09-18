@@ -38,6 +38,15 @@ type SerpAnalysis = {
   notes?: string
 }
 
+type GenerateArticlePayload = {
+  provider: 'gemini' | 'openai'
+  model: string
+  outline: Outline
+  analysis?: SerpAnalysis
+}
+
+type JsonBody = Record<string, unknown>
+
 export default function ToolsArticle() {
   const CMS_BASE = useCMSBase()
   const ADMIN_TOKEN = (import.meta as any).env?.VITE_ADMIN_TOKEN || ''
@@ -62,7 +71,7 @@ export default function ToolsArticle() {
   // Sakura 直下の /api を優先して呼ぶため、管理トークン前提のブロックは外す
   const canCall = true
 
-  async function callCms(path: string, body: any) {
+  async function callCms(path: string, body: JsonBody) {
     const url = CMS_BASE + path
     const r = await fetch(url, {
       method: 'POST',
@@ -77,12 +86,12 @@ export default function ToolsArticle() {
     try { return JSON.parse(text) } catch { return null }
   }
 
-  async function callPhp(path: string, body: any) {
+  async function callPhp(path: string, body: JsonBody) {
     // Absolute root /api so it works from both / and /media/
     const url = `/api${path}.php`
     // WAFに弾かれにくい x-www-form-urlencoded で送信
     const params = new URLSearchParams()
-    for (const [k, v] of Object.entries(body || {})) {
+    for (const [k, v] of Object.entries(body)) {
       if (v && typeof v === 'object') {
         params.append(k, JSON.stringify(v))
       } else if (v !== undefined && v !== null) {
@@ -295,18 +304,10 @@ export default function ToolsArticle() {
     setLoading(true)
     try {
       const chosen = sources.filter(s => selected[s.url])
-      const analysisPayload = analysis
-        ? {
-            intent_label: analysis.intent_label,
-            intent_summary: analysis.intent_summary.trim(),
-            persona: analysis.persona.trim(),
-            article_direction: analysis.article_direction.trim(),
-            user_needs: analysis.user_needs.map((item) => item.trim()).filter(Boolean),
-            solution: analysis.solution.trim(),
-            ...(analysis.notes ? { notes: analysis.notes.trim() } : {}),
-          }
-        : null
-      const payload = { provider, model: modelId, keyword, sources: chosen, ...(analysisPayload ? { analysis: analysisPayload } : {}) }
+      const sanitizedAnalysis = analysis ? sanitizeAnalysis(analysis) : null
+      const payload = sanitizedAnalysis
+        ? { provider, model: modelId, keyword, sources: chosen, analysis: sanitizedAnalysis }
+        : { provider, model: modelId, keyword, sources: chosen }
       let res: any = null
       try { res = await callPhp('/generate-outline', payload) } catch { res = await callCms('/generate-outline', payload) }
       if (!res?.ok || !res?.outline) throw new Error('Invalid response')
@@ -339,11 +340,10 @@ export default function ToolsArticle() {
     setOutline(sanitizedOutline)
     setError(''); setLoading(true); setArticleHtml('')
     try {
-      const payload = {
-        provider,
-        model: modelId,
-        outline: sanitizedOutline,
-      }
+      const sanitizedAnalysis = analysis ? sanitizeAnalysis(analysis) : null
+      const payload: GenerateArticlePayload = sanitizedAnalysis
+        ? { provider, model: modelId, outline: sanitizedOutline, analysis: sanitizedAnalysis }
+        : { provider, model: modelId, outline: sanitizedOutline }
       let res: any = null
       try {
         res = await callPhp('/generate-article', payload)
