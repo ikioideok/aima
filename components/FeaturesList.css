@@ -1,0 +1,135 @@
+/* FeaturesList.css */
+.features-list-container {
+    max-width: 900px;
+    margin: 4rem auto;
+    padding: 0 1.5rem;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.feature-card {
+    border-bottom: 1px solid #e5e5e5;
+    transition: background-color 0.4s ease;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Hover effect: Smooth gray background */
+.feature-card:hover {
+    background-color: #f9f9f9;
+}
+
+.feature-card.active {
+    background-color: #f9f9f9;
+    /* Keep it gray when active if desired, or white */
+}
+
+.feature-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 2rem 1rem;
+    position: relative;
+}
+
+.feature-id {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #999;
+    width: 3rem;
+    padding-top: 0.25rem;
+    /* Align with title */
+}
+
+.feature-title-group {
+    flex: 1;
+}
+
+.feature-title {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: 0.02em;
+    color: #111;
+}
+
+.feature-short-desc {
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.feature-short-desc .block {
+    display: block;
+}
+
+.feature-toggle-icon {
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: #ccc;
+    transition: transform 0.3s ease, color 0.3s ease;
+    margin-left: 1rem;
+}
+
+.feature-card:hover .feature-toggle-icon,
+.feature-card.active .feature-toggle-icon {
+    color: #333;
+}
+
+.feature-card.active .feature-toggle-icon {
+    transform: rotate(45deg);
+    /* Optional: rotate if it was a plus sign, but for minus/plus switch it's fine */
+}
+
+/* Accordion Animation using grid-template-rows */
+.feature-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Beautiful ease-out */
+}
+
+.feature-body.open {
+    grid-template-rows: 1fr;
+}
+
+.feature-body-content {
+    overflow: hidden;
+}
+
+.feature-long-desc {
+    padding: 0 1rem 2rem 4rem;
+    /* Indent to align with title */
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #444;
+    margin: 0;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+}
+
+.feature-body.open .feature-long-desc {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .feature-header {
+        flex-direction: column;
+    }
+
+    .feature-id {
+        margin-bottom: 0.5rem;
+    }
+
+    .feature-toggle-icon {
+        position: absolute;
+        top: 2rem;
+        right: 1rem;
+    }
+
+    .feature-long-desc {
+        padding: 0 1rem 2rem 1rem;
+    }
+}

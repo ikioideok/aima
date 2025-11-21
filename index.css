@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom Font Classes */
+.font-serif {
+    font-family: "Times New Roman", Times, serif;
+}
+
+.font-eng {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Utility for hover trigger */
+.hover-trigger {
+    cursor: pointer;
+}
+
+/* Fade In Animation Base */
+.ease-ink {
+    transition-timing-function: cubic-bezier(0.2, 0, 0.2, 1);
+}

@@ -1,0 +1,54 @@
+/* Philosophy.css */
+.philosophy-section {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Watermark Background */
+.philosophy-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 15vw;
+    font-weight: 900;
+    color: rgba(0, 0, 0, 0.02);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 0;
+    font-family: 'Helvetica Neue', sans-serif;
+    letter-spacing: 0.05em;
+}
+
+/* Marker Animation */
+.highlight-marker {
+    position: relative;
+    display: inline-block;
+    color: #333;
+    z-index: 1;
+}
+
+.highlight-marker::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 30%;
+    /* Partial height highlight */
+    background-color: rgba(99, 102, 241, 0.2);
+    /* Indigo-500 with low opacity */
+    z-index: -1;
+    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
+    /* Delay to start after text fade-in */
+}
+
+.highlight-marker.visible::after {
+    width: 100%;
+}
+
+/* Text Styling */
+.philosophy-text-line {
+    display: block;
+    margin-bottom: 1.5rem;
+}

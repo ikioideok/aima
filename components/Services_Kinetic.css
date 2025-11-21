@@ -1,0 +1,132 @@
+/* Services.css */
+
+/* Container adjustments handled by Tailwind classes in TSX, 
+   but we need specific styles for the kinetic behavior */
+
+.kinetic-item {
+    position: relative;
+    flex: 1;
+    transition: flex 0.6s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.4s ease;
+    overflow: hidden;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background-color: #fafafa;
+    cursor: pointer;
+}
+
+.kinetic-item.active {
+    flex: 3;
+    /* Expands to take up more space */
+    background-color: #fff;
+    border-color: #000;
+    cursor: default;
+}
+
+/* Background overlay for inactive items */
+.kinetic-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom right, rgba(255, 255, 255, 0) 0%, rgba(0, 0, 0, 0.03) 100%);
+    opacity: 1;
+    transition: opacity 0.4s;
+}
+
+.kinetic-item.active .kinetic-bg {
+    opacity: 0;
+}
+
+/* Content Layout */
+.kinetic-header {
+    margin-bottom: 1rem;
+}
+
+.kinetic-number {
+    display: block;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 0.5rem;
+    transition: color 0.4s;
+}
+
+.kinetic-item.active .kinetic-number {
+    color: #000;
+}
+
+.kinetic-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #111;
+    white-space: nowrap;
+}
+
+/* Body Content */
+.kinetic-body {
+    transition: opacity 0.5s ease-out;
+    /* delay handled in utility class or inline style usually, 
+     but here we rely on the class toggle in TSX */
+}
+
+.kinetic-short-desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    font-weight: 500;
+    color: #333;
+}
+
+.kinetic-long-desc {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #666;
+    max-width: 480px;
+    /* Limit width for readability */
+}
+
+/* Vertical Title for Inactive State */
+.kinetic-vertical-title {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) rotate(-90deg);
+    transform-origin: center;
+    white-space: nowrap;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ccc;
+    letter-spacing: 0.05em;
+    transition: opacity 0.4s, color 0.4s;
+    pointer-events: none;
+}
+
+.kinetic-item:hover .kinetic-vertical-title {
+    color: #999;
+}
+
+/* Mobile Responsive Overrides */
+@media (max-width: 768px) {
+    .kinetic-item {
+        flex: none;
+        /* Disable flex growth on mobile */
+        height: auto;
+        min-height: 120px;
+        transition: all 0.4s ease;
+    }
+
+    .kinetic-item.active {
+        flex: none;
+        min-height: 400px;
+        /* Expand vertically */
+    }
+
+    .kinetic-vertical-title {
+        display: none;
+        /* Hide vertical title on mobile */
+    }
+
+    .kinetic-title {
+        font-size: 1.5rem;
+    }
+}
