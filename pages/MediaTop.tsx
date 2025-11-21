@@ -83,40 +83,40 @@ export const MediaTop: React.FC = () => {
 
             <main className="flex-grow pt-32 px-6 md:px-12 max-w-7xl mx-auto w-full mb-32">
 
-                {/* 1. Feature Article (特集記事) */}
-                <section className="mb-32">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="h-[1px] w-12 bg-black"></div>
-                        <h2 className="text-sm font-eng font-bold tracking-widest">SPECIAL FEATURE</h2>
-                    </div>
-                    <FadeIn>
-                        <a href={`/media/${featureArticle.id}`} className="group block relative">
-                            <div className="w-full aspect-[21/9] overflow-hidden mb-8">
-                                <img
-                                    src={featureArticle.image}
-                                    alt={`${featureArticle.category} ${featureArticle.title}`}
-                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                                />
-                            </div>
-                            <div className="md:w-2/3">
-                                <div className="flex items-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-4">
-                                    <span className="text-black border border-black px-2 py-1">{featureArticle.category}</span>
-                                    <span>{featureArticle.date}</span>
-                                </div>
-                                <h3 className="text-3xl md:text-5xl font-bold leading-tight mb-4 group-hover:text-gray-600 transition-colors">
-                                    {featureArticle.title}
-                                </h3>
-                                <p className="text-gray-600 text-lg font-medium">{featureArticle.subtitle}</p>
-                            </div>
-                        </a>
-                    </FadeIn>
-                </section>
-
                 {/* 2-Column Layout for Main Content & Sidebar */}
                 <div className="flex flex-col lg:flex-row gap-16">
 
                     {/* Main Content Column */}
                     <div className="lg:w-2/3">
+
+                        {/* 1. Feature Article (特集記事) */}
+                        <section className="mb-32">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="h-[1px] w-12 bg-black"></div>
+                                <h2 className="text-sm font-eng font-bold tracking-widest">SPECIAL FEATURE</h2>
+                            </div>
+                            <FadeIn>
+                                <a href={`/media/${featureArticle.id}`} className="group block relative">
+                                    <div className="w-full aspect-[21/9] overflow-hidden mb-8">
+                                        <img
+                                            src={featureArticle.image}
+                                            alt={`${featureArticle.category} ${featureArticle.title}`}
+                                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-4">
+                                            <span className="text-black border border-black px-2 py-1">{featureArticle.category}</span>
+                                            <span>{featureArticle.date}</span>
+                                        </div>
+                                        <h3 className="text-2xl md:text-3xl font-bold leading-tight mb-4 group-hover:text-gray-600 transition-colors">
+                                            {featureArticle.title}
+                                        </h3>
+                                        <p className="text-gray-600 text-base font-medium">{featureArticle.subtitle}</p>
+                                    </div>
+                                </a>
+                            </FadeIn>
+                        </section>
 
                         {/* 2. Featured Articles (注目記事 - 4 items) */}
                         <section className="mb-32">

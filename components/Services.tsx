@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FadeIn } from './FadeIn';
 import './Services.css';
 
 interface ServiceData {
   id: string;
   number: string;
-  title: string;
+  title: React.ReactNode;
   shortDescription: React.ReactNode;
   longDescription: string;
+  link?: string;
 }
 
 const servicesData: ServiceData[] = [
   {
     id: '01',
     number: '01',
-    title: 'AI Marketing',
+    title: <>SEO・LLMO<br />内製化支援</>,
     shortDescription: <>行動予測による最適化。<br />ユーザーの無意識領域へのアプローチ。</>,
-    longDescription: "従来のデモグラフィック分析を超え、ユーザーの微細な行動ログから潜在的なニーズを予知します。心理学と機械学習を融合させ、意識される前の「欲しい」という感情にアプローチすることで、コンバージョン率を劇的に向上させます。"
+    longDescription: "従来のデモグラフィック分析を超え、ユーザーの微細な行動ログから潜在的なニーズを予知します。心理学と機械学習を融合させ、意識される前の「欲しい」という感情にアプローチすることで、コンバージョン率を劇的に向上させます。",
+    link: '/service/seo-llmo'
   },
   {
     id: '02',
@@ -36,6 +39,7 @@ const servicesData: ServiceData[] = [
 
 export const Services: React.FC = () => {
   const [activeId, setActiveId] = useState<string>('01');
+  const navigate = useNavigate();
 
   return (
     <section id="works" className="w-full py-12 md:py-16 px-6 md:px-12 bg-white">
@@ -83,7 +87,10 @@ export const Services: React.FC = () => {
                   <p className="text-gray-500 leading-loose text-justify">
                     {service.longDescription}
                   </p>
-                  <button className="group flex items-center space-x-2 text-sm font-bold tracking-widest uppercase border-b border-black pb-1 w-fit hover:text-gray-600 transition-colors">
+                  <button
+                    onClick={() => service.link && navigate(service.link)}
+                    className="group flex items-center space-x-2 text-sm font-bold tracking-widest uppercase border-b border-black pb-1 w-fit hover:text-gray-600 transition-colors"
+                  >
                     <span>View Details</span>
                     <span className="group-hover:translate-x-2 transition-transform duration-300">→</span>
                   </button>

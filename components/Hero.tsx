@@ -23,28 +23,27 @@ export const Hero: React.FC = () => {
 
   return (
     <section className="h-screen w-full flex items-center justify-center relative overflow-hidden bg-white">
-      
+
       {/* Background Slideshow: 極めて薄い不透明度で表示 */}
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-none select-none">
         {BACKGROUND_IMAGES.map((src, index) => (
           <div
             key={src}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-[4000ms] ease-in-out ${
-              index === currentImageIndex ? 'opacity-[0.08]' : 'opacity-0'
-            }`}
-            >
-              <img
-                src={src}
-                alt="抽象的な白黒の光と影"
-                className="w-full h-full object-cover grayscale scale-105"
-              />
-            </div>
+            className={`absolute inset-0 w-full h-full transition-opacity duration-[4000ms] ease-in-out ${index === currentImageIndex ? 'opacity-[0.08]' : 'opacity-0'
+              }`}
+          >
+            <img
+              src={src}
+              alt="抽象的な白黒の光と影"
+              className="w-full h-full object-cover grayscale scale-105"
+            />
+          </div>
         ))}
       </div>
 
       {/* Vertical Main Copy */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-row-reverse gap-8 md:gap-24 h-[60vh] items-center z-10">
-        
+
         {/* Line 1: 人と、 */}
         <FadeIn delay={0}>
           <h2 className="writing-vertical text-5xl md:text-7xl font-black tracking-[0.2em] animate-float-slow">

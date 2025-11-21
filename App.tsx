@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { MediaTop } from './pages/MediaTop';
 import { MediaArticle } from './pages/MediaArticle';
+import { ServiceSeoLlmo } from './pages/ServiceSeoLlmo';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
 const App: React.FC = () => {
@@ -12,6 +13,7 @@ const App: React.FC = () => {
         <Route path="/" element={<Home />} />
         <Route path="/media" element={<MediaTop />} />
         <Route path="/media/:id" element={<MediaArticle />} />
+        <Route path="/service/seo-llmo" element={<ServiceSeoLlmo />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
       </Routes>
     </Router>
