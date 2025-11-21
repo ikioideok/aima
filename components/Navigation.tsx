@@ -5,7 +5,7 @@ export const Navigation: React.FC = () => {
     <>
       {/* Logo */}
       <div className="fixed top-0 left-0 p-8 z-50 mix-blend-difference text-white hover-trigger">
-        <h1 className="font-eng text-sm font-bold tracking-widest">AIMA</h1>
+        <p className="font-eng text-sm font-bold tracking-widest" aria-label="AIMA">AIMA</p>
       </div>
 
       {/* Menu */}

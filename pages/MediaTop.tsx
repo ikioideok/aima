@@ -94,7 +94,7 @@ export const MediaTop: React.FC = () => {
                             <div className="w-full aspect-[21/9] overflow-hidden mb-8">
                                 <img
                                     src={featureArticle.image}
-                                    alt={featureArticle.title}
+                                    alt={`${featureArticle.category} ${featureArticle.title}`}
                                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                                 />
                             </div>
@@ -131,7 +131,7 @@ export const MediaTop: React.FC = () => {
                                             <div className="overflow-hidden mb-6 aspect-[4/3] w-full">
                                                 <img
                                                     src={article.image}
-                                                    alt={article.title}
+                                                    alt={`${article.category} ${article.title}`}
                                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                                 />
                                             </div>

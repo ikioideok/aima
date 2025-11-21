@@ -12,6 +12,7 @@ export const Home: React.FC = () => {
             <Navigation />
 
             <main>
+                <h1 className="sr-only">AIMA Inc.｜AIマーケティング・LLM活用・データ分析コンサルティング</h1>
                 <Hero />
                 <Philosophy />
                 <Services />

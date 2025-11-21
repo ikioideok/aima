@@ -29,7 +29,7 @@ export const MediaArticle: React.FC = () => {
                                 <div className="w-full aspect-video overflow-hidden">
                                     <img
                                         src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop"
-                                        alt="Article Header"
+                                        alt="AIと創造性の未来に関する特集記事ヘッダー画像"
                                         className="w-full h-full object-cover"
                                     />
                                 </div>

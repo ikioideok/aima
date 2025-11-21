@@ -32,13 +32,13 @@ export const Hero: React.FC = () => {
             className={`absolute inset-0 w-full h-full transition-opacity duration-[4000ms] ease-in-out ${
               index === currentImageIndex ? 'opacity-[0.08]' : 'opacity-0'
             }`}
-          >
-            <img
-              src={src}
-              alt=""
-              className="w-full h-full object-cover grayscale scale-105"
-            />
-          </div>
+            >
+              <img
+                src={src}
+                alt="抽象的な白黒の光と影"
+                className="w-full h-full object-cover grayscale scale-105"
+              />
+            </div>
         ))}
       </div>
 
