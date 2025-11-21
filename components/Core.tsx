@@ -48,10 +48,6 @@ export const Core: React.FC = () => {
               通常、3営業日以内に返信いたします。
             </p>
 
-            <div className="space-y-4 text-sm text-gray-500 font-mono">
-              <p>INFO@AIMA-INC.JP</p>
-              <p>TOKYO, JAPAN</p>
-            </div>
           </FadeIn>
         </div>
 
