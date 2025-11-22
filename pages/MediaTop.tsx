@@ -6,12 +6,12 @@ import { Sidebar } from '../components/Sidebar';
 
 // Mock Data
 const featureArticle = {
-    id: 'feat-1',
-    title: 'AIと創造性の未来：共存か、代替か',
-    subtitle: '生成AIがもたらすパラダイムシフトと、人間が果たすべき役割について',
-    date: '2024.05.15',
-    category: 'SPECIAL FEATURE',
-    image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=2000&auto=format&fit=crop'
+    id: 'llmo-seo-difference',
+    title: 'LLMOとは？SEOとの違いや生成AI時代に必須の対策方法を徹底解説',
+    subtitle: '生成AI時代の新たな最適化「LLMO」を基礎から実践までまとめました。',
+    date: '2024.11.22',
+    category: 'INSIGHT',
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2000&auto=format&fit=crop'
 };
 
 const featuredArticles = [
