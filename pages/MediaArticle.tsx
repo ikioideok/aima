@@ -202,7 +202,6 @@ export const MediaArticle: React.FC = () => {
                 const localArticles: Article[] = JSON.parse(localArticlesStr);
                 const found = localArticles.find(a => a.id === id);
                 if (found) {
-                    console.log('Found local article:', found);
                     setArticle(found);
                 }
             }
@@ -245,14 +244,7 @@ export const MediaArticle: React.FC = () => {
                         <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
                             {displayArticle.content ? (
                                 typeof displayArticle.content === 'string' ? (
-                                    <>
-                                        <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
-                                        {/* DEBUG: Show raw content */}
-                                        <div className="mt-8 p-4 bg-gray-100 border border-gray-300 text-xs font-mono whitespace-pre-wrap">
-                                            <p className="font-bold mb-2">DEBUG: Raw Content</p>
-                                            {displayArticle.content.substring(0, 500)}... (truncated)
-                                        </div>
-                                    </>
+                                    <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
                                 ) : (
                                     displayArticle.content
                                 )
