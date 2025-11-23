@@ -5,9 +5,7 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
-import { articles as articlesData } from '../data/articles';
-
-const articles = articlesData as Article[];
+import { getAllArticles } from '../utils/articleStorage';
 
 // Mock Data
 // Removed static mock data as per instructions
@@ -18,27 +16,31 @@ export const MediaTop: React.FC = () => {
     const [latestArticles, setLatestArticles] = useState<Article[]>([]);
 
     useEffect(() => {
-        // Sort by date descending
-        const sorted = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const loadArticles = () => {
+            const articles = getAllArticles();
 
-        // Filter articles
-        const localFeatured = articles.filter(a => a.displayType === 'FEATURED');
-        const localLatest = articles.filter(a => a.displayType === 'LATEST');
-        const localSpecial = articles.find(a => a.displayType === 'SPECIAL');
-        // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
-        const special = sorted.find(a => a.displayType === 'SPECIAL');
-        setFeatureArticle(special || sorted[0] || null);
+            // Sort by date descending
+            const sorted = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        // 2. Featured (Next 4 with displayType 'FEATURED')
-        const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
-        setFeaturedArticles(featured);
+            // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
+            const special = sorted.find(a => a.displayType === 'SPECIAL');
+            setFeatureArticle(special || sorted[0] || null);
 
-        // 3. Latest (Rest)
-        const latest = sorted.filter(a =>
-            a.id !== (special?.id || sorted[0]?.id) &&
-            !featured.find(f => f.id === a.id)
-        );
-        setLatestArticles(latest);
+            // 2. Featured (Next 4 with displayType 'FEATURED')
+            const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
+            setFeaturedArticles(featured);
+
+            // 3. Latest (Rest)
+            const latest = sorted.filter(a =>
+                a.id !== (special?.id || sorted[0]?.id) &&
+                !featured.find(f => f.id === a.id)
+            );
+            setLatestArticles(latest);
+        };
+
+        loadArticles();
+        window.addEventListener('storage', loadArticles);
+        return () => window.removeEventListener('storage', loadArticles);
     }, []);
 
     return (

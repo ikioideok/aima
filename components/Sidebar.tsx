@@ -1,21 +1,26 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { Article } from '../types';
-import { articles as articlesData } from '../data/articles';
-import { useState, useEffect } from 'react';
-
-const staticArticles = articlesData as Article[];
+import { getAllArticles } from '../utils/articleStorage';
 
 const categories = [
     'STRATEGY', 'TECHNOLOGY', 'MARKETING', 'GOVERNANCE', 'SKILL', 'TREND', 'CASE STUDY', 'EDUCATION'
 ];
 
 export const Sidebar: React.FC = () => {
+    const [articles, setArticles] = useState<Article[]>([]);
+
+    useEffect(() => {
+        const loadArticles = () => setArticles(getAllArticles());
+        loadArticles();
+        window.addEventListener('storage', loadArticles);
+        return () => window.removeEventListener('storage', loadArticles);
+    }, []);
+
     // Editor's Picks (FEATURED)
-    const picks = staticArticles.filter(a => a.displayType === 'FEATURED').slice(0, 3);
+    const picks = articles.filter(a => a.displayType === 'FEATURED').slice(0, 3);
 
     // Popular (Sort by views desc) - Note: Views are static now
-    const popular = [...staticArticles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+    const popular = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
     return (
         <aside className="w-full space-y-16">

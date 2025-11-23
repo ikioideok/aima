@@ -4,6 +4,14 @@ import { Footer } from '../components/Footer';
 import { SEO } from '../components/SEO';
 import { Sidebar } from '../components/Sidebar';
 import { Article } from '../types';
+import { saveArticleLocally } from '../utils/articleStorage';
+
+const defaultSupervisor = {
+    name: '水間 雄紀',
+    role: 'CEO',
+    image: '/supervisor.jpg',
+    comment: 'Webマーケターとして株式会社circlizeを創業。ラグザス株式会社に事業譲渡後、株式会社AIMAの代表取締役としてAI×マーケティングの事業に取り組む'
+};
 
 export const MediaAdmin: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -16,10 +24,10 @@ export const MediaAdmin: React.FC = () => {
     const [displayType, setDisplayType] = useState<Article['displayType']>('LATEST');
 
     // Supervisor State
-    const [supervisorName, setSupervisorName] = useState('水間 雄紀');
-    const [supervisorRole, setSupervisorRole] = useState('CEO');
-    const [supervisorImage, setSupervisorImage] = useState('/supervisor.jpg');
-    const [supervisorComment, setSupervisorComment] = useState('Webマーケターとして株式会社circlizeを創業。ラグザス株式会社に事業譲渡後、株式会社AIMAの代表取締役としてAI×マーケティングの事業に取り組む');
+    const [supervisorName, setSupervisorName] = useState(defaultSupervisor.name);
+    const [supervisorRole, setSupervisorRole] = useState(defaultSupervisor.role);
+    const [supervisorImage, setSupervisorImage] = useState(defaultSupervisor.image);
+    const [supervisorComment, setSupervisorComment] = useState(defaultSupervisor.comment);
 
     const [message, setMessage] = useState('');
 
@@ -119,7 +127,14 @@ export const MediaAdmin: React.FC = () => {
 
 
 
-    const handlePostArticle = async () => {
+    const handlePostArticle = async (event?: React.FormEvent) => {
+        event?.preventDefault();
+
+        if (!title.trim() || !subtitle.trim() || !content.trim()) {
+            alert('タイトル、サブタイトル、本文は必須です。');
+            return;
+        }
+
         const newArticle: Article = {
             id: editingId || Date.now().toString(),
             title,
@@ -130,13 +145,18 @@ export const MediaAdmin: React.FC = () => {
             content,
             excerpt: subtitle,
             displayType,
-            supervisor: {
+            supervisor: supervisorName || supervisorRole || supervisorImage || supervisorComment ? {
                 name: supervisorName,
                 role: supervisorRole,
                 image: supervisorImage,
                 comment: supervisorComment
-            }
+            } : undefined
         };
+
+        // Always save locally so the site reflects the new article immediately
+        saveArticleLocally(newArticle);
+
+        let savedToServer = false;
 
         try {
             const response = await fetch('/api/save-article', {
@@ -148,16 +168,19 @@ export const MediaAdmin: React.FC = () => {
             });
 
             if (response.ok) {
-                setMessage('記事を投稿しました！');
-                resetForm();
-                setTimeout(() => setMessage(''), 3000);
+                savedToServer = true;
             } else {
                 throw new Error('Failed to save');
             }
         } catch (error) {
             console.error('Error posting article:', error);
-            alert('投稿に失敗しました。サーバーが起動しているか確認してください。');
+            // Fallback handled by local save above
         }
+
+        setEditingId(null);
+        setMessage(savedToServer ? '記事を投稿しました！' : '記事を投稿しました！（ローカル保存）');
+        resetForm();
+        setTimeout(() => setMessage(''), 3000);
     };
 
     const resetForm = () => {
@@ -167,10 +190,10 @@ export const MediaAdmin: React.FC = () => {
         setImage('');
         setContent('');
         setDisplayType('LATEST');
-        setSupervisorName('');
-        setSupervisorRole('');
-        setSupervisorImage('');
-        setSupervisorComment('');
+        setSupervisorName(defaultSupervisor.name);
+        setSupervisorRole(defaultSupervisor.role);
+        setSupervisorImage(defaultSupervisor.image);
+        setSupervisorComment(defaultSupervisor.comment);
     };
 
 
@@ -198,7 +221,7 @@ export const MediaAdmin: React.FC = () => {
                             </div>
                         )}
 
-                        <form className="space-y-8 mb-24">
+                        <form className="space-y-8 mb-24" onSubmit={handlePostArticle}>
                             <div>
                                 <label className="block text-sm font-bold mb-2">タイトル</label>
                                 <input
@@ -265,8 +288,7 @@ export const MediaAdmin: React.FC = () => {
                                     リセット
                                 </button>
                                 <button
-                                    type="button"
-                                    onClick={handlePostArticle}
+                                    type="submit"
                                     className="px-8 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center space-x-2"
                                 >
                                     <span>記事を投稿する</span>

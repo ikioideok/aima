@@ -6,32 +6,46 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
-import { articles as articlesData } from '../data/articles';
-
-const staticArticles = articlesData as Article[];
-
-
+import { getAllArticles } from '../utils/articleStorage';
 
 
 
 export const MediaArticle: React.FC = () => {
     const { id } = useParams();
-    const [article, setArticle] = useState<any>(null);
+    const [articles, setArticles] = useState<Article[]>([]);
+    const [article, setArticle] = useState<Article | null>(null);
     const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
     const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
     const [processedContent, setProcessedContent] = useState<{ intro: string; body: string } | null>(null);
     const [isTocOpen, setIsTocOpen] = useState(true);
+    const [hasLoaded, setHasLoaded] = useState(false);
+
+    useEffect(() => {
+        const loadArticles = () => {
+            const all = getAllArticles();
+            setArticles(all);
+            setHasLoaded(true);
+        };
+
+        loadArticles();
+        window.addEventListener('storage', loadArticles);
+        return () => window.removeEventListener('storage', loadArticles);
+    }, []);
 
     useEffect(() => {
         if (!id) return;
 
-        const found = staticArticles.find(a => a.id === id);
+        const found = articles.find(a => a.id === id);
         if (found) {
             setArticle(found);
             processContent(found.content);
-            fetchRelatedArticles(found);
+            fetchRelatedArticles(found, articles);
+        } else {
+            setArticle(null);
+            setProcessedContent(null);
+            setRelatedArticles([]);
         }
-    }, [id]);
+    }, [id, articles]);
 
     const processContent = (content: any) => {
         if (typeof content !== 'string') {
@@ -76,16 +90,21 @@ export const MediaArticle: React.FC = () => {
         }
     };
 
-    const fetchRelatedArticles = (currentArticle: Article) => {
+    const fetchRelatedArticles = (currentArticle: Article, allArticles: Article[]) => {
         // Filter: Same category, exclude current
-        const related = staticArticles
+        const related = allArticles
             .filter(a => a.category === currentArticle.category && a.id !== currentArticle.id)
             .slice(0, 3); // Take top 3
 
         setRelatedArticles(related);
     };
 
-    if (!article) return <div className="pt-40 text-center">Loading...</div>;
+    if (!article) {
+        if (!hasLoaded) {
+            return <div className="pt-40 text-center">Loading...</div>;
+        }
+        return <div className="pt-40 text-center">記事が見つかりませんでした。</div>;
+    }
 
     const displayArticle = article;
 
