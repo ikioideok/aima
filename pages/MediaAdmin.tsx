@@ -94,25 +94,24 @@ export const MediaAdmin: React.FC = () => {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Decoration: Simple Pattern (Diagonal Stripes)
+        ctx.strokeStyle = '#F5F5F5'; // Very light gray
+        ctx.lineWidth = 10;
+        const step = 60;
+        for (let x = -canvas.height; x < canvas.width; x += step) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x + canvas.height, canvas.height);
+            ctx.stroke();
+        }
+
         // Decoration: Inner Border
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2;
         ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
 
-        // Decoration: Top Logo
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 30px "Helvetica Neue", Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.letterSpacing = '0.2em';
-        ctx.fillText('AIMA INSIGHTS', canvas.width / 2, 120);
-
-        // Decoration: Accent Line
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2 - 30, 150);
-        ctx.lineTo(canvas.width / 2 + 30, 150);
-        ctx.stroke();
-
         // Title Text Wrapping
+        ctx.fillStyle = '#000000';
         ctx.font = 'bold 60px "Times New Roman", Times, serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
