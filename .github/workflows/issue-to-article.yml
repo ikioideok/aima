@@ -15,29 +15,32 @@ jobs:
 
       - name: Parse issue
         id: parse
+        shell: node
         run: |
-          TITLE="${{ github.event.issue.title }}"
-          BODY="${{ github.event.issue.body }}"
-          # Expect format:
-          # 1行目: カテゴリ（INSIGHT など）
-          # 2行目: サブタイトル/抜粋
-          # 3行目以降: 本文（HTML可）
-          CATEGORY=$(echo "$BODY" | sed -n '1p')
-          SUBTITLE=$(echo "$BODY" | sed -n '2p')
-          CONTENT=$(echo "$BODY" | sed '1,2d')
-          DATE=$(date +'%Y.%m.%d')
-          ID=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
+          const fs = require('fs');
 
-          cat <<'EOF' >> $GITHUB_OUTPUT
-          title=$TITLE
-          category=$CATEGORY
-          subtitle=$SUBTITLE
-          content<<CONTENT
-          $CONTENT
-          CONTENT
-          date=$DATE
-          id=$ID
-          EOF
+          const title = process.env.ISSUE_TITLE || '';
+          const body = (process.env.ISSUE_BODY || '').replace(/\r\n/g, '\n');
+          const lines = body.split('\n');
+          const category = (lines[0] || '').trim();
+          const subtitle = (lines[1] || '').trim();
+          const content = lines.slice(2).join('\n').trim();
+
+          const date = new Date().toISOString().slice(0,10).replace(/-/g, '.');
+          const id = title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `title=${title}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `category=${category}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `subtitle=${subtitle}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `content<<CONTENT\n${content}\nCONTENT\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `date=${date}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `id=${id}\n`);
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
 
       - name: Install Node
         uses: actions/setup-node@v4
