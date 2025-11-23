@@ -1,0 +1,59 @@
+<?php
+// save_article.php
+// Receive JSON payload and update articles.json
+
+// CORS headers (adjust for production security if needed)
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method Not Allowed']);
+    exit;
+}
+
+// Basic Authentication (Optional: Add a simple password check here)
+// $headers = getallheaders();
+// if (!isset($headers['X-Admin-Key']) || $headers['X-Admin-Key'] !== 'YOUR_SECRET_KEY') {
+//     http_response_code(403);
+//     echo json_encode(['error' => 'Forbidden']);
+//     exit;
+// }
+
+$input = file_get_contents('php://input');
+$newArticle = json_decode($input, true);
+
+if (!$newArticle) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid JSON']);
+    exit;
+}
+
+$file = 'articles.json';
+$articles = [];
+
+if (file_exists($file)) {
+    $content = file_get_contents($file);
+    $articles = json_decode($content, true);
+    if (!is_array($articles)) {
+        $articles = [];
+    }
+}
+
+// Prepend new article
+array_unshift($articles, $newArticle);
+
+// Save back to file
+if (file_put_contents($file, json_encode($articles, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+    echo json_encode($articles);
+} else {
+    http_response_code(500);
+    echo json_encode(['error' => 'Failed to write file']);
+}
+?>

@@ -5,44 +5,49 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
-import { loadArticles } from '../utils/articleStorage';
-
-// Mock Data
-// Removed static mock data as per instructions
 
 export const MediaTop: React.FC = () => {
+    const [articles, setArticles] = useState<Article[]>([]);
     const [featureArticle, setFeatureArticle] = useState<Article | null>(null);
     const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
     const [latestArticles, setLatestArticles] = useState<Article[]>([]);
 
     useEffect(() => {
-        const hydrate = () => {
-            loadArticles().then((articles) => {
-
-                // Sort by date descending
-                const sorted = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-                // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
-                const special = sorted.find(a => a.displayType === 'SPECIAL');
-                setFeatureArticle(special || sorted[0] || null);
-
-                // 2. Featured (Next 4 with displayType 'FEATURED')
-                const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
-                setFeaturedArticles(featured);
-
-                // 3. Latest (Rest)
-                const latest = sorted.filter(a =>
-                    a.id !== (special?.id || sorted[0]?.id) &&
-                    !featured.find(f => f.id === a.id)
-                );
-                setLatestArticles(latest);
-            });
+        const fetchArticles = async () => {
+            try {
+                const response = await fetch('/articles.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    setArticles(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch articles:', error);
+            }
         };
-
-        hydrate();
-        window.addEventListener('storage', hydrate);
-        return () => window.removeEventListener('storage', hydrate);
+        fetchArticles();
     }, []);
+
+    useEffect(() => {
+        if (articles.length === 0) return;
+
+        // Sort by date descending
+        const sorted = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
+        const special = sorted.find(a => a.displayType === 'SPECIAL');
+        setFeatureArticle(special || sorted[0] || null);
+
+        // 2. Featured (Next 4 with displayType 'FEATURED')
+        const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
+        setFeaturedArticles(featured);
+
+        // 3. Latest (Rest)
+        const latest = sorted.filter(a =>
+            a.id !== (special?.id || sorted[0]?.id) &&
+            !featured.find(f => f.id === a.id)
+        );
+        setLatestArticles(latest);
+    }, [articles]);
 
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
@@ -61,7 +66,6 @@ export const MediaTop: React.FC = () => {
                     {/* Main Content Column */}
                     <div className="lg:w-2/3">
 
-                        {/* 1. Feature Article (特集記事) */}
                         {/* 1. Feature Article (特集記事) */}
                         {featureArticle && (
                             <section className="mb-32">

@@ -39,7 +39,8 @@ const mergeArticles = (...lists: Article[][]) => {
 const fetchServerArticles = async (): Promise<Article[] | null> => {
     if (!hasWindow) return null;
     try {
-        const res = await fetch('/api/articles', { method: 'GET' });
+        // Fetch directly from the JSON file served by the server
+        const res = await fetch('/articles.json', { method: 'GET' });
         if (!res.ok) throw new Error('Failed to fetch articles');
         const data = await res.json();
         return data as Article[];
@@ -66,8 +67,11 @@ export const saveArticle = async (article: Article): Promise<{ articles: Article
     persistStoredArticles(locallyMerged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
 
     let savedToServer = false;
+    let latestArticles = locallyMerged;
+
     try {
-        const response = await fetch('/api/save-article', {
+        // Post to the PHP script
+        const response = await fetch('/save_article.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -77,14 +81,17 @@ export const saveArticle = async (article: Article): Promise<{ articles: Article
 
         if (response.ok) {
             const serverArticles = (await response.json()) as Article[];
+            // Update local storage with the authoritative server list
             const merged = mergeArticles(serverArticles, readStoredArticles(), staticArticles);
             persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+            latestArticles = merged;
             savedToServer = true;
+        } else {
+            console.error('Server responded with error:', await response.text());
         }
     } catch (error) {
         console.warn('Failed to save to server, kept local only', error);
     }
 
-    const latest = mergeArticles(readStoredArticles(), staticArticles);
-    return { articles: latest, savedToServer };
+    return { articles: latestArticles, savedToServer };
 };

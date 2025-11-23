@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Article } from '../types';
-import { loadArticles } from '../utils/articleStorage';
 
 const categories = [
     'STRATEGY', 'TECHNOLOGY', 'MARKETING', 'GOVERNANCE', 'SKILL', 'TREND', 'CASE STUDY', 'EDUCATION'
@@ -8,34 +8,48 @@ const categories = [
 
 export const Sidebar: React.FC = () => {
     const [articles, setArticles] = useState<Article[]>([]);
+    const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
+    const [popularArticles, setPopularArticles] = useState<Article[]>([]);
 
     useEffect(() => {
-        const hydrate = () => {
-            loadArticles().then(setArticles);
+        const fetchArticles = async () => {
+            try {
+                const response = await fetch('/articles.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    setArticles(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch articles:', error);
+            }
         };
-        hydrate();
-        window.addEventListener('storage', hydrate);
-        return () => window.removeEventListener('storage', hydrate);
+        fetchArticles();
     }, []);
 
-    // Editor's Picks (FEATURED)
-    const picks = articles.filter(a => a.displayType === 'FEATURED').slice(0, 3);
+    useEffect(() => {
+        if (articles.length === 0) return;
 
-    // Popular (Sort by views desc) - Note: Views are static now
-    const popular = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+        // Editor's Picks (Featured)
+        const featured = articles.filter(a => a.displayType === 'FEATURED').slice(0, 3);
+        setFeaturedArticles(featured);
+
+        // Popular (Sorted by views)
+        const popular = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+        setPopularArticles(popular);
+    }, [articles]);
 
     return (
         <aside className="w-full space-y-16">
 
             {/* Editor's Picks */}
-            {picks.length > 0 && (
+            {featuredArticles.length > 0 && (
                 <section>
                     <div className="flex items-center gap-4 mb-8">
                         <div className="h-[1px] w-8 bg-black"></div>
                         <h3 className="text-xs font-eng font-bold tracking-widest">EDITOR'S PICKS</h3>
                     </div>
                     <div className="space-y-6">
-                        {picks.map((item) => (
+                        {featuredArticles.map((item) => (
                             <a key={item.id} href={`/media/${item.id}`} className="group block flex gap-4 items-start">
                                 <div className="w-24 aspect-square overflow-hidden flex-shrink-0">
                                     <img
@@ -54,14 +68,14 @@ export const Sidebar: React.FC = () => {
             )}
 
             {/* Popular Articles */}
-            {popular.length > 0 && (
+            {popularArticles.length > 0 && (
                 <section>
                     <div className="flex items-center gap-4 mb-8">
                         <div className="h-[1px] w-8 bg-black"></div>
                         <h3 className="text-xs font-eng font-bold tracking-widest">POPULAR</h3>
                     </div>
                     <ol className="space-y-6 list-decimal list-inside">
-                        {popular.map((item) => (
+                        {popularArticles.map((item) => (
                             <li key={item.id} className="text-sm font-bold leading-relaxed border-b border-gray-100 pb-4 last:border-0">
                                 <a href={`/media/${item.id}`} className="hover:text-gray-600 transition-colors pl-2 block">
                                     {item.title}

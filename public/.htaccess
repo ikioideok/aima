@@ -1,7 +1,18 @@
-Options -MultiViews
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
 
-RewriteEngine On
-RewriteBase /
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.html [L]
+  # Route /media/admin to index.html (React handles it)
+  RewriteRule ^media/admin$ index.html [L]
+
+  # Route /media/{id} to media.php (PHP handles SSR)
+  # Exclude real files and directories
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^media/([^/]+)$ media.php [L]
+
+  # Route everything else to index.html (SPA)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>

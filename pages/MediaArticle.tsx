@@ -2,39 +2,39 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
-import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
-import { loadArticles } from '../utils/articleStorage';
-
-
 
 export const MediaArticle: React.FC = () => {
-    const { id } = useParams();
-    const [articles, setArticles] = useState<Article[]>([]);
+    const { id } = useParams<{ id: string }>();
     const [article, setArticle] = useState<Article | null>(null);
     const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
+    const [articles, setArticles] = useState<Article[]>([]);
     const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
     const [processedContent, setProcessedContent] = useState<{ intro: string; body: string } | null>(null);
     const [isTocOpen, setIsTocOpen] = useState(true);
     const [hasLoaded, setHasLoaded] = useState(false);
 
     useEffect(() => {
-        const hydrate = () => {
-            loadArticles().then((all) => {
-                setArticles(all);
+        const fetchArticles = async () => {
+            try {
+                const response = await fetch('/articles.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    setArticles(data);
+                    setHasLoaded(true);
+                }
+            } catch (error) {
+                console.error('Failed to fetch articles:', error);
                 setHasLoaded(true);
-            });
+            }
         };
-
-        hydrate();
-        window.addEventListener('storage', hydrate);
-        return () => window.removeEventListener('storage', hydrate);
+        fetchArticles();
     }, []);
 
     useEffect(() => {
-        if (!id) return;
+        if (!id || articles.length === 0) return;
 
         const found = articles.find(a => a.id === id);
         if (found) {
@@ -107,15 +107,13 @@ export const MediaArticle: React.FC = () => {
         return <div className="pt-40 text-center">記事が見つかりませんでした。</div>;
     }
 
-    const displayArticle = article;
-
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
             <SEO
-                title={displayArticle.title}
-                description={displayArticle.subtitle || displayArticle.excerpt}
-                image={displayArticle.image}
-                path={`/media/${displayArticle.id}`}
+                title={article.title}
+                description={article.subtitle || article.excerpt}
+                image={article.image}
+                path={`/media/${article.id}`}
             />
             <Navigation />
 
@@ -126,16 +124,16 @@ export const MediaArticle: React.FC = () => {
                     <div className="lg:w-2/3">
                         <div className="text-center mb-16">
                             <div className="flex items-center justify-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-6">
-                                <span>{displayArticle.category}</span>
-                                <span>{displayArticle.date}</span>
+                                <span>{article.category}</span>
+                                <span>{article.date}</span>
                             </div>
                             <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-12">
-                                {displayArticle.title}
+                                {article.title}
                             </h1>
                             <div className="w-full aspect-video overflow-hidden">
                                 <img
-                                    src={displayArticle.heroImage || displayArticle.image}
-                                    alt={displayArticle.title}
+                                    src={article.heroImage || article.image}
+                                    alt={article.title}
                                     className="w-full h-full object-cover"
                                 />
                             </div>
@@ -175,23 +173,23 @@ export const MediaArticle: React.FC = () => {
                                     )}
 
                                     {/* Supervisor Info */}
-                                    {displayArticle.supervisor && (
+                                    {article.supervisor && (
                                         <div className="my-12 border border-black p-6 flex flex-col md:flex-row gap-6 items-start bg-white">
-                                            {displayArticle.supervisor.image && (
+                                            {article.supervisor.image && (
                                                 <img
-                                                    src={displayArticle.supervisor.image}
-                                                    alt={displayArticle.supervisor.name}
+                                                    src={article.supervisor.image}
+                                                    alt={article.supervisor.name}
                                                     className="w-24 h-24 rounded-full object-cover flex-shrink-0 border border-gray-200"
                                                 />
                                             )}
                                             <div>
                                                 <div className="text-xs font-bold text-gray-500 mb-1">この記事の監修者</div>
-                                                <div className="text-lg font-bold mb-1">{displayArticle.supervisor.name}</div>
-                                                <div className="text-xs text-gray-600 mb-4">{displayArticle.supervisor.role}</div>
-                                                {displayArticle.supervisor.comment && (
+                                                <div className="text-lg font-bold mb-1">{article.supervisor.name}</div>
+                                                <div className="text-xs text-gray-600 mb-4">{article.supervisor.role}</div>
+                                                {article.supervisor.comment && (
                                                     <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded relative">
                                                         <span className="absolute top-0 left-2 text-4xl text-gray-200 font-serif">“</span>
-                                                        {displayArticle.supervisor.comment}
+                                                        {article.supervisor.comment}
                                                     </p>
                                                 )}
                                             </div>
@@ -202,10 +200,10 @@ export const MediaArticle: React.FC = () => {
                                     <div dangerouslySetInnerHTML={{ __html: processedContent.body }} />
                                 </>
                             ) : (
-                                typeof displayArticle.content === 'string' ? (
-                                    <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
+                                typeof article.content === 'string' ? (
+                                    <div dangerouslySetInnerHTML={{ __html: article.content }} />
                                 ) : (
-                                    displayArticle.content
+                                    article.content
                                 )
                             )}
                         </div>
