@@ -92,7 +92,7 @@ export const Sidebar: React.FC = () => {
                 <div className="bg-gray-50 p-6">
                     <div className="w-20 h-20 rounded-full overflow-hidden mb-4 mx-auto">
                         <img
-                            src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=500&auto=format&fit=crop"
+                            src="/supervisor.jpg"
                             alt="Supervisor"
                             className="w-full h-full object-cover"
                         />
