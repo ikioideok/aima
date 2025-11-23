@@ -26,14 +26,16 @@ jobs:
           DATE=$(date +'%Y.%m.%d')
           ID=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
 
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
-          echo "category=$CATEGORY" >> $GITHUB_OUTPUT
-          echo "subtitle=$SUBTITLE" >> $GITHUB_OUTPUT
-          echo "content<<'EOF'" >> $GITHUB_OUTPUT
-          echo "$CONTENT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "date=$DATE" >> $GITHUB_OUTPUT
-          echo "id=$ID" >> $GITHUB_OUTPUT
+          cat <<'EOF' >> $GITHUB_OUTPUT
+title=$TITLE
+category=$CATEGORY
+subtitle=$SUBTITLE
+content<<CONTENT
+$CONTENT
+CONTENT
+date=$DATE
+id=$ID
+EOF
 
       - name: Install Node
         uses: actions/setup-node@v4
