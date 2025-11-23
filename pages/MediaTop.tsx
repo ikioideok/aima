@@ -99,7 +99,7 @@ export const MediaTop: React.FC = () => {
                 }
 
                 // 2. Featured Articles: Find local articles with displayType = 'FEATURED'
-                const localFeatured = localArticles.filter(a => a.displayType === 'FEATUREED');
+                const localFeatured = localArticles.filter(a => a.displayType === 'FEATURED');
                 if (localFeatured.length > 0) {
                     // Prepend local featured articles to static ones, take top 4
                     setFeaturedArticles([...localFeatured, ...staticFeaturedArticles].slice(0, 4));

@@ -225,49 +225,47 @@ export const MediaArticle: React.FC = () => {
 
                     {/* Article Content */}
                     <div className="lg:w-2/3">
-                        <FadeIn>
-                            <div className="text-center mb-16">
-                                <div className="flex items-center justify-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-6">
-                                    <span>{displayArticle.category}</span>
-                                    <span>{displayArticle.date}</span>
-                                </div>
-                                <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-12">
-                                    {displayArticle.title}
-                                </h1>
-                                <div className="w-full aspect-video overflow-hidden">
-                                    <img
-                                        src={displayArticle.heroImage || displayArticle.image}
-                                        alt={displayArticle.title}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
+                        <div className="text-center mb-16">
+                            <div className="flex items-center justify-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-6">
+                                <span>{displayArticle.category}</span>
+                                <span>{displayArticle.date}</span>
                             </div>
+                            <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-12">
+                                {displayArticle.title}
+                            </h1>
+                            <div className="w-full aspect-video overflow-hidden">
+                                <img
+                                    src={displayArticle.heroImage || displayArticle.image}
+                                    alt={displayArticle.title}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        </div>
 
-                            <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
-                                {displayArticle.content ? (
-                                    typeof displayArticle.content === 'string' ? (
-                                        <>
-                                            <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
-                                            {/* DEBUG: Show raw content */}
-                                            <div className="mt-8 p-4 bg-gray-100 border border-gray-300 text-xs font-mono whitespace-pre-wrap">
-                                                <p className="font-bold mb-2">DEBUG: Raw Content</p>
-                                                {displayArticle.content}
-                                            </div>
-                                        </>
-                                    ) : (
-                                        displayArticle.content
-                                    )
+                        <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
+                            {displayArticle.content ? (
+                                typeof displayArticle.content === 'string' ? (
+                                    <>
+                                        <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
+                                        {/* DEBUG: Show raw content */}
+                                        <div className="mt-8 p-4 bg-gray-100 border border-gray-300 text-xs font-mono whitespace-pre-wrap">
+                                            <p className="font-bold mb-2">DEBUG: Raw Content</p>
+                                            {displayArticle.content.substring(0, 500)}... (truncated)
+                                        </div>
+                                    </>
                                 ) : (
-                                    <p className="text-gray-500 italic">本文がありません。</p>
-                                )}
-                            </div>
+                                    displayArticle.content
+                                )
+                            ) : (
+                                <p className="text-gray-500 italic">本文がありません。</p>
+                            )}
+                        </div>
 
-                            <div className="text-center mb-24">
-                                <Link to="/media" className="inline-block border-b border-black pb-1 text-sm font-bold tracking-widest hover:text-gray-600 transition-colors">
-                                    BACK TO LIST
-                                </Link>
-                            </div>
-                        </FadeIn>
+                        <div className="text-center mb-24">
+                            <Link to="/media" className="inline-block border-b border-black pb-1 text-sm font-bold tracking-widest hover:text-gray-600 transition-colors">
+                                BACK TO LIST
+                            </Link>
+                        </div>
                     </div>
 
                     {/* Sidebar */}
