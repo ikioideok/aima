@@ -1,12 +1,16 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 
 export const Navigation: React.FC = () => {
+  const location = useLocation();
+  const logoHref = location.pathname.startsWith('/media') ? '/media' : '/';
+
   return (
     <>
       {/* Logo */}
       <div className="fixed top-0 left-0 p-8 z-50 mix-blend-difference text-white hover-trigger">
         <a
-          href="https://ai-and-marketing.jp/"
+          href={logoHref}
           className="font-eng text-sm font-bold tracking-widest"
           aria-label="AIMA"
         >
