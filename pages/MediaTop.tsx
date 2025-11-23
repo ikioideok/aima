@@ -82,13 +82,31 @@ const staticLatestArticles: Article[] = [
 ];
 
 export const MediaTop: React.FC = () => {
+    const [featureArticle, setFeatureArticle] = useState<Article>(staticFeatureArticle);
+    const [featuredArticles, setFeaturedArticles] = useState<Article[]>(staticFeaturedArticles);
     const [latestArticles, setLatestArticles] = useState<Article[]>(staticLatestArticles);
 
     useEffect(() => {
         const localArticlesStr = localStorage.getItem('aima_media_articles');
         if (localArticlesStr) {
             const localArticles: Article[] = JSON.parse(localArticlesStr);
-            setLatestArticles([...localArticles, ...staticLatestArticles]);
+
+            // 1. Special Feature: Find most recent local article with displayType = 'SPECIAL'
+            const localSpecial = localArticles.find(a => a.displayType === 'SPECIAL');
+            if (localSpecial) {
+                setFeatureArticle(localSpecial);
+            }
+
+            // 2. Featured Articles: Find local articles with displayType = 'FEATURED'
+            const localFeatured = localArticles.filter(a => a.displayType === 'FEATURED');
+            if (localFeatured.length > 0) {
+                // Prepend local featured articles to static ones, take top 4
+                setFeaturedArticles([...localFeatured, ...staticFeaturedArticles].slice(0, 4));
+            }
+
+            // 3. Latest Articles: Find local articles with displayType = 'LATEST' (or undefined/null for backward compatibility)
+            const localLatest = localArticles.filter(a => !a.displayType || a.displayType === 'LATEST');
+            setLatestArticles([...localLatest, ...staticLatestArticles]);
         }
     }, []);
 
@@ -111,23 +129,23 @@ export const MediaTop: React.FC = () => {
                                 <h2 className="text-sm font-eng font-bold tracking-widest">SPECIAL FEATURE</h2>
                             </div>
                             <FadeIn>
-                                <a href={`/media/${staticFeatureArticle.id}`} className="group block relative">
+                                <a href={`/media/${featureArticle.id}`} className="group block relative">
                                     <div className="w-full aspect-[21/9] overflow-hidden mb-8">
                                         <img
-                                            src={staticFeatureArticle.image}
-                                            alt={`${staticFeatureArticle.category} ${staticFeatureArticle.title}`}
+                                            src={featureArticle.image}
+                                            alt={`${featureArticle.category} ${featureArticle.title}`}
                                             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                                         />
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-4">
-                                            <span className="text-black border border-black px-2 py-1">{staticFeatureArticle.category}</span>
-                                            <span>{staticFeatureArticle.date}</span>
+                                            <span className="text-black border border-black px-2 py-1">{featureArticle.category}</span>
+                                            <span>{featureArticle.date}</span>
                                         </div>
                                         <h3 className="text-2xl md:text-3xl font-bold leading-tight mb-4 group-hover:text-gray-600 transition-colors">
-                                            {staticFeatureArticle.title}
+                                            {featureArticle.title}
                                         </h3>
-                                        <p className="text-gray-600 text-base font-medium">{staticFeatureArticle.subtitle}</p>
+                                        <p className="text-gray-600 text-base font-medium">{featureArticle.subtitle}</p>
                                     </div>
                                 </a>
                             </FadeIn>
@@ -140,7 +158,7 @@ export const MediaTop: React.FC = () => {
                                 <h2 className="text-sm font-eng font-bold tracking-widest">FEATURED</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {staticFeaturedArticles.map((article, index) => (
+                                {featuredArticles.map((article, index) => (
                                     <FadeIn key={article.id} delay={index * 100}>
                                         <a href={`/media/${article.id}`} className="group block h-full flex flex-col">
                                             <div className="overflow-hidden mb-6 aspect-[4/3] w-full">

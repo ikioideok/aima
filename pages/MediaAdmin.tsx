@@ -10,7 +10,23 @@ export const MediaAdmin: React.FC = () => {
     const [category, setCategory] = useState<Article['category']>('INSIGHT');
     const [image, setImage] = useState('');
     const [content, setContent] = useState('');
+    const [displayType, setDisplayType] = useState<Article['displayType']>('LATEST');
     const [message, setMessage] = useState('');
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 500 * 1024) { // 500KB limit
+                alert('画像サイズが大きすぎます（500KB以下にしてください）。ローカルストレージの容量制限のためです。');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,25 +39,32 @@ export const MediaAdmin: React.FC = () => {
             category,
             image,
             content,
-            excerpt: subtitle // Use subtitle as excerpt for list view
+            excerpt: subtitle, // Use subtitle as excerpt for list view
+            displayType
         };
 
-        // Save to localStorage
-        const existingArticlesStr = localStorage.getItem('aima_media_articles');
-        const existingArticles: Article[] = existingArticlesStr ? JSON.parse(existingArticlesStr) : [];
-        const updatedArticles = [newArticle, ...existingArticles];
-        localStorage.setItem('aima_media_articles', JSON.stringify(updatedArticles));
+        try {
+            // Save to localStorage
+            const existingArticlesStr = localStorage.getItem('aima_media_articles');
+            const existingArticles: Article[] = existingArticlesStr ? JSON.parse(existingArticlesStr) : [];
+            const updatedArticles = [newArticle, ...existingArticles];
+            localStorage.setItem('aima_media_articles', JSON.stringify(updatedArticles));
 
-        setMessage('記事を投稿しました！');
+            setMessage('記事を投稿しました！');
 
-        // Reset form
-        setTitle('');
-        setSubtitle('');
-        setCategory('INSIGHT');
-        setImage('');
-        setContent('');
+            // Reset form
+            setTitle('');
+            setSubtitle('');
+            setCategory('INSIGHT');
+            setImage('');
+            setContent('');
+            setDisplayType('LATEST');
 
-        setTimeout(() => setMessage(''), 3000);
+            setTimeout(() => setMessage(''), 3000);
+        } catch (error) {
+            console.error(error);
+            alert('保存に失敗しました。ローカルストレージの容量がいっぱいの可能性があります。画像を減らすか、古い記事を削除してください。');
+        }
     };
 
     return (
@@ -110,16 +133,43 @@ export const MediaAdmin: React.FC = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold mb-2">画像URL</label>
+                                    <label className="block text-sm font-bold mb-2">表示場所</label>
+                                    <select
+                                        value={displayType}
+                                        onChange={(e) => setDisplayType(e.target.value as Article['displayType'])}
+                                        className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                    >
+                                        <option value="LATEST">LATEST (最新記事リスト)</option>
+                                        <option value="SPECIAL">SPECIAL FEATURE (トップ特集)</option>
+                                        <option value="FEATURED">FEATURED (注目記事グリッド)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold mb-2">画像</label>
+                                <div className="space-y-4">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                    />
+                                    <div className="text-center text-sm text-gray-500">- OR -</div>
                                     <input
                                         type="text"
                                         value={image}
                                         onChange={(e) => setImage(e.target.value)}
-                                        placeholder="https://..."
+                                        placeholder="画像URLを直接入力 (https://...)"
                                         className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                        required
                                     />
                                 </div>
+                                {image && (
+                                    <div className="mt-4">
+                                        <p className="text-xs text-gray-500 mb-2">プレビュー:</p>
+                                        <img src={image} alt="Preview" className="h-40 object-cover rounded border border-gray-200" />
+                                    </div>
+                                )}
                             </div>
 
                             <div>

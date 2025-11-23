@@ -7,4 +7,5 @@ export interface Article {
     image: string;
     content?: string; // HTML content or plain text
     excerpt?: string;
+    displayType?: 'SPECIAL' | 'FEATURED' | 'LATEST';
 }
