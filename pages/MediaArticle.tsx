@@ -201,6 +201,7 @@ export const MediaArticle: React.FC = () => {
             const localArticles: Article[] = JSON.parse(localArticlesStr);
             const found = localArticles.find(a => a.id === id);
             if (found) {
+                console.log('Found local article:', found);
                 setArticle(found);
             }
         }
@@ -209,8 +210,6 @@ export const MediaArticle: React.FC = () => {
     if (!article && !STATIC_ARTICLES['llmo-seo-difference']) return <div>Loading...</div>;
 
     // Fallback to default article if not found (or handle 404)
-    // For now, if article is null, we might show the default one or just return null
-    // The original code fell back to 'llmo-seo-difference'.
     const displayArticle = article || STATIC_ARTICLES['llmo-seo-difference'];
 
     return (
@@ -241,10 +240,14 @@ export const MediaArticle: React.FC = () => {
                             </div>
 
                             <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
-                                {typeof displayArticle.content === 'string' ? (
-                                    <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
+                                {displayArticle.content ? (
+                                    typeof displayArticle.content === 'string' ? (
+                                        <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
+                                    ) : (
+                                        displayArticle.content
+                                    )
                                 ) : (
-                                    displayArticle.content
+                                    <p className="text-gray-500 italic">本文がありません。</p>
                                 )}
                             </div>
 
