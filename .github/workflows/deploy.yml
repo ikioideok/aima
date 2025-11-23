@@ -27,13 +27,22 @@ jobs:
           npm run build
           cp public/.htaccess dist/.htaccess
 
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.1
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
-          port: 21
-          local-dir: dist/
-          server-dir: ${{ secrets.FTP_TARGET || 'www/' }}
+      - name: Deploy via FTP (curl)
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_TARGET: ${{ secrets.FTP_TARGET }}
+        run: |
+          set -e
+          BASE="ftp://${FTP_SERVER}/${FTP_TARGET:-www/}"
+          echo "Deploying to ${BASE}"
+          find dist -type f -print0 | while IFS= read -r -d '' file; do
+            remote_path="${file#dist/}"
+            echo "Uploading ${remote_path}"
+            curl --fail --silent --show-error \
+              --ftp-create-dirs \
+              --user "${FTP_USERNAME}:${FTP_PASSWORD}" \
+              -T "${file}" \
+              "${BASE}${remote_path}"
+          done
