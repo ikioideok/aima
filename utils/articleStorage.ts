@@ -3,6 +3,7 @@ import { articles as staticArticlesData } from '../data/articles';
 
 const STORAGE_KEY = 'aima-media-articles';
 const staticArticles = staticArticlesData as Article[];
+const adminSecret = import.meta.env.VITE_ADMIN_SECRET;
 
 const hasWindow = typeof window !== 'undefined';
 
@@ -38,15 +39,18 @@ const mergeArticles = (...lists: Article[][]) => {
 
 const fetchServerArticles = async (): Promise<Article[] | null> => {
     if (!hasWindow) return null;
-    try {
-        const res = await fetch('/api/articles', { method: 'GET' });
-        if (!res.ok) throw new Error('Failed to fetch articles');
-        const data = await res.json();
-        return data as Article[];
-    } catch (error) {
-        console.warn('Failed to fetch server articles, using local data', error);
-        return null;
+    const endpoints = ['/api/articles', '/save_article.php', '/articles.json'];
+    for (const endpoint of endpoints) {
+        try {
+            const res = await fetch(endpoint, { method: 'GET' });
+            if (!res.ok) throw new Error(`Failed to fetch articles from ${endpoint}`);
+            const data = await res.json();
+            return data as Article[];
+        } catch (error) {
+            console.warn(`Failed to fetch from ${endpoint}`, error);
+        }
     }
+    return null;
 };
 
 export const loadArticles = async (): Promise<Article[]> => {
@@ -66,23 +70,31 @@ export const saveArticle = async (article: Article): Promise<{ articles: Article
     persistStoredArticles(locallyMerged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
 
     let savedToServer = false;
-    try {
-        const response = await fetch('/api/save-article', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(article),
-        });
+    const endpoints = ['/api/save-article', '/save_article.php'];
 
-        if (response.ok) {
-            const serverArticles = (await response.json()) as Article[];
-            const merged = mergeArticles(serverArticles, readStoredArticles(), staticArticles);
-            persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
-            savedToServer = true;
+    for (const endpoint of endpoints) {
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(adminSecret ? { 'X-Admin-Secret': adminSecret } : {})
+                },
+                body: JSON.stringify(article),
+            });
+
+            if (response.ok) {
+                const serverArticles = (await response.json()) as Article[];
+                const merged = mergeArticles(serverArticles, readStoredArticles(), staticArticles);
+                persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+                savedToServer = true;
+                break;
+            } else {
+                throw new Error(`Failed to save via ${endpoint}`);
+            }
+        } catch (error) {
+            console.warn(`Failed to save to ${endpoint}, trying next`, error);
         }
-    } catch (error) {
-        console.warn('Failed to save to server, kept local only', error);
     }
 
     const latest = mergeArticles(readStoredArticles(), staticArticles);
