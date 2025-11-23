@@ -15,10 +15,7 @@ jobs:
         id: parse
         run: |
           TITLE="${{ github.event.issue.title }}"
-          BODY=$(cat <<'EOF'
-${{ github.event.issue.body }}
-EOF
-)
+          BODY="${{ github.event.issue.body }}"
           # Expect format:
           # 1行目: カテゴリ（INSIGHT など）
           # 2行目: サブタイトル/抜粋
