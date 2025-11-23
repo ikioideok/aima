@@ -14,4 +14,5 @@ export interface Article {
         image?: string;
         comment?: string;
     };
+    views?: number;
 }

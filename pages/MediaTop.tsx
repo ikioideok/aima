@@ -6,85 +6,12 @@ import { Sidebar } from '../components/Sidebar';
 import { Article } from '../types';
 
 // Mock Data
-const staticFeatureArticle: Article = {
-    id: 'llmo-seo-difference',
-    title: 'LLMOとは？SEOとの違いや生成AI時代に必須の対策方法を徹底解説',
-    subtitle: '生成AI時代の新たな最適化「LLMO」を基礎から実践までまとめました。',
-    date: '2024.11.22',
-    category: 'INSIGHT',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2000&auto=format&fit=crop'
-};
-
-const staticFeaturedArticles: Article[] = [
-    {
-        id: 'f-1',
-        title: 'データドリブン経営の落とし穴',
-        date: '2024.05.10',
-        category: 'STRATEGY',
-        image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop'
-    },
-    {
-        id: 'f-2',
-        title: 'LLMが変える組織構造',
-        date: '2024.05.01',
-        category: 'TECHNOLOGY',
-        image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1000&auto=format&fit=crop'
-    },
-    {
-        id: 'f-3',
-        title: 'マーケティングオートメーションの最前線',
-        date: '2024.04.28',
-        category: 'MARKETING',
-        image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1000&auto=format&fit=crop'
-    },
-    {
-        id: 'f-4',
-        title: 'AI倫理とガバナンス',
-        date: '2024.04.20',
-        category: 'GOVERNANCE',
-        image: 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?q=80&w=1000&auto=format&fit=crop'
-    }
-];
-
-const staticLatestArticles: Article[] = [
-    {
-        id: 'l-1',
-        title: 'プロンプトエンジニアリングの基礎知識',
-        date: '2024.05.14',
-        category: 'SKILL',
-        excerpt: '効果的な回答を引き出すための具体的なテクニックと、実践的なフレームワークを紹介します。',
-        image: '' // Placeholder
-    },
-    {
-        id: 'l-2',
-        title: '2024年下半期 AIトレンド予測',
-        date: '2024.05.12',
-        category: 'TREND',
-        excerpt: 'マルチモーダル化が進むAI市場において、注目すべき技術とビジネスチャンスを読み解きます。',
-        image: ''
-    },
-    {
-        id: 'l-3',
-        title: 'スタートアップにおけるAI活用事例 5選',
-        date: '2024.05.08',
-        category: 'CASE STUDY',
-        excerpt: 'リソースの限られたスタートアップがいかにしてAIを活用し、急成長を遂げたのか。その秘密に迫ります。',
-        image: ''
-    },
-    {
-        id: 'l-4',
-        title: '非エンジニアのためのPython入門',
-        date: '2024.05.05',
-        category: 'EDUCATION',
-        excerpt: '業務効率化のためのスクリプト作成から、簡単なデータ分析まで。文系職種こそ学ぶべきプログラミングスキル。',
-        image: ''
-    }
-];
+// Removed static mock data as per instructions
 
 export const MediaTop: React.FC = () => {
-    const [featureArticle, setFeatureArticle] = useState<Article>(staticFeatureArticle);
-    const [featuredArticles, setFeaturedArticles] = useState<Article[]>(staticFeaturedArticles);
-    const [latestArticles, setLatestArticles] = useState<Article[]>(staticLatestArticles);
+    const [featureArticle, setFeatureArticle] = useState<Article | null>(null);
+    const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
+    const [latestArticles, setLatestArticles] = useState<Article[]>([]);
 
     useEffect(() => {
         try {
@@ -92,22 +19,23 @@ export const MediaTop: React.FC = () => {
             if (localArticlesStr) {
                 const localArticles: Article[] = JSON.parse(localArticlesStr);
 
-                // 1. Special Feature: Find most recent local article with displayType = 'SPECIAL'
-                const localSpecial = localArticles.find(a => a.displayType === 'SPECIAL');
-                if (localSpecial) {
-                    setFeatureArticle(localSpecial);
-                }
+                // Sort by date descending
+                const sorted = localArticles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-                // 2. Featured Articles: Find local articles with displayType = 'FEATURED'
-                const localFeatured = localArticles.filter(a => a.displayType === 'FEATURED');
-                if (localFeatured.length > 0) {
-                    // Prepend local featured articles to static ones, take top 4
-                    setFeaturedArticles([...localFeatured, ...staticFeaturedArticles].slice(0, 4));
-                }
+                // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
+                const special = sorted.find(a => a.displayType === 'SPECIAL');
+                setFeatureArticle(special || sorted[0] || null);
 
-                // 3. Latest Articles: Find local articles with displayType = 'LATEST' (or undefined/null for backward compatibility)
-                const localLatest = localArticles.filter(a => !a.displayType || a.displayType === 'LATEST');
-                setLatestArticles([...localLatest, ...staticLatestArticles]);
+                // 2. Featured (Next 4 with displayType 'FEATURED')
+                const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
+                setFeaturedArticles(featured);
+
+                // 3. Latest (Rest)
+                const latest = sorted.filter(a =>
+                    a.id !== (special?.id || sorted[0]?.id) &&
+                    !featured.find(f => f.id === a.id)
+                );
+                setLatestArticles(latest);
             }
         } catch (error) {
             console.error('Failed to parse local articles:', error);
