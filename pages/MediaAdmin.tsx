@@ -20,6 +20,28 @@ export const MediaAdmin: React.FC = () => {
         loadArticles();
     }, []);
 
+    // Set robots noindex/nofollow while on this page
+    useEffect(() => {
+        const existing = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+        let created: HTMLMetaElement | null = null;
+        if (existing) {
+            existing.content = 'noindex,nofollow';
+        } else {
+            const meta = document.createElement('meta');
+            meta.name = 'robots';
+            meta.content = 'noindex,nofollow';
+            document.head.appendChild(meta);
+            created = meta;
+        }
+        return () => {
+            if (created) {
+                document.head.removeChild(created);
+            } else if (existing) {
+                existing.content = 'index,follow';
+            }
+        };
+    }, []);
+
     const loadArticles = () => {
         const existingArticlesStr = localStorage.getItem('aima_media_articles');
         if (existingArticlesStr) {
