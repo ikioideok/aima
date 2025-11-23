@@ -242,7 +242,14 @@ export const MediaArticle: React.FC = () => {
                             <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
                                 {displayArticle.content ? (
                                     typeof displayArticle.content === 'string' ? (
-                                        <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
+                                        <>
+                                            <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
+                                            {/* DEBUG: Show raw content */}
+                                            <div className="mt-8 p-4 bg-gray-100 border border-gray-300 text-xs font-mono whitespace-pre-wrap">
+                                                <p className="font-bold mb-2">DEBUG: Raw Content</p>
+                                                {displayArticle.content}
+                                            </div>
+                                        </>
                                     ) : (
                                         displayArticle.content
                                     )
