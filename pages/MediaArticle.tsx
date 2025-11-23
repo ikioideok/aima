@@ -4,6 +4,7 @@ import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
+import { SEO } from '../components/SEO';
 import { Article } from '../types';
 
 
@@ -120,6 +121,12 @@ export const MediaArticle: React.FC = () => {
 
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
+            <SEO
+                title={displayArticle.title}
+                description={displayArticle.subtitle || displayArticle.excerpt}
+                image={displayArticle.image}
+                path={`/media/${displayArticle.id}`}
+            />
             <Navigation />
 
             <main className="flex-grow pt-40 px-6 md:px-12 max-w-7xl mx-auto w-full">

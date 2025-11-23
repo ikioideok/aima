@@ -7,19 +7,21 @@ import { MediaAdmin } from './pages/MediaAdmin';
 import { ServiceSeoLlmo } from './pages/ServiceSeoLlmo';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
-const App: React.FC = () => {
+function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/media" element={<MediaTop />} />
-        <Route path="/media/admin" element={<MediaAdmin />} />
-        <Route path="/media/:id" element={<MediaArticle />} />
-        <Route path="/service/seo-llmo" element={<ServiceSeoLlmo />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-      </Routes>
-    </Router>
+    <HelmetProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/media" element={<MediaTop />} />
+          <Route path="/media/admin" element={<MediaAdmin />} />
+          <Route path="/media/:id" element={<MediaArticle />} />
+          <Route path="/service/seo-llmo" element={<ServiceSeoLlmo />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+        </Routes>
+      </Router>
+    </HelmetProvider>
   );
-};
+}
 
 export default App;

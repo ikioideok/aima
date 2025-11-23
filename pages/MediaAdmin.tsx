@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
+import { SEO } from '../components/SEO';
 import { Sidebar } from '../components/Sidebar';
 import { Article } from '../types';
 
@@ -25,28 +26,6 @@ export const MediaAdmin: React.FC = () => {
 
     useEffect(() => {
         loadArticles();
-    }, []);
-
-    // Set robots noindex/nofollow while on this page
-    useEffect(() => {
-        const existing = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
-        let created: HTMLMetaElement | null = null;
-        if (existing) {
-            existing.content = 'noindex,nofollow';
-        } else {
-            const meta = document.createElement('meta');
-            meta.name = 'robots';
-            meta.content = 'noindex,nofollow';
-            document.head.appendChild(meta);
-            created = meta;
-        }
-        return () => {
-            if (created) {
-                document.head.removeChild(created);
-            } else if (existing) {
-                existing.content = 'index,follow';
-            }
-        };
     }, []);
 
     const loadArticles = () => {
@@ -255,6 +234,7 @@ export const MediaAdmin: React.FC = () => {
 
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
+            <SEO title="Media Admin" noindex={true} />
             <Navigation />
 
             <main className="flex-grow pt-32 px-6 md:px-12 max-w-7xl mx-auto w-full mb-32">

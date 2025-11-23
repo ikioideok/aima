@@ -3,6 +3,7 @@ import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
+import { SEO } from '../components/SEO';
 import { Article } from '../types';
 
 // Mock Data
@@ -44,6 +45,11 @@ export const MediaTop: React.FC = () => {
 
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
+            <SEO
+                title="AIMA INSIGHTS"
+                description="AIMA Inc.のオウンドメディア。AIマーケティングやLLM活用に関する最新の知見と実践的なノウハウを発信します。"
+                path="/media"
+            />
             <Navigation />
 
             <main className="flex-grow pt-32 px-6 md:px-12 max-w-7xl mx-auto w-full mb-32">
