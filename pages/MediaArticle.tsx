@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
+import { Article } from '../types';
 
-const ARTICLE_DATA: Record<string, {
+// Static Data with JSX content
+const STATIC_ARTICLES: Record<string, {
     title: string;
     date: string;
     category: string;
@@ -37,7 +39,12 @@ const ARTICLE_DATA: Record<string, {
                         LLMO（Large Language Model Optimization）とは、大規模言語モデル（LLM）に対して、自社のコンテンツやブランド情報が「信頼できる回答元」として引用・参照されるように最適化を行うマーケティング手法のことです。
                         従来のSEOがGoogleなどの検索結果ページで上位表示を目指すのに対し、LLMOはChatGPTやClaude、Perplexityといった対話型AIがユーザーの質問に答える際、その回答内容の中に自社の製品名やサービス情報、あるいはWebサイトのリンクが含まれることを目的としています。AIは学習データや検索機能（RAG）を通じて情報を生成するため、その学習プロセスや参照プロセスにおいて「選ばれる」ための技術的・コンテンツ的な工夫が必要となります。これは単なる露出の拡大にとどまらず、AI時代におけるブランドの信頼性を担保するための重要な戦略と言えます。
                     </p>
-
+                </section>
+                {/* Truncated for brevity in this view, but full content is preserved in static data if I were to copy it all. 
+                    However, since I am replacing the file, I must include the FULL content of the static article or I will lose it.
+                    I will copy the full content from the previous view_file output.
+                */}
+                <section>
                     <h3 className="text-xl font-bold mb-3">GEO（Generative Engine Optimization）やAIOとの関係性</h3>
                     <p>
                         LLMOと似た文脈で使われる言葉に、GEO（Generative Engine Optimization）やAIO（Artificial Intelligence Optimization）があります。これらはしばしば同義語として扱われますが、厳密には対象とするプラットフォームのニュアンスが異なります。GEOは主にGoogleのAI Overview（旧SGE）やBingのAI検索機能など、「検索エンジンに組み込まれた生成AI」への最適化を指す傾向が強い言葉です。一方、AIOはより広義なAI全般への最適化を意味します。LLMOはこれらを包括しつつ、特に大規模言語モデルそのものの学習データや文脈理解にどう食い込むかという点に重きを置いています。実務上の対策内容は重複する部分が多いため、マーケティング担当者はこれらを包括的な「AI対策」として捉え、用語の違いにこだわりすぎず、本質的な情報の信頼性向上に努める姿勢が大切です。
@@ -177,7 +184,34 @@ const ARTICLE_DATA: Record<string, {
 
 export const MediaArticle: React.FC = () => {
     const { id } = useParams();
-    const article = (id && ARTICLE_DATA[id]) || ARTICLE_DATA['llmo-seo-difference'] || null;
+    const [article, setArticle] = useState<any>(null);
+
+    useEffect(() => {
+        if (!id) return;
+
+        // 1. Check static data
+        if (STATIC_ARTICLES[id]) {
+            setArticle(STATIC_ARTICLES[id]);
+            return;
+        }
+
+        // 2. Check local storage
+        const localArticlesStr = localStorage.getItem('aima_media_articles');
+        if (localArticlesStr) {
+            const localArticles: Article[] = JSON.parse(localArticlesStr);
+            const found = localArticles.find(a => a.id === id);
+            if (found) {
+                setArticle(found);
+            }
+        }
+    }, [id]);
+
+    if (!article && !STATIC_ARTICLES['llmo-seo-difference']) return <div>Loading...</div>;
+
+    // Fallback to default article if not found (or handle 404)
+    // For now, if article is null, we might show the default one or just return null
+    // The original code fell back to 'llmo-seo-difference'.
+    const displayArticle = article || STATIC_ARTICLES['llmo-seo-difference'];
 
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
@@ -191,23 +225,27 @@ export const MediaArticle: React.FC = () => {
                         <FadeIn>
                             <div className="text-center mb-16">
                                 <div className="flex items-center justify-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-6">
-                                    <span>{article?.category || 'INSIGHT'}</span>
-                                    <span>{article?.date || '2024.05.15'}</span>
+                                    <span>{displayArticle.category}</span>
+                                    <span>{displayArticle.date}</span>
                                 </div>
                                 <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-12">
-                                    {article?.title || 'AIと創造性の未来：共存か、代替か'}
+                                    {displayArticle.title}
                                 </h1>
                                 <div className="w-full aspect-video overflow-hidden">
                                     <img
-                                        src={article?.heroImage || 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop'}
-                                        alt={article?.title || 'AI記事ヘッダー画像'}
+                                        src={displayArticle.heroImage || displayArticle.image}
+                                        alt={displayArticle.title}
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
                             </div>
 
                             <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
-                                {article?.content}
+                                {typeof displayArticle.content === 'string' ? (
+                                    <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
+                                ) : (
+                                    displayArticle.content
+                                )}
                             </div>
 
                             <div className="text-center mb-24">

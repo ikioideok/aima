@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
+import { Article } from '../types';
 
 // Mock Data
-const featureArticle = {
+const staticFeatureArticle: Article = {
     id: 'llmo-seo-difference',
     title: 'LLMOとは？SEOとの違いや生成AI時代に必須の対策方法を徹底解説',
     subtitle: '生成AI時代の新たな最適化「LLMO」を基礎から実践までまとめました。',
@@ -14,7 +15,7 @@ const featureArticle = {
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2000&auto=format&fit=crop'
 };
 
-const featuredArticles = [
+const staticFeaturedArticles: Article[] = [
     {
         id: 'f-1',
         title: 'データドリブン経営の落とし穴',
@@ -45,38 +46,52 @@ const featuredArticles = [
     }
 ];
 
-const latestArticles = [
+const staticLatestArticles: Article[] = [
     {
         id: 'l-1',
         title: 'プロンプトエンジニアリングの基礎知識',
         date: '2024.05.14',
         category: 'SKILL',
-        excerpt: '効果的な回答を引き出すための具体的なテクニックと、実践的なフレームワークを紹介します。'
+        excerpt: '効果的な回答を引き出すための具体的なテクニックと、実践的なフレームワークを紹介します。',
+        image: '' // Placeholder
     },
     {
         id: 'l-2',
         title: '2024年下半期 AIトレンド予測',
         date: '2024.05.12',
         category: 'TREND',
-        excerpt: 'マルチモーダル化が進むAI市場において、注目すべき技術とビジネスチャンスを読み解きます。'
+        excerpt: 'マルチモーダル化が進むAI市場において、注目すべき技術とビジネスチャンスを読み解きます。',
+        image: ''
     },
     {
         id: 'l-3',
         title: 'スタートアップにおけるAI活用事例 5選',
         date: '2024.05.08',
         category: 'CASE STUDY',
-        excerpt: 'リソースの限られたスタートアップがいかにしてAIを活用し、急成長を遂げたのか。その秘密に迫ります。'
+        excerpt: 'リソースの限られたスタートアップがいかにしてAIを活用し、急成長を遂げたのか。その秘密に迫ります。',
+        image: ''
     },
     {
         id: 'l-4',
         title: '非エンジニアのためのPython入門',
         date: '2024.05.05',
         category: 'EDUCATION',
-        excerpt: '業務効率化のためのスクリプト作成から、簡単なデータ分析まで。文系職種こそ学ぶべきプログラミングスキル。'
+        excerpt: '業務効率化のためのスクリプト作成から、簡単なデータ分析まで。文系職種こそ学ぶべきプログラミングスキル。',
+        image: ''
     }
 ];
 
 export const MediaTop: React.FC = () => {
+    const [latestArticles, setLatestArticles] = useState<Article[]>(staticLatestArticles);
+
+    useEffect(() => {
+        const localArticlesStr = localStorage.getItem('aima_media_articles');
+        if (localArticlesStr) {
+            const localArticles: Article[] = JSON.parse(localArticlesStr);
+            setLatestArticles([...localArticles, ...staticLatestArticles]);
+        }
+    }, []);
+
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
             <Navigation />
@@ -96,23 +111,23 @@ export const MediaTop: React.FC = () => {
                                 <h2 className="text-sm font-eng font-bold tracking-widest">SPECIAL FEATURE</h2>
                             </div>
                             <FadeIn>
-                                <a href={`/media/${featureArticle.id}`} className="group block relative">
+                                <a href={`/media/${staticFeatureArticle.id}`} className="group block relative">
                                     <div className="w-full aspect-[21/9] overflow-hidden mb-8">
                                         <img
-                                            src={featureArticle.image}
-                                            alt={`${featureArticle.category} ${featureArticle.title}`}
+                                            src={staticFeatureArticle.image}
+                                            alt={`${staticFeatureArticle.category} ${staticFeatureArticle.title}`}
                                             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                                         />
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-4 text-xs font-eng tracking-widest text-gray-500 mb-4">
-                                            <span className="text-black border border-black px-2 py-1">{featureArticle.category}</span>
-                                            <span>{featureArticle.date}</span>
+                                            <span className="text-black border border-black px-2 py-1">{staticFeatureArticle.category}</span>
+                                            <span>{staticFeatureArticle.date}</span>
                                         </div>
                                         <h3 className="text-2xl md:text-3xl font-bold leading-tight mb-4 group-hover:text-gray-600 transition-colors">
-                                            {featureArticle.title}
+                                            {staticFeatureArticle.title}
                                         </h3>
-                                        <p className="text-gray-600 text-base font-medium">{featureArticle.subtitle}</p>
+                                        <p className="text-gray-600 text-base font-medium">{staticFeatureArticle.subtitle}</p>
                                     </div>
                                 </a>
                             </FadeIn>
@@ -125,7 +140,7 @@ export const MediaTop: React.FC = () => {
                                 <h2 className="text-sm font-eng font-bold tracking-widest">FEATURED</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {featuredArticles.map((article, index) => (
+                                {staticFeaturedArticles.map((article, index) => (
                                     <FadeIn key={article.id} delay={index * 100}>
                                         <a href={`/media/${article.id}`} className="group block h-full flex flex-col">
                                             <div className="overflow-hidden mb-6 aspect-[4/3] w-full">
@@ -200,3 +215,4 @@ export const MediaTop: React.FC = () => {
         </div>
     );
 };
+
