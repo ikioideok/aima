@@ -94,15 +94,14 @@ export const Sidebar: React.FC = () => {
                         <img
                             src="/supervisor.jpg"
                             alt="Supervisor"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transform scale-125"
                         />
                     </div>
                     <div className="text-center">
-                        <h4 className="font-bold text-sm mb-2">水間 勇気</h4>
-                        <p className="text-xs text-gray-500 font-eng tracking-widest mb-4">CEO / AI STRATEGIST</p>
+                        <h4 className="font-bold text-sm mb-2">水間 雄紀</h4>
+                        <p className="text-xs text-gray-500 font-eng tracking-widest mb-4">CEO</p>
                         <p className="text-xs leading-loose text-justify text-gray-600">
-                            大手IT企業にてAI開発に従事した後、AIMA Inc.を創業。
-                            「AIと人間の共創」をテーマに、数多くの企業のDX推進を支援している。
+                            Webマーケターとして株式会社circlizeを創業。RAXUSに事業譲渡後、株式会社AIMAの代表取締役としてAI×マーケティングの事業に取り組む
                         </p>
                     </div>
                 </div>
