@@ -76,6 +76,76 @@ export const MediaAdmin: React.FC = () => {
         }
     };
 
+    const generateEyecatch = () => {
+        if (!title) {
+            alert('タイトルを入力してください。');
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Set dimensions (OGP standard)
+        canvas.width = 1200;
+        canvas.height = 630;
+
+        // Background
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Decoration: Top Logo
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 30px "Helvetica Neue", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.letterSpacing = '0.2em';
+        ctx.fillText('AIMA INSIGHTS', canvas.width / 2, 100);
+
+        // Decoration: Accent Line
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2 - 50, 130);
+        ctx.lineTo(canvas.width / 2 + 50, 130);
+        ctx.stroke();
+
+        // Title Text Wrapping
+        ctx.font = 'bold 60px "Times New Roman", Times, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const maxWidth = 1000;
+        const lineHeight = 90;
+        const words = title.split(''); // Split by character for Japanese wrapping
+        let line = '';
+        const lines = [];
+
+        for (let i = 0; i < words.length; i++) {
+            const testLine = line + words[i];
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && i > 0) {
+                lines.push(line);
+                line = words[i];
+            } else {
+                line = testLine;
+            }
+        }
+        lines.push(line);
+
+        // Draw Title
+        const totalHeight = lines.length * lineHeight;
+        const startY = (canvas.height - totalHeight) / 2 + (lineHeight / 2);
+
+        lines.forEach((line, index) => {
+            ctx.fillText(line, canvas.width / 2, startY + (index * lineHeight));
+        });
+
+        // Convert to Data URL
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        setImage(dataUrl);
+    };
+
     const handleEdit = (article: Article) => {
         setEditingId(article.id);
         setTitle(article.title);
@@ -263,6 +333,15 @@ export const MediaAdmin: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-bold mb-2">メイン画像</label>
                                 <div className="space-y-4">
+                                    <div className="flex gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={generateEyecatch}
+                                            className="bg-black text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-800 transition-colors"
+                                        >
+                                            タイトルから画像を自動生成
+                                        </button>
+                                    </div>
                                     <input
                                         type="file"
                                         accept="image/*"
