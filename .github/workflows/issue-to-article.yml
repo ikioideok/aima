@@ -7,6 +7,8 @@ on:
 jobs:
   build-article-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -109,6 +111,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
           git add data/articles.ts
           git commit -m "Add article from issue: ${{ steps.parse.outputs.title }}" || echo "No changes to commit"
           git push origin main
