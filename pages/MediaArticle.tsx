@@ -6,7 +6,9 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
-import { articles as staticArticles } from '../data/articles';
+import { articles as articlesData } from '../data/articles';
+
+const staticArticles = articlesData as Article[];
 
 
 

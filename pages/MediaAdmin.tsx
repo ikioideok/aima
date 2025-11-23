@@ -119,22 +119,7 @@ export const MediaAdmin: React.FC = () => {
 
 
 
-    const resetForm = () => {
-        setTitle('');
-        setSubtitle('');
-        setCategory('INSIGHT');
-        setImage('');
-        setContent('');
-        setDisplayType('LATEST');
-        setSupervisorName('');
-        setSupervisorRole('');
-        setSupervisorImage('');
-        setSupervisorComment('');
-    };
-
-    const [generatedCode, setGeneratedCode] = useState<string>('');
-
-    const handleGenerateCode = () => {
+    const handlePostArticle = async () => {
         const newArticle: Article = {
             id: editingId || Date.now().toString(),
             title,
@@ -153,14 +138,42 @@ export const MediaAdmin: React.FC = () => {
             }
         };
 
-        const code = JSON.stringify(newArticle, null, 4);
-        setGeneratedCode(code);
+        try {
+            const response = await fetch('/api/save-article', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newArticle),
+            });
+
+            if (response.ok) {
+                setMessage('記事を投稿しました！');
+                resetForm();
+                setTimeout(() => setMessage(''), 3000);
+            } else {
+                throw new Error('Failed to save');
+            }
+        } catch (error) {
+            console.error('Error posting article:', error);
+            alert('投稿に失敗しました。サーバーが起動しているか確認してください。');
+        }
     };
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(generatedCode);
-        alert('コードをコピーしました！ src/data/articles.ts に貼り付けてください。');
+    const resetForm = () => {
+        setTitle('');
+        setSubtitle('');
+        setCategory('INSIGHT');
+        setImage('');
+        setContent('');
+        setDisplayType('LATEST');
+        setSupervisorName('');
+        setSupervisorRole('');
+        setSupervisorImage('');
+        setSupervisorComment('');
     };
+
+
 
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen flex flex-col">
@@ -253,34 +266,12 @@ export const MediaAdmin: React.FC = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={handleGenerateCode}
+                                    onClick={handlePostArticle}
                                     className="px-8 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center space-x-2"
                                 >
-                                    <span>コードを生成</span>
+                                    <span>記事を投稿する</span>
                                 </button>
                             </div>
-
-                            {/* Generated Code Display */}
-                            {generatedCode && (
-                                <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-bold text-lg">生成されたコード</h3>
-                                        <button
-                                            type="button"
-                                            onClick={copyToClipboard}
-                                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                                        >
-                                            コピーする
-                                        </button>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-2">
-                                        以下のコードをコピーして、<code>src/data/articles.ts</code> の配列に追加してください。
-                                    </p>
-                                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                                        {generatedCode}
-                                    </pre>
-                                </div>
-                            )}
                             <div>
                                 <label className="block text-sm font-bold mb-2">メイン画像</label>
                                 <div className="space-y-4">

@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
 import { Article } from '../types';
-import { articles as staticArticles } from '../data/articles';
+import { articles as articlesData } from '../data/articles';
 import { useState, useEffect } from 'react';
+
+const staticArticles = articlesData as Article[];
 
 const categories = [
     'STRATEGY', 'TECHNOLOGY', 'MARKETING', 'GOVERNANCE', 'SKILL', 'TREND', 'CASE STUDY', 'EDUCATION'

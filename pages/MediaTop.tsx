@@ -5,7 +5,9 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
-import { articles as staticArticles } from '../data/articles';
+import { articles as articlesData } from '../data/articles';
+
+const articles = articlesData as Article[];
 
 // Mock Data
 // Removed static mock data as per instructions
@@ -17,8 +19,12 @@ export const MediaTop: React.FC = () => {
 
     useEffect(() => {
         // Sort by date descending
-        const sorted = [...staticArticles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const sorted = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+        // Filter articles
+        const localFeatured = articles.filter(a => a.displayType === 'FEATURED');
+        const localLatest = articles.filter(a => a.displayType === 'LATEST');
+        const localSpecial = articles.find(a => a.displayType === 'SPECIAL');
         // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
         const special = sorted.find(a => a.displayType === 'SPECIAL');
         setFeatureArticle(special || sorted[0] || null);
@@ -166,4 +172,3 @@ export const MediaTop: React.FC = () => {
         </div>
     );
 };
-
