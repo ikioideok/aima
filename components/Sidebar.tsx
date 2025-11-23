@@ -101,7 +101,7 @@ export const Sidebar: React.FC = () => {
                         <h4 className="font-bold text-sm mb-2">水間 雄紀</h4>
                         <p className="text-xs text-gray-500 font-eng tracking-widest mb-4">CEO</p>
                         <p className="text-xs leading-loose text-justify text-gray-600">
-                            Webマーケターとして株式会社circlizeを創業。RAXUSに事業譲渡後、株式会社AIMAの代表取締役としてAI×マーケティングの事業に取り組む
+                            Webマーケターとして株式会社circlizeを創業。ラグザス株式会社に事業譲渡後、株式会社AIMAの代表取締役としてAI×マーケティングの事業に取り組む
                         </p>
                     </div>
                 </div>
