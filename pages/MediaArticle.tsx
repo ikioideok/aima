@@ -6,6 +6,7 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
+import { articles as staticArticles } from '../data/articles';
 
 
 
@@ -22,33 +23,11 @@ export const MediaArticle: React.FC = () => {
     useEffect(() => {
         if (!id) return;
 
-        try {
-            const localArticlesStr = localStorage.getItem('aima_media_articles');
-            if (localArticlesStr) {
-                const localArticles: Article[] = JSON.parse(localArticlesStr);
-                const foundIndex = localArticles.findIndex(a => a.id === id);
-
-                if (foundIndex !== -1) {
-                    const found = localArticles[foundIndex];
-
-                    // Increment views
-                    const updatedArticle = {
-                        ...found,
-                        views: (found.views || 0) + 1
-                    };
-
-                    // Update state
-                    setArticle(updatedArticle);
-                    processContent(updatedArticle.content);
-                    fetchRelatedArticles(updatedArticle);
-
-                    // Save back to localStorage
-                    localArticles[foundIndex] = updatedArticle;
-                    localStorage.setItem('aima_media_articles', JSON.stringify(localArticles));
-                }
-            }
-        } catch (error) {
-            console.error('Failed to parse local articles:', error);
+        const found = staticArticles.find(a => a.id === id);
+        if (found) {
+            setArticle(found);
+            processContent(found.content);
+            fetchRelatedArticles(found);
         }
     }, [id]);
 
@@ -96,23 +75,12 @@ export const MediaArticle: React.FC = () => {
     };
 
     const fetchRelatedArticles = (currentArticle: Article) => {
-        try {
-            const localArticlesStr = localStorage.getItem('aima_media_articles');
-            let allArticles: Article[] = [];
+        // Filter: Same category, exclude current
+        const related = staticArticles
+            .filter(a => a.category === currentArticle.category && a.id !== currentArticle.id)
+            .slice(0, 3); // Take top 3
 
-            if (localArticlesStr) {
-                allArticles = JSON.parse(localArticlesStr);
-            }
-
-            // Filter: Same category, exclude current
-            const related = allArticles
-                .filter(a => a.category === currentArticle.category && a.id !== currentArticle.id)
-                .slice(0, 3); // Take top 3
-
-            setRelatedArticles(related);
-        } catch (e) {
-            console.error(e);
-        }
+        setRelatedArticles(related);
     };
 
     if (!article) return <div className="pt-40 text-center">Loading...</div>;

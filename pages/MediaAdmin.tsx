@@ -6,7 +6,6 @@ import { Sidebar } from '../components/Sidebar';
 import { Article } from '../types';
 
 export const MediaAdmin: React.FC = () => {
-    const [articles, setArticles] = useState<Article[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const [title, setTitle] = useState('');
@@ -23,22 +22,6 @@ export const MediaAdmin: React.FC = () => {
     const [supervisorComment, setSupervisorComment] = useState('Webマーケターとして株式会社circlizeを創業。ラグザス株式会社に事業譲渡後、株式会社AIMAの代表取締役としてAI×マーケティングの事業に取り組む');
 
     const [message, setMessage] = useState('');
-
-    useEffect(() => {
-        loadArticles();
-    }, []);
-
-    const loadArticles = () => {
-        try {
-            const existingArticlesStr = localStorage.getItem('aima_media_articles');
-            if (existingArticlesStr) {
-                setArticles(JSON.parse(existingArticlesStr));
-            }
-        } catch (error) {
-            console.error('Failed to parse local articles:', error);
-            alert('記事データの読み込みに失敗しました。データが破損している可能性があります。');
-        }
-    };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
         const file = e.target.files?.[0];
@@ -127,41 +110,14 @@ export const MediaAdmin: React.FC = () => {
         setImage(dataUrl);
     };
 
-    const handleEdit = (article: Article) => {
-        setEditingId(article.id);
-        setTitle(article.title);
-        setSubtitle(article.subtitle || article.excerpt || '');
-        setCategory(article.category);
-        setImage(article.image);
-        setContent(article.content || '');
-        setDisplayType(article.displayType || 'LATEST');
 
-        // Supervisor
-        setSupervisorName(article.supervisor?.name || '');
-        setSupervisorRole(article.supervisor?.role || '');
-        setSupervisorImage(article.supervisor?.image || '');
-        setSupervisorComment(article.supervisor?.comment || '');
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
 
     const handleCancelEdit = () => {
         setEditingId(null);
         resetForm();
     };
 
-    const handleDelete = (id: string) => {
-        if (window.confirm('本当に削除しますか？この操作は取り消せません。')) {
-            const updatedArticles = articles.filter(a => a.id !== id);
-            localStorage.setItem('aima_media_articles', JSON.stringify(updatedArticles));
-            setArticles(updatedArticles);
-            setMessage('記事を削除しました。');
-            setTimeout(() => setMessage(''), 3000);
-            if (editingId === id) {
-                handleCancelEdit();
-            }
-        }
-    };
+
 
     const resetForm = () => {
         setTitle('');
@@ -176,60 +132,34 @@ export const MediaAdmin: React.FC = () => {
         setSupervisorComment('');
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const [generatedCode, setGeneratedCode] = useState<string>('');
 
+    const handleGenerateCode = () => {
         const newArticle: Article = {
-            id: editingId || `local-${Date.now()}`,
+            id: editingId || Date.now().toString(),
             title,
             subtitle,
-            date: editingId ? articles.find(a => a.id === editingId)?.date || new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.') : new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
+            date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
             category,
             image,
             content,
-            excerpt: subtitle, // Use subtitle as excerpt for list view
+            excerpt: subtitle,
             displayType,
-            supervisor: supervisorName ? {
+            supervisor: {
                 name: supervisorName,
                 role: supervisorRole,
                 image: supervisorImage,
                 comment: supervisorComment
-            } : undefined
+            }
         };
 
-        try {
-            let existingArticles: Article[] = [];
-            try {
-                const existingArticlesStr = localStorage.getItem('aima_media_articles');
-                existingArticles = existingArticlesStr ? JSON.parse(existingArticlesStr) : [];
-            } catch (e) {
-                console.error('Failed to parse existing articles during save:', e);
-            }
+        const code = JSON.stringify(newArticle, null, 4);
+        setGeneratedCode(code);
+    };
 
-            let updatedArticles: Article[];
-            if (editingId) {
-                updatedArticles = existingArticles.map(a => a.id === editingId ? newArticle : a);
-                setMessage('記事を更新しました！');
-            } else {
-                updatedArticles = [newArticle, ...existingArticles];
-                setMessage('記事を投稿しました！');
-            }
-
-            localStorage.setItem('aima_media_articles', JSON.stringify(updatedArticles));
-            setArticles(updatedArticles);
-
-            if (!editingId) {
-                resetForm();
-            } else {
-                // Keep form populated or clear? Usually clear after update or stay. Let's clear and go back to create mode.
-                handleCancelEdit();
-            }
-
-            setTimeout(() => setMessage(''), 3000);
-        } catch (error) {
-            console.error(error);
-            alert('保存に失敗しました。ローカルストレージの容量がいっぱいの可能性があります。画像を減らすか、古い記事を削除してください。');
-        }
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(generatedCode);
+        alert('コードをコピーしました！ src/data/articles.ts に貼り付けてください。');
     };
 
     return (
@@ -255,7 +185,7 @@ export const MediaAdmin: React.FC = () => {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-8 mb-24">
+                        <form className="space-y-8 mb-24">
                             <div>
                                 <label className="block text-sm font-bold mb-2">タイトル</label>
                                 <input
@@ -312,6 +242,45 @@ export const MediaAdmin: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* Action Buttons */}
+                            <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    リセット
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleGenerateCode}
+                                    className="px-8 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center space-x-2"
+                                >
+                                    <span>コードを生成</span>
+                                </button>
+                            </div>
+
+                            {/* Generated Code Display */}
+                            {generatedCode && (
+                                <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold text-lg">生成されたコード</h3>
+                                        <button
+                                            type="button"
+                                            onClick={copyToClipboard}
+                                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                        >
+                                            コピーする
+                                        </button>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        以下のコードをコピーして、<code>src/data/articles.ts</code> の配列に追加してください。
+                                    </p>
+                                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono">
+                                        {generatedCode}
+                                    </pre>
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-sm font-bold mb-2">メイン画像</label>
                                 <div className="space-y-4">
@@ -433,49 +402,6 @@ export const MediaAdmin: React.FC = () => {
                             </div>
                         </form>
 
-                        {/* Article List Section */}
-                        <div className="border-t border-gray-200 pt-16">
-                            <h2 className="text-2xl font-bold mb-8">投稿済み記事一覧</h2>
-                            {articles.length === 0 ? (
-                                <p className="text-gray-500">投稿された記事はありません。</p>
-                            ) : (
-                                <div className="space-y-6">
-                                    {articles.map(article => (
-                                        <div key={article.id} className="border border-gray-200 p-6 rounded flex flex-col md:flex-row gap-6 items-start">
-                                            <div className="w-full md:w-32 aspect-video bg-gray-100 flex-shrink-0">
-                                                {article.image && (
-                                                    <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
-                                                )}
-                                            </div>
-                                            <div className="flex-grow">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-xs font-bold bg-gray-100 px-2 py-1">{article.category}</span>
-                                                    {article.displayType && article.displayType !== 'LATEST' && (
-                                                        <span className="text-xs font-bold bg-black text-white px-2 py-1">{article.displayType}</span>
-                                                    )}
-                                                    <span className="text-xs text-gray-500">{article.date}</span>
-                                                </div>
-                                                <h3 className="font-bold mb-2">{article.title}</h3>
-                                                <div className="flex gap-4 mt-4">
-                                                    <button
-                                                        onClick={() => handleEdit(article)}
-                                                        className="text-sm font-bold text-blue-600 hover:text-blue-800 underline"
-                                                    >
-                                                        編集
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(article.id)}
-                                                        className="text-sm font-bold text-red-600 hover:text-red-800 underline"
-                                                    >
-                                                        削除
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
 
                     {/* Sidebar */}

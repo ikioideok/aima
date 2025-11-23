@@ -1,7 +1,8 @@
 import React from 'react';
-import { FadeIn } from './FadeIn';
+import { Link } from 'react-router-dom';
 
 import { Article } from '../types';
+import { articles as staticArticles } from '../data/articles';
 import { useState, useEffect } from 'react';
 
 const categories = [
@@ -9,27 +10,11 @@ const categories = [
 ];
 
 export const Sidebar: React.FC = () => {
-    const [picks, setPicks] = useState<Article[]>([]);
-    const [popular, setPopular] = useState<Article[]>([]);
+    // Editor's Picks (FEATURED)
+    const picks = staticArticles.filter(a => a.displayType === 'FEATURED').slice(0, 3);
 
-    useEffect(() => {
-        try {
-            const localArticlesStr = localStorage.getItem('aima_media_articles');
-            if (localArticlesStr) {
-                const articles: Article[] = JSON.parse(localArticlesStr);
-
-                // Editor's Picks: DisplayType === 'FEATURED'
-                const featured = articles.filter(a => a.displayType === 'FEATURED');
-                setPicks(featured);
-
-                // Popular: Sort by views (descending)
-                const sortedByViews = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0));
-                setPopular(sortedByViews.slice(0, 5)); // Top 5
-            }
-        } catch (error) {
-            console.error('Failed to load sidebar articles:', error);
-        }
-    }, []);
+    // Popular (Sort by views desc) - Note: Views are static now
+    const popular = [...staticArticles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
     return (
         <aside className="w-full space-y-16">

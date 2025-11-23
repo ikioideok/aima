@@ -5,6 +5,7 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
+import { articles as staticArticles } from '../data/articles';
 
 // Mock Data
 // Removed static mock data as per instructions
@@ -15,32 +16,23 @@ export const MediaTop: React.FC = () => {
     const [latestArticles, setLatestArticles] = useState<Article[]>([]);
 
     useEffect(() => {
-        try {
-            const localArticlesStr = localStorage.getItem('aima_media_articles');
-            if (localArticlesStr) {
-                const localArticles: Article[] = JSON.parse(localArticlesStr);
+        // Sort by date descending
+        const sorted = [...staticArticles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-                // Sort by date descending
-                const sorted = localArticles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
+        const special = sorted.find(a => a.displayType === 'SPECIAL');
+        setFeatureArticle(special || sorted[0] || null);
 
-                // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
-                const special = sorted.find(a => a.displayType === 'SPECIAL');
-                setFeatureArticle(special || sorted[0] || null);
+        // 2. Featured (Next 4 with displayType 'FEATURED')
+        const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
+        setFeaturedArticles(featured);
 
-                // 2. Featured (Next 4 with displayType 'FEATURED')
-                const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
-                setFeaturedArticles(featured);
-
-                // 3. Latest (Rest)
-                const latest = sorted.filter(a =>
-                    a.id !== (special?.id || sorted[0]?.id) &&
-                    !featured.find(f => f.id === a.id)
-                );
-                setLatestArticles(latest);
-            }
-        } catch (error) {
-            console.error('Failed to parse local articles:', error);
-        }
+        // 3. Latest (Rest)
+        const latest = sorted.filter(a =>
+            a.id !== (special?.id || sorted[0]?.id) &&
+            !featured.find(f => f.id === a.id)
+        );
+        setLatestArticles(latest);
     }, []);
 
     return (
