@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { Sidebar } from '../components/Sidebar';
 import { Article } from '../types';
 
 export const MediaAdmin: React.FC = () => {
+    const [articles, setArticles] = useState<Article[]>([]);
+    const [editingId, setEditingId] = useState<string | null>(null);
+
     const [title, setTitle] = useState('');
     const [subtitle, setSubtitle] = useState('');
     const [category, setCategory] = useState<Article['category']>('INSIGHT');
@@ -12,6 +15,17 @@ export const MediaAdmin: React.FC = () => {
     const [content, setContent] = useState('');
     const [displayType, setDisplayType] = useState<Article['displayType']>('LATEST');
     const [message, setMessage] = useState('');
+
+    useEffect(() => {
+        loadArticles();
+    }, []);
+
+    const loadArticles = () => {
+        const existingArticlesStr = localStorage.getItem('aima_media_articles');
+        if (existingArticlesStr) {
+            setArticles(JSON.parse(existingArticlesStr));
+        }
+    };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -28,14 +42,52 @@ export const MediaAdmin: React.FC = () => {
         }
     };
 
+    const handleEdit = (article: Article) => {
+        setEditingId(article.id);
+        setTitle(article.title);
+        setSubtitle(article.subtitle || article.excerpt || '');
+        setCategory(article.category);
+        setImage(article.image);
+        setContent(article.content || '');
+        setDisplayType(article.displayType || 'LATEST');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        resetForm();
+    };
+
+    const handleDelete = (id: string) => {
+        if (window.confirm('本当に削除しますか？この操作は取り消せません。')) {
+            const updatedArticles = articles.filter(a => a.id !== id);
+            localStorage.setItem('aima_media_articles', JSON.stringify(updatedArticles));
+            setArticles(updatedArticles);
+            setMessage('記事を削除しました。');
+            setTimeout(() => setMessage(''), 3000);
+            if (editingId === id) {
+                handleCancelEdit();
+            }
+        }
+    };
+
+    const resetForm = () => {
+        setTitle('');
+        setSubtitle('');
+        setCategory('INSIGHT');
+        setImage('');
+        setContent('');
+        setDisplayType('LATEST');
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         const newArticle: Article = {
-            id: `local-${Date.now()}`,
+            id: editingId || `local-${Date.now()}`,
             title,
             subtitle,
-            date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
+            date: editingId ? articles.find(a => a.id === editingId)?.date || new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.') : new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
             category,
             image,
             content,
@@ -44,21 +96,24 @@ export const MediaAdmin: React.FC = () => {
         };
 
         try {
-            // Save to localStorage
-            const existingArticlesStr = localStorage.getItem('aima_media_articles');
-            const existingArticles: Article[] = existingArticlesStr ? JSON.parse(existingArticlesStr) : [];
-            const updatedArticles = [newArticle, ...existingArticles];
+            let updatedArticles: Article[];
+            if (editingId) {
+                updatedArticles = articles.map(a => a.id === editingId ? newArticle : a);
+                setMessage('記事を更新しました！');
+            } else {
+                updatedArticles = [newArticle, ...articles];
+                setMessage('記事を投稿しました！');
+            }
+
             localStorage.setItem('aima_media_articles', JSON.stringify(updatedArticles));
+            setArticles(updatedArticles);
 
-            setMessage('記事を投稿しました！');
-
-            // Reset form
-            setTitle('');
-            setSubtitle('');
-            setCategory('INSIGHT');
-            setImage('');
-            setContent('');
-            setDisplayType('LATEST');
+            if (!editingId) {
+                resetForm();
+            } else {
+                // Keep form populated or clear? Usually clear after update or stay. Let's clear and go back to create mode.
+                handleCancelEdit();
+            }
 
             setTimeout(() => setMessage(''), 3000);
         } catch (error) {
@@ -81,7 +136,7 @@ export const MediaAdmin: React.FC = () => {
                             <h2 className="text-sm font-eng font-bold tracking-widest">MEDIA ADMIN</h2>
                         </div>
 
-                        <h1 className="text-3xl font-bold mb-12">記事投稿</h1>
+                        <h1 className="text-3xl font-bold mb-12">{editingId ? '記事編集' : '記事投稿'}</h1>
 
                         {message && (
                             <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-8">
@@ -89,7 +144,7 @@ export const MediaAdmin: React.FC = () => {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-8">
+                        <form onSubmit={handleSubmit} className="space-y-8 mb-24">
                             <div>
                                 <label className="block text-sm font-bold mb-2">タイトル</label>
                                 <input
@@ -183,15 +238,68 @@ export const MediaAdmin: React.FC = () => {
                                 <p className="text-xs text-gray-500 mt-2">※ &lt;p&gt;, &lt;h2&gt;, &lt;ul&gt; などのHTMLタグが使用できます。</p>
                             </div>
 
-                            <div className="pt-8">
+                            <div className="pt-8 flex gap-4">
                                 <button
                                     type="submit"
-                                    className="bg-black text-white px-12 py-4 font-bold tracking-widest hover:bg-gray-800 transition-colors"
+                                    className="bg-black text-white px-12 py-4 font-bold tracking-widest hover:bg-gray-800 transition-colors flex-grow md:flex-grow-0"
                                 >
-                                    POST ARTICLE
+                                    {editingId ? 'UPDATE ARTICLE' : 'POST ARTICLE'}
                                 </button>
+                                {editingId && (
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelEdit}
+                                        className="border border-black text-black px-8 py-4 font-bold tracking-widest hover:bg-gray-100 transition-colors"
+                                    >
+                                        CANCEL
+                                    </button>
+                                )}
                             </div>
                         </form>
+
+                        {/* Article List Section */}
+                        <div className="border-t border-gray-200 pt-16">
+                            <h2 className="text-2xl font-bold mb-8">投稿済み記事一覧</h2>
+                            {articles.length === 0 ? (
+                                <p className="text-gray-500">投稿された記事はありません。</p>
+                            ) : (
+                                <div className="space-y-6">
+                                    {articles.map(article => (
+                                        <div key={article.id} className="border border-gray-200 p-6 rounded flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="w-full md:w-32 aspect-video bg-gray-100 flex-shrink-0">
+                                                {article.image && (
+                                                    <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
+                                                )}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="text-xs font-bold bg-gray-100 px-2 py-1">{article.category}</span>
+                                                    {article.displayType && article.displayType !== 'LATEST' && (
+                                                        <span className="text-xs font-bold bg-black text-white px-2 py-1">{article.displayType}</span>
+                                                    )}
+                                                    <span className="text-xs text-gray-500">{article.date}</span>
+                                                </div>
+                                                <h3 className="font-bold mb-2">{article.title}</h3>
+                                                <div className="flex gap-4 mt-4">
+                                                    <button
+                                                        onClick={() => handleEdit(article)}
+                                                        className="text-sm font-bold text-blue-600 hover:text-blue-800 underline"
+                                                    >
+                                                        編集
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(article.id)}
+                                                        className="text-sm font-bold text-red-600 hover:text-red-800 underline"
+                                                    >
+                                                        削除
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Sidebar */}
