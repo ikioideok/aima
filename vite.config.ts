@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
             if (req.method === 'POST') {
               const fs = await import('fs');
               const path = await import('path');
+              const { exec } = await import('child_process');
 
               let body = '';
               req.on('data', chunk => {
@@ -27,20 +28,33 @@ export default defineConfig(({ mode }) => {
               req.on('end', () => {
                 try {
                   const newArticle = JSON.parse(body);
-                  const filePath = path.resolve(__dirname, 'src/data/articles.json');
+                  const dataDir = path.resolve(__dirname, 'data');
+                  const jsonPath = path.join(dataDir, 'articles.json');
+                  const tsPath = path.join(dataDir, 'articles.ts');
 
-                  // Read existing articles
+                  // 1. Update JSON
                   let articles = [];
-                  if (fs.existsSync(filePath)) {
-                    const fileContent = fs.readFileSync(filePath, 'utf-8');
-                    articles = JSON.parse(fileContent);
+                  if (fs.existsSync(jsonPath)) {
+                    articles = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
                   }
-
-                  // Add new article (prepend)
                   articles.unshift(newArticle);
+                  fs.writeFileSync(jsonPath, JSON.stringify(articles, null, 4));
 
-                  // Write back to file
-                  fs.writeFileSync(filePath, JSON.stringify(articles, null, 4));
+                  // 2. Generate TS
+                  const tsContent = `import { Article } from '../types';\n\nexport const articles: Article[] = ${JSON.stringify(articles, null, 4)};\n`;
+                  fs.writeFileSync(tsPath, tsContent);
+
+                  // 3. Git Operations
+                  const commitMsg = `Add article: ${newArticle.title}`;
+                  exec(`git add "${jsonPath}" "${tsPath}" && git commit -m "${commitMsg}" && git push origin main`, (error, stdout, stderr) => {
+                    if (error) {
+                      console.error('Git error:', error);
+                      // We still return success for the file save, but log the git error
+                      // Ideally we might want to warn the user, but for now let's just log it
+                    } else {
+                      console.log('Git success:', stdout);
+                    }
+                  });
 
                   res.statusCode = 200;
                   res.setHeader('Content-Type', 'application/json');
