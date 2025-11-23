@@ -1,7 +1,13 @@
-Options -MultiViews
-
 RewriteEngine On
-RewriteBase /
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.html [L]
+
+# Serve existing files/directories as-is
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Media detail SSR via PHP (exclude admin)
+RewriteRule ^media/admin/?$ /index.html [L]
+RewriteRule ^media/([^/]+)/?$ /media.php?id=$1 [L]
+
+# Fallback to SPA
+RewriteRule . /index.html [L]
