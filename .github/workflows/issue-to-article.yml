@@ -27,15 +27,15 @@ jobs:
           ID=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
 
           cat <<'EOF' >> $GITHUB_OUTPUT
-title=$TITLE
-category=$CATEGORY
-subtitle=$SUBTITLE
-content<<CONTENT
-$CONTENT
-CONTENT
-date=$DATE
-id=$ID
-EOF
+          title=$TITLE
+          category=$CATEGORY
+          subtitle=$SUBTITLE
+          content<<CONTENT
+          $CONTENT
+          CONTENT
+          date=$DATE
+          id=$ID
+          EOF
 
       - name: Install Node
         uses: actions/setup-node@v4
