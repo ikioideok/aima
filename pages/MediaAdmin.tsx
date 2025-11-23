@@ -16,10 +16,10 @@ export const MediaAdmin: React.FC = () => {
     const [displayType, setDisplayType] = useState<Article['displayType']>('LATEST');
 
     // Supervisor State
-    const [supervisorName, setSupervisorName] = useState('');
-    const [supervisorRole, setSupervisorRole] = useState('');
-    const [supervisorImage, setSupervisorImage] = useState('');
-    const [supervisorComment, setSupervisorComment] = useState('');
+    const [supervisorName, setSupervisorName] = useState('水間 雄紀');
+    const [supervisorRole, setSupervisorRole] = useState('CEO');
+    const [supervisorImage, setSupervisorImage] = useState('/supervisor.jpg');
+    const [supervisorComment, setSupervisorComment] = useState('Webマーケターとして株式会社circlizeを創業。ラグザス株式会社に事業譲渡後、株式会社AIMAの代表取締役としてAI×マーケティングの事業に取り組む');
 
     const [message, setMessage] = useState('');
 
@@ -90,23 +90,26 @@ export const MediaAdmin: React.FC = () => {
         canvas.width = 1200;
         canvas.height = 630;
 
-        // Background
-        ctx.fillStyle = '#111111';
+        // Background: White
+        ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Decoration: Inner Border
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
         // Decoration: Top Logo
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#000000';
         ctx.font = 'bold 30px "Helvetica Neue", Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.letterSpacing = '0.2em';
-        ctx.fillText('AIMA INSIGHTS', canvas.width / 2, 100);
+        ctx.fillText('AIMA INSIGHTS', canvas.width / 2, 120);
 
         // Decoration: Accent Line
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(canvas.width / 2 - 50, 130);
-        ctx.lineTo(canvas.width / 2 + 50, 130);
+        ctx.moveTo(canvas.width / 2 - 30, 150);
+        ctx.lineTo(canvas.width / 2 + 30, 150);
         ctx.stroke();
 
         // Title Text Wrapping
@@ -114,8 +117,8 @@ export const MediaAdmin: React.FC = () => {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        const maxWidth = 1000;
-        const lineHeight = 90;
+        const maxWidth = 900;
+        const lineHeight = 100;
         const words = title.split(''); // Split by character for Japanese wrapping
         let line = '';
         const lines = [];
@@ -135,7 +138,7 @@ export const MediaAdmin: React.FC = () => {
 
         // Draw Title
         const totalHeight = lines.length * lineHeight;
-        const startY = (canvas.height - totalHeight) / 2 + (lineHeight / 2);
+        const startY = (canvas.height - totalHeight) / 2 + 20; // Slightly adjusted for visual balance
 
         lines.forEach((line, index) => {
             ctx.fillText(line, canvas.width / 2, startY + (index * lineHeight));
