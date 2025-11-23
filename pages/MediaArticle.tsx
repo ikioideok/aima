@@ -196,14 +196,18 @@ export const MediaArticle: React.FC = () => {
         }
 
         // 2. Check local storage
-        const localArticlesStr = localStorage.getItem('aima_media_articles');
-        if (localArticlesStr) {
-            const localArticles: Article[] = JSON.parse(localArticlesStr);
-            const found = localArticles.find(a => a.id === id);
-            if (found) {
-                console.log('Found local article:', found);
-                setArticle(found);
+        try {
+            const localArticlesStr = localStorage.getItem('aima_media_articles');
+            if (localArticlesStr) {
+                const localArticles: Article[] = JSON.parse(localArticlesStr);
+                const found = localArticles.find(a => a.id === id);
+                if (found) {
+                    console.log('Found local article:', found);
+                    setArticle(found);
+                }
             }
+        } catch (error) {
+            console.error('Failed to parse local articles:', error);
         }
     }, [id]);
 

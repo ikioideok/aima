@@ -43,9 +43,14 @@ export const MediaAdmin: React.FC = () => {
     }, []);
 
     const loadArticles = () => {
-        const existingArticlesStr = localStorage.getItem('aima_media_articles');
-        if (existingArticlesStr) {
-            setArticles(JSON.parse(existingArticlesStr));
+        try {
+            const existingArticlesStr = localStorage.getItem('aima_media_articles');
+            if (existingArticlesStr) {
+                setArticles(JSON.parse(existingArticlesStr));
+            }
+        } catch (error) {
+            console.error('Failed to parse local articles:', error);
+            alert('記事データの読み込みに失敗しました。データが破損している可能性があります。');
         }
     };
 

@@ -87,26 +87,30 @@ export const MediaTop: React.FC = () => {
     const [latestArticles, setLatestArticles] = useState<Article[]>(staticLatestArticles);
 
     useEffect(() => {
-        const localArticlesStr = localStorage.getItem('aima_media_articles');
-        if (localArticlesStr) {
-            const localArticles: Article[] = JSON.parse(localArticlesStr);
+        try {
+            const localArticlesStr = localStorage.getItem('aima_media_articles');
+            if (localArticlesStr) {
+                const localArticles: Article[] = JSON.parse(localArticlesStr);
 
-            // 1. Special Feature: Find most recent local article with displayType = 'SPECIAL'
-            const localSpecial = localArticles.find(a => a.displayType === 'SPECIAL');
-            if (localSpecial) {
-                setFeatureArticle(localSpecial);
+                // 1. Special Feature: Find most recent local article with displayType = 'SPECIAL'
+                const localSpecial = localArticles.find(a => a.displayType === 'SPECIAL');
+                if (localSpecial) {
+                    setFeatureArticle(localSpecial);
+                }
+
+                // 2. Featured Articles: Find local articles with displayType = 'FEATURED'
+                const localFeatured = localArticles.filter(a => a.displayType === 'FEATUREED');
+                if (localFeatured.length > 0) {
+                    // Prepend local featured articles to static ones, take top 4
+                    setFeaturedArticles([...localFeatured, ...staticFeaturedArticles].slice(0, 4));
+                }
+
+                // 3. Latest Articles: Find local articles with displayType = 'LATEST' (or undefined/null for backward compatibility)
+                const localLatest = localArticles.filter(a => !a.displayType || a.displayType === 'LATEST');
+                setLatestArticles([...localLatest, ...staticLatestArticles]);
             }
-
-            // 2. Featured Articles: Find local articles with displayType = 'FEATURED'
-            const localFeatured = localArticles.filter(a => a.displayType === 'FEATURED');
-            if (localFeatured.length > 0) {
-                // Prepend local featured articles to static ones, take top 4
-                setFeaturedArticles([...localFeatured, ...staticFeaturedArticles].slice(0, 4));
-            }
-
-            // 3. Latest Articles: Find local articles with displayType = 'LATEST' (or undefined/null for backward compatibility)
-            const localLatest = localArticles.filter(a => !a.displayType || a.displayType === 'LATEST');
-            setLatestArticles([...localLatest, ...staticLatestArticles]);
+        } catch (error) {
+            console.error('Failed to parse local articles:', error);
         }
     }, []);
 
