@@ -185,34 +185,119 @@ const STATIC_ARTICLES: Record<string, {
 export const MediaArticle: React.FC = () => {
     const { id } = useParams();
     const [article, setArticle] = useState<any>(null);
+    const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
+    const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
+    const [processedContent, setProcessedContent] = useState<{ intro: string; body: string } | null>(null);
+    const [isTocOpen, setIsTocOpen] = useState(true);
 
     useEffect(() => {
         if (!id) return;
 
-        // 1. Check static data
+        // 1. Fetch Article
+        let foundArticle: any = null;
         if (STATIC_ARTICLES[id]) {
-            setArticle(STATIC_ARTICLES[id]);
-            return;
+            foundArticle = STATIC_ARTICLES[id];
+        } else {
+            try {
+                const localArticlesStr = localStorage.getItem('aima_media_articles');
+                if (localArticlesStr) {
+                    const localArticles: Article[] = JSON.parse(localArticlesStr);
+                    const found = localArticles.find(a => a.id === id);
+                    if (found) foundArticle = found;
+                }
+            } catch (error) {
+                console.error('Failed to parse local articles:', error);
+            }
         }
 
-        // 2. Check local storage
-        try {
-            const localArticlesStr = localStorage.getItem('aima_media_articles');
-            if (localArticlesStr) {
-                const localArticles: Article[] = JSON.parse(localArticlesStr);
-                const found = localArticles.find(a => a.id === id);
-                if (found) {
-                    setArticle(found);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to parse local articles:', error);
+        if (foundArticle) {
+            setArticle(foundArticle);
+            processContent(foundArticle.content);
+            fetchRelatedArticles(foundArticle);
         }
     }, [id]);
 
+    const processContent = (content: any) => {
+        if (typeof content !== 'string') {
+            setProcessedContent(null); // Handle ReactNode content if necessary, but for now assuming string for TOC
+            return;
+        }
+
+        // Simple regex to find H2 and H3
+        // Note: This is a basic implementation. For robust HTML parsing, a library is better.
+        const headings: { id: string; text: string; level: number }[] = [];
+        let modifiedContent = content;
+
+        // 1. Add IDs to H2 and H3
+        // We use a temporary DOM element to parse and manipulate
+        const div = document.createElement('div');
+        div.innerHTML = content;
+
+        const elements = div.querySelectorAll('h2, h3');
+        elements.forEach((el, index) => {
+            const id = `heading-${index}`;
+            el.id = id;
+            headings.push({
+                id,
+                text: el.textContent || '',
+                level: el.tagName === 'H2' ? 2 : 3
+            });
+        });
+
+        modifiedContent = div.innerHTML;
+        setToc(headings);
+
+        // 2. Split content at the first H2
+        // We want to insert TOC and Supervisor before the first H2
+        const firstH2Index = modifiedContent.indexOf('<h2');
+        if (firstH2Index !== -1) {
+            setProcessedContent({
+                intro: modifiedContent.substring(0, firstH2Index),
+                body: modifiedContent.substring(firstH2Index)
+            });
+        } else {
+            setProcessedContent({
+                intro: modifiedContent,
+                body: ''
+            });
+        }
+    };
+
+    const fetchRelatedArticles = (currentArticle: Article) => {
+        try {
+            const localArticlesStr = localStorage.getItem('aima_media_articles');
+            let allArticles: Article[] = [];
+
+            // Add static articles (convert to array format)
+            Object.keys(STATIC_ARTICLES).forEach(key => {
+                const staticArt = STATIC_ARTICLES[key];
+                allArticles.push({
+                    id: key,
+                    ...staticArt,
+                    image: staticArt.heroImage,
+                    // Add missing fields if needed
+                } as any);
+            });
+
+            // Add local articles
+            if (localArticlesStr) {
+                const localArticles: Article[] = JSON.parse(localArticlesStr);
+                allArticles = [...allArticles, ...localArticles];
+            }
+
+            // Filter: Same category, exclude current
+            const related = allArticles
+                .filter(a => a.category === currentArticle.category && a.id !== currentArticle.id)
+                .slice(0, 3); // Take top 3
+
+            setRelatedArticles(related);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     if (!article && !STATIC_ARTICLES['llmo-seo-difference']) return <div>Loading...</div>;
 
-    // Fallback to default article if not found (or handle 404)
     const displayArticle = article || STATIC_ARTICLES['llmo-seo-difference'];
 
     return (
@@ -242,16 +327,100 @@ export const MediaArticle: React.FC = () => {
                         </div>
 
                         <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
-                            {displayArticle.content ? (
+                            {processedContent ? (
+                                <>
+                                    {/* Intro */}
+                                    <div dangerouslySetInnerHTML={{ __html: processedContent.intro }} />
+
+                                    {/* TOC */}
+                                    {toc.length > 0 && (
+                                        <div className="my-12 border border-gray-200 bg-gray-50 p-6 rounded-lg">
+                                            <div
+                                                className="flex justify-between items-center cursor-pointer mb-4"
+                                                onClick={() => setIsTocOpen(!isTocOpen)}
+                                            >
+                                                <h3 className="text-lg font-bold m-0 !border-0 !p-0 !mt-0 !mb-0">目次</h3>
+                                                <span className="text-xl">{isTocOpen ? '−' : '+'}</span>
+                                            </div>
+                                            {isTocOpen && (
+                                                <ul className="list-none pl-0 space-y-2 m-0">
+                                                    {toc.map((item) => (
+                                                        <li
+                                                            key={item.id}
+                                                            className={`text-sm hover:text-gray-600 transition-colors ${item.level === 3 ? 'pl-4' : ''}`}
+                                                        >
+                                                            <a href={`#${item.id}`} className="no-underline text-black border-b border-transparent hover:border-gray-400">
+                                                                {item.text}
+                                                            </a>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Supervisor Info */}
+                                    {displayArticle.supervisor && (
+                                        <div className="my-12 border border-black p-6 flex flex-col md:flex-row gap-6 items-start bg-white">
+                                            {displayArticle.supervisor.image && (
+                                                <img
+                                                    src={displayArticle.supervisor.image}
+                                                    alt={displayArticle.supervisor.name}
+                                                    className="w-24 h-24 rounded-full object-cover flex-shrink-0 border border-gray-200"
+                                                />
+                                            )}
+                                            <div>
+                                                <div className="text-xs font-bold text-gray-500 mb-1">この記事の監修者</div>
+                                                <div className="text-lg font-bold mb-1">{displayArticle.supervisor.name}</div>
+                                                <div className="text-xs text-gray-600 mb-4">{displayArticle.supervisor.role}</div>
+                                                {displayArticle.supervisor.comment && (
+                                                    <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded relative">
+                                                        <span className="absolute top-0 left-2 text-4xl text-gray-200 font-serif">“</span>
+                                                        {displayArticle.supervisor.comment}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Body */}
+                                    <div dangerouslySetInnerHTML={{ __html: processedContent.body }} />
+                                </>
+                            ) : (
                                 typeof displayArticle.content === 'string' ? (
                                     <div dangerouslySetInnerHTML={{ __html: displayArticle.content }} />
                                 ) : (
                                     displayArticle.content
                                 )
-                            ) : (
-                                <p className="text-gray-500 italic">本文がありません。</p>
                             )}
                         </div>
+
+                        {/* Related Articles */}
+                        {relatedArticles.length > 0 && (
+                            <div className="mb-24 border-t border-gray-200 pt-16">
+                                <div className="flex items-center gap-4 mb-8">
+                                    <div className="h-[1px] w-12 bg-black"></div>
+                                    <h2 className="text-sm font-eng font-bold tracking-widest m-0 !border-0 !p-0">RELATED ARTICLES</h2>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    {relatedArticles.map((article) => (
+                                        <a key={article.id} href={`/media/${article.id}`} className="group block">
+                                            <div className="aspect-video overflow-hidden mb-4 bg-gray-100">
+                                                <img
+                                                    src={article.image}
+                                                    alt={article.title}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                />
+                                            </div>
+                                            <div className="text-xs font-bold text-gray-500 mb-2">{article.date}</div>
+                                            <h3 className="text-sm font-bold leading-relaxed group-hover:text-gray-600 transition-colors m-0 !border-0 !p-0">
+                                                {article.title}
+                                            </h3>
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="text-center mb-24">
                             <Link to="/media" className="inline-block border-b border-black pb-1 text-sm font-bold tracking-widest hover:text-gray-600 transition-colors">

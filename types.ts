@@ -8,4 +8,10 @@ export interface Article {
     content?: string; // HTML content or plain text
     excerpt?: string;
     displayType?: 'SPECIAL' | 'FEATURED' | 'LATEST';
+    supervisor?: {
+        name: string;
+        role: string;
+        image?: string;
+        comment?: string;
+    };
 }

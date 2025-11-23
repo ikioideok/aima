@@ -14,6 +14,13 @@ export const MediaAdmin: React.FC = () => {
     const [image, setImage] = useState('');
     const [content, setContent] = useState('');
     const [displayType, setDisplayType] = useState<Article['displayType']>('LATEST');
+
+    // Supervisor State
+    const [supervisorName, setSupervisorName] = useState('');
+    const [supervisorRole, setSupervisorRole] = useState('');
+    const [supervisorImage, setSupervisorImage] = useState('');
+    const [supervisorComment, setSupervisorComment] = useState('');
+
     const [message, setMessage] = useState('');
 
     useEffect(() => {
@@ -54,7 +61,7 @@ export const MediaAdmin: React.FC = () => {
         }
     };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 500 * 1024) { // 500KB limit
@@ -63,7 +70,7 @@ export const MediaAdmin: React.FC = () => {
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                setImage(reader.result as string);
+                setter(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
@@ -77,6 +84,13 @@ export const MediaAdmin: React.FC = () => {
         setImage(article.image);
         setContent(article.content || '');
         setDisplayType(article.displayType || 'LATEST');
+
+        // Supervisor
+        setSupervisorName(article.supervisor?.name || '');
+        setSupervisorRole(article.supervisor?.role || '');
+        setSupervisorImage(article.supervisor?.image || '');
+        setSupervisorComment(article.supervisor?.comment || '');
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -105,6 +119,10 @@ export const MediaAdmin: React.FC = () => {
         setImage('');
         setContent('');
         setDisplayType('LATEST');
+        setSupervisorName('');
+        setSupervisorRole('');
+        setSupervisorImage('');
+        setSupervisorComment('');
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -119,16 +137,30 @@ export const MediaAdmin: React.FC = () => {
             image,
             content,
             excerpt: subtitle, // Use subtitle as excerpt for list view
-            displayType
+            displayType,
+            supervisor: supervisorName ? {
+                name: supervisorName,
+                role: supervisorRole,
+                image: supervisorImage,
+                comment: supervisorComment
+            } : undefined
         };
 
         try {
+            let existingArticles: Article[] = [];
+            try {
+                const existingArticlesStr = localStorage.getItem('aima_media_articles');
+                existingArticles = existingArticlesStr ? JSON.parse(existingArticlesStr) : [];
+            } catch (e) {
+                console.error('Failed to parse existing articles during save:', e);
+            }
+
             let updatedArticles: Article[];
             if (editingId) {
-                updatedArticles = articles.map(a => a.id === editingId ? newArticle : a);
+                updatedArticles = existingArticles.map(a => a.id === editingId ? newArticle : a);
                 setMessage('記事を更新しました！');
             } else {
-                updatedArticles = [newArticle, ...articles];
+                updatedArticles = [newArticle, ...existingArticles];
                 setMessage('記事を投稿しました！');
             }
 
@@ -229,12 +261,12 @@ export const MediaAdmin: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold mb-2">画像</label>
+                                <label className="block text-sm font-bold mb-2">メイン画像</label>
                                 <div className="space-y-4">
                                     <input
                                         type="file"
                                         accept="image/*"
-                                        onChange={handleImageUpload}
+                                        onChange={(e) => handleImageUpload(e, setImage)}
                                         className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
                                     />
                                     <div className="text-center text-sm text-gray-500">- OR -</div>
@@ -252,6 +284,62 @@ export const MediaAdmin: React.FC = () => {
                                         <img src={image} alt="Preview" className="h-40 object-cover rounded border border-gray-200" />
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Supervisor Section */}
+                            <div className="border-t border-b border-gray-200 py-8 my-8">
+                                <h3 className="text-xl font-bold mb-6">監修者情報 (任意)</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                                    <div>
+                                        <label className="block text-sm font-bold mb-2">監修者名</label>
+                                        <input
+                                            type="text"
+                                            value={supervisorName}
+                                            onChange={(e) => setSupervisorName(e.target.value)}
+                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold mb-2">役職 / 肩書き</label>
+                                        <input
+                                            type="text"
+                                            value={supervisorRole}
+                                            onChange={(e) => setSupervisorRole(e.target.value)}
+                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold mb-2">監修者画像</label>
+                                    <div className="space-y-4">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleImageUpload(e, setSupervisorImage)}
+                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={supervisorImage}
+                                            onChange={(e) => setSupervisorImage(e.target.value)}
+                                            placeholder="画像URL"
+                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                        />
+                                    </div>
+                                    {supervisorImage && (
+                                        <div className="mt-4">
+                                            <img src={supervisorImage} alt="Supervisor" className="h-20 w-20 object-cover rounded-full border border-gray-200" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-2">監修者コメント</label>
+                                    <textarea
+                                        value={supervisorComment}
+                                        onChange={(e) => setSupervisorComment(e.target.value)}
+                                        className="w-full border border-gray-300 p-3 rounded h-24 focus:outline-none focus:border-black transition-colors"
+                                    />
+                                </div>
                             </div>
 
                             <div>
