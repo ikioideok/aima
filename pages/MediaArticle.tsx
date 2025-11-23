@@ -6,7 +6,7 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
-import { getAllArticles } from '../utils/articleStorage';
+import { loadArticles } from '../utils/articleStorage';
 
 
 
@@ -21,15 +21,16 @@ export const MediaArticle: React.FC = () => {
     const [hasLoaded, setHasLoaded] = useState(false);
 
     useEffect(() => {
-        const loadArticles = () => {
-            const all = getAllArticles();
-            setArticles(all);
-            setHasLoaded(true);
+        const hydrate = () => {
+            loadArticles().then((all) => {
+                setArticles(all);
+                setHasLoaded(true);
+            });
         };
 
-        loadArticles();
-        window.addEventListener('storage', loadArticles);
-        return () => window.removeEventListener('storage', loadArticles);
+        hydrate();
+        window.addEventListener('storage', hydrate);
+        return () => window.removeEventListener('storage', hydrate);
     }, []);
 
     useEffect(() => {

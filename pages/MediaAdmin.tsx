@@ -4,7 +4,7 @@ import { Footer } from '../components/Footer';
 import { SEO } from '../components/SEO';
 import { Sidebar } from '../components/Sidebar';
 import { Article } from '../types';
-import { saveArticleLocally } from '../utils/articleStorage';
+import { saveArticle } from '../utils/articleStorage';
 
 const defaultSupervisor = {
     name: '水間 雄紀',
@@ -153,29 +153,7 @@ export const MediaAdmin: React.FC = () => {
             } : undefined
         };
 
-        // Always save locally so the site reflects the new article immediately
-        saveArticleLocally(newArticle);
-
-        let savedToServer = false;
-
-        try {
-            const response = await fetch('/api/save-article', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newArticle),
-            });
-
-            if (response.ok) {
-                savedToServer = true;
-            } else {
-                throw new Error('Failed to save');
-            }
-        } catch (error) {
-            console.error('Error posting article:', error);
-            // Fallback handled by local save above
-        }
+        const { savedToServer } = await saveArticle(newArticle);
 
         setEditingId(null);
         setMessage(savedToServer ? '記事を投稿しました！' : '記事を投稿しました！（ローカル保存）');

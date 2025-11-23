@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Article } from '../types';
-import { getAllArticles } from '../utils/articleStorage';
+import { loadArticles } from '../utils/articleStorage';
 
 const categories = [
     'STRATEGY', 'TECHNOLOGY', 'MARKETING', 'GOVERNANCE', 'SKILL', 'TREND', 'CASE STUDY', 'EDUCATION'
@@ -10,10 +10,12 @@ export const Sidebar: React.FC = () => {
     const [articles, setArticles] = useState<Article[]>([]);
 
     useEffect(() => {
-        const loadArticles = () => setArticles(getAllArticles());
-        loadArticles();
-        window.addEventListener('storage', loadArticles);
-        return () => window.removeEventListener('storage', loadArticles);
+        const hydrate = () => {
+            loadArticles().then(setArticles);
+        };
+        hydrate();
+        window.addEventListener('storage', hydrate);
+        return () => window.removeEventListener('storage', hydrate);
     }, []);
 
     // Editor's Picks (FEATURED)

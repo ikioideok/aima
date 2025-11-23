@@ -26,34 +26,65 @@ const persistStoredArticles = (articles: Article[]) => {
     }
 };
 
-const mergeArticles = (stored: Article[]) => {
+const mergeArticles = (...lists: Article[][]) => {
     const merged = new Map<string, Article>();
-
-    // Prefer locally stored items (newer) over static seeds
-    stored.forEach((article) => merged.set(article.id, article));
-    staticArticles.forEach((article) => {
-        if (!merged.has(article.id)) {
+    lists.forEach((list) => {
+        list.forEach((article) => {
             merged.set(article.id, article);
-        }
+        });
     });
-
     return Array.from(merged.values());
 };
 
-export const getAllArticles = (): Article[] => {
-    const stored = readStoredArticles();
-    return mergeArticles(stored);
+const fetchServerArticles = async (): Promise<Article[] | null> => {
+    if (!hasWindow) return null;
+    try {
+        const res = await fetch('/api/articles', { method: 'GET' });
+        if (!res.ok) throw new Error('Failed to fetch articles');
+        const data = await res.json();
+        return data as Article[];
+    } catch (error) {
+        console.warn('Failed to fetch server articles, using local data', error);
+        return null;
+    }
 };
 
-export const saveArticleLocally = (article: Article): Article[] => {
+export const loadArticles = async (): Promise<Article[]> => {
     const stored = readStoredArticles();
-    const filtered = stored.filter((item) => item.id !== article.id);
-    const nextStored = [article, ...filtered];
+    const serverArticles = await fetchServerArticles();
+    // Order: locally stored (drafts) > server > static seed
+    const merged = mergeArticles(stored, serverArticles || [], staticArticles);
 
-    persistStoredArticles(nextStored);
-    return mergeArticles(nextStored);
+    // Keep cache in localStorage to survive reloads/offline
+    persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+    return merged;
 };
 
-export const getArticleById = (id: string): Article | undefined => {
-    return getAllArticles().find((article) => article.id === id);
+export const saveArticle = async (article: Article): Promise<{ articles: Article[]; savedToServer: boolean }> => {
+    // Save locally first for instant reflection
+    const locallyMerged = mergeArticles([article], readStoredArticles(), staticArticles);
+    persistStoredArticles(locallyMerged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+
+    let savedToServer = false;
+    try {
+        const response = await fetch('/api/save-article', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(article),
+        });
+
+        if (response.ok) {
+            const serverArticles = (await response.json()) as Article[];
+            const merged = mergeArticles(serverArticles, readStoredArticles(), staticArticles);
+            persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+            savedToServer = true;
+        }
+    } catch (error) {
+        console.warn('Failed to save to server, kept local only', error);
+    }
+
+    const latest = mergeArticles(readStoredArticles(), staticArticles);
+    return { articles: latest, savedToServer };
 };
