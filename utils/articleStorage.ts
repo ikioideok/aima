@@ -38,7 +38,7 @@ const fetchServerArticles = async (): Promise<Article[] | null> => {
     if (!hasWindow) return null;
     try {
         // Fetch directly from the JSON file served by the server
-        const res = await fetch('/articles.json', { method: 'GET' });
+        const res = await fetch(`/articles.json?t=${Date.now()}`, { method: 'GET' });
         if (!res.ok) throw new Error('Failed to fetch articles');
         const data = await res.json();
         return data as Article[];
@@ -84,7 +84,8 @@ export const saveArticle = async (article: Article, apiKey: string, originalId?:
         if (response.ok) {
             const serverArticles = (await response.json()) as Article[];
             // Update local storage with the authoritative server list
-            const merged = mergeArticles(serverArticles, readStoredArticles());
+            // Merge order: Local < Server (Server overwrites Local)
+            const merged = mergeArticles(readStoredArticles(), serverArticles);
             persistStoredArticles(merged);
             latestArticles = merged;
             savedToServer = true;
