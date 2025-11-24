@@ -4,7 +4,7 @@ import { Footer } from '../components/Footer';
 import { SEO } from '../components/SEO';
 import { Sidebar } from '../components/Sidebar';
 import { Article } from '../types';
-import { saveArticle } from '../utils/articleStorage';
+import { saveArticle, deleteArticle, loadArticles } from '../utils/articleStorage';
 
 const defaultSupervisor = {
     name: '水間 雄紀',
@@ -14,6 +14,7 @@ const defaultSupervisor = {
 };
 
 export const MediaAdmin: React.FC = () => {
+    const [articles, setArticles] = useState<Article[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const [title, setTitle] = useState('');
@@ -37,7 +38,15 @@ export const MediaAdmin: React.FC = () => {
         if (storedKey) {
             setApiKey(storedKey);
         }
+        fetchArticles();
     }, []);
+
+    const fetchArticles = async () => {
+        const data = await loadArticles();
+        // Sort by date desc
+        data.sort((a, b) => new Date(b.date.replace(/\./g, '/')).getTime() - new Date(a.date.replace(/\./g, '/')).getTime());
+        setArticles(data);
+    };
 
     const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newKey = e.target.value;
@@ -139,7 +148,41 @@ export const MediaAdmin: React.FC = () => {
         resetForm();
     };
 
+    const handleEdit = (article: Article) => {
+        setEditingId(article.id);
+        setTitle(article.title);
+        setCategory(article.category);
+        setImage(article.image);
+        setContent(article.content);
+        setDisplayType(article.displayType || 'LATEST');
 
+        if (article.supervisor) {
+            setSupervisorName(article.supervisor.name);
+            setSupervisorRole(article.supervisor.role);
+            setSupervisorImage(article.supervisor.image);
+            setSupervisorComment(article.supervisor.comment || '');
+        } else {
+            setSupervisorName(defaultSupervisor.name);
+            setSupervisorRole(defaultSupervisor.role);
+            setSupervisorImage(defaultSupervisor.image);
+            setSupervisorComment(defaultSupervisor.comment);
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('本当に削除しますか？この操作は取り消せません。')) return;
+
+        const { success } = await deleteArticle(id, apiKey);
+        if (success) {
+            setMessage('記事を削除しました。');
+            fetchArticles();
+        } else {
+            setMessage('削除に失敗しました。（APIキーを確認してください）');
+        }
+        setTimeout(() => setMessage(''), 3000);
+    };
 
     const handlePostArticle = async (event?: React.FormEvent) => {
         event?.preventDefault();
@@ -157,7 +200,7 @@ export const MediaAdmin: React.FC = () => {
             id: editingId || Date.now().toString(),
             title,
             subtitle: '', // Deprecated but kept for type compatibility if needed, or just empty
-            date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
+            date: editingId ? (articles.find(a => a.id === editingId)?.date || new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')) : new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
             category,
             image,
             content,
@@ -174,8 +217,9 @@ export const MediaAdmin: React.FC = () => {
         const { savedToServer } = await saveArticle(newArticle, apiKey);
 
         setEditingId(null);
-        setMessage(savedToServer ? '記事を投稿しました！' : '記事を投稿しました！（ローカル保存のみ - APIキーを確認してください）');
+        setMessage(savedToServer ? (editingId ? '記事を更新しました！' : '記事を投稿しました！') : 'ローカル保存のみ完了しました（APIキーを確認してください）');
         resetForm();
+        fetchArticles(); // Refresh list
         setTimeout(() => setMessage(''), 3000);
     };
 
@@ -223,7 +267,7 @@ export const MediaAdmin: React.FC = () => {
                         </div>
 
                         {message && (
-                            <div className={`px-4 py-3 rounded mb-8 ${message.includes('ローカル保存のみ') ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
+                            <div className={`px-4 py-3 rounded mb-8 ${message.includes('ローカル保存のみ') || message.includes('失敗') ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
                                 {message}
                             </div>
                         )}
@@ -400,6 +444,45 @@ export const MediaAdmin: React.FC = () => {
                                 )}
                             </div>
                         </form>
+
+                        {/* Existing Articles List */}
+                        <div className="mt-24 border-t border-black pt-12">
+                            <h2 className="text-2xl font-bold mb-8">投稿済み記事一覧</h2>
+                            <div className="space-y-4">
+                                {articles.map((article) => (
+                                    <div key={article.id} className="flex flex-col md:flex-row gap-4 p-4 border border-gray-200 rounded-lg items-start md:items-center bg-white hover:shadow-md transition-shadow">
+                                        <img src={article.image} alt={article.title} className="w-24 h-16 object-cover rounded bg-gray-100" />
+                                        <div className="flex-grow">
+                                            <div className="flex gap-2 text-xs text-gray-500 mb-1">
+                                                <span>{article.date}</span>
+                                                <span className="border px-1 rounded">{article.category}</span>
+                                                <span className={`border px-1 rounded ${article.displayType === 'FEATURED' ? 'bg-yellow-100 text-yellow-800' : article.displayType === 'SPECIAL' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100'}`}>
+                                                    {article.displayType}
+                                                </span>
+                                            </div>
+                                            <h3 className="font-bold text-sm md:text-base line-clamp-2">{article.title}</h3>
+                                        </div>
+                                        <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
+                                            <button
+                                                onClick={() => handleEdit(article)}
+                                                className="flex-1 md:flex-none bg-gray-100 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-200 transition-colors"
+                                            >
+                                                編集
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(article.id)}
+                                                className="flex-1 md:flex-none bg-red-50 text-red-600 px-4 py-2 rounded text-sm font-bold hover:bg-red-100 transition-colors"
+                                            >
+                                                削除
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {articles.length === 0 && (
+                                    <p className="text-gray-500 text-center py-8">記事がまだありません。</p>
+                                )}
+                            </div>
+                        </div>
 
                     </div>
 

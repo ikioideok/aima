@@ -108,8 +108,33 @@ if (file_exists($file)) {
     }
 }
 
-// Prepend new article
-array_unshift($articles, $newArticle);
+// Handle Delete
+if (isset($newArticle['delete']) && $newArticle['delete'] === true) {
+    $idToDelete = $newArticle['id'];
+    $articles = array_filter($articles, function($a) use ($idToDelete) {
+        return $a['id'] !== $idToDelete;
+    });
+    // Re-index array
+    $articles = array_values($articles);
+} else {
+    // Handle Save (Update or Create)
+    $id = $newArticle['id'];
+    $exists = false;
+    
+    foreach ($articles as $key => $article) {
+        if ($article['id'] === $id) {
+            // Update existing
+            $articles[$key] = $newArticle;
+            $exists = true;
+            break;
+        }
+    }
+    
+    if (!$exists) {
+        // Create new (prepend)
+        array_unshift($articles, $newArticle);
+    }
+}
 
 // Save back to file
 if (file_put_contents($file, json_encode($articles, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {

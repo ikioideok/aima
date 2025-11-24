@@ -96,3 +96,36 @@ export const saveArticle = async (article: Article, apiKey: string): Promise<{ a
 
     return { articles: latestArticles, savedToServer };
 };
+
+export const deleteArticle = async (id: string, apiKey: string): Promise<{ articles: Article[]; success: boolean }> => {
+    // Delete locally
+    const stored = readStoredArticles();
+    const filtered = stored.filter(a => a.id !== id);
+    persistStoredArticles(filtered);
+
+    let success = false;
+    let latestArticles = mergeArticles(filtered, staticArticles);
+
+    try {
+        const response = await fetch('/save_article.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-KEY': apiKey
+            },
+            body: JSON.stringify({ id, delete: true }),
+        });
+
+        if (response.ok) {
+            const serverArticles = (await response.json()) as Article[];
+            const merged = mergeArticles(serverArticles, filtered, staticArticles);
+            persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+            latestArticles = merged;
+            success = true;
+        }
+    } catch (error) {
+        console.warn('Failed to delete from server', error);
+    }
+
+    return { articles: latestArticles, success };
+};
