@@ -42,29 +42,49 @@ export const MediaAdmin: React.FC = () => {
         });
     }, []);
 
-    const handleContentImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleContentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) { // 5MB limit
                 alert('画像サイズが大きすぎます（5MB以下にしてください）。');
                 return;
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                const imgTag = `<img src="${base64}" alt="Image" />`;
 
-                const textarea = contentTextareaRef.current;
-                if (textarea) {
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const newContent = content.substring(0, start) + imgTag + content.substring(end);
-                    setContent(newContent);
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/upload_image.php', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': apiKey || localStorage.getItem('aima_api_key') || ''
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.url) {
+                        const imgTag = `<img src="${data.url}" alt="Image" />`;
+                        const textarea = contentTextareaRef.current;
+                        if (textarea) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const newContent = content.substring(0, start) + imgTag + content.substring(end);
+                            setContent(newContent);
+                        } else {
+                            setContent(prev => prev + imgTag);
+                        }
+                    } else {
+                        alert('画像のアップロードに失敗しました。');
+                    }
                 } else {
-                    setContent(prev => prev + imgTag);
+                    alert('画像のアップロードに失敗しました。APIキーを確認してください。');
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('画像のアップロード中にエラーが発生しました。');
+            }
         }
     };
 
