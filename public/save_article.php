@@ -3,9 +3,9 @@
 // Receive JSON payload and update articles.json
 
 // CORS headers (adjust for production security if needed)
-header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: https://ai-and-marketing.jp');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, X-API-KEY');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

@@ -36,9 +36,6 @@ export const MediaAdmin: React.FC = () => {
         const storedKey = localStorage.getItem('aima_api_key');
         if (storedKey) {
             setApiKey(storedKey);
-        } else {
-            // Default convenience for the owner
-            setApiKey('aima-secret-key-2024');
         }
     }, []);
 
