@@ -3,7 +3,7 @@ export interface Article {
     title: string;
     subtitle?: string;
     date: string;
-    category: 'INSIGHT' | 'STRATEGY' | 'TECHNOLOGY' | 'MARKETING' | 'GOVERNANCE' | 'SKILL' | 'TREND' | 'CASE STUDY' | 'EDUCATION' | 'OTHER';
+    category: 'LLMO' | 'CONTENT' | 'STRATEGY' | 'TOOLS' | 'CASES';
     image: string;
     content?: string; // HTML content or plain text
     excerpt?: string;

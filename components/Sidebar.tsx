@@ -4,7 +4,7 @@ import { Article } from '../types';
 import { loadArticles } from '../utils/articleStorage';
 
 const categories = [
-    'STRATEGY', 'TECHNOLOGY', 'MARKETING', 'GOVERNANCE', 'SKILL', 'TREND', 'CASE STUDY', 'EDUCATION'
+    'LLMO', 'CONTENT', 'STRATEGY', 'TOOLS', 'CASES'
 ];
 
 export const Sidebar: React.FC = () => {

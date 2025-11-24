@@ -515,16 +515,11 @@ export const MediaAdmin: React.FC = () => {
                                             onChange={(e) => setCategory(e.target.value as Article['category'])}
                                             className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
                                         >
-                                            <option value="INSIGHT">INSIGHT</option>
+                                            <option value="LLMO">LLMO</option>
+                                            <option value="CONTENT">CONTENT</option>
                                             <option value="STRATEGY">STRATEGY</option>
-                                            <option value="TECHNOLOGY">TECHNOLOGY</option>
-                                            <option value="MARKETING">MARKETING</option>
-                                            <option value="GOVERNANCE">GOVERNANCE</option>
-                                            <option value="SKILL">SKILL</option>
-                                            <option value="TREND">TREND</option>
-                                            <option value="CASE STUDY">CASE STUDY</option>
-                                            <option value="EDUCATION">EDUCATION</option>
-                                            <option value="OTHER">OTHER</option>
+                                            <option value="TOOLS">TOOLS</option>
+                                            <option value="CASES">CASES</option>
                                         </select>
                                     </div>
                                     <div>
