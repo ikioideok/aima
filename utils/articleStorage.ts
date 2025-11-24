@@ -59,8 +59,10 @@ export const loadArticles = async (): Promise<Article[]> => {
     return merged;
 };
 
-export const saveArticle = async (article: Article, apiKey: string): Promise<{ articles: Article[]; savedToServer: boolean }> => {
+export const saveArticle = async (article: Article, apiKey: string, originalId?: string): Promise<{ articles: Article[]; savedToServer: boolean }> => {
     // Save locally first for instant reflection
+    // Note: Local storage logic is simplified here; renaming in local storage is tricky without a full rewrite, 
+    // but since we rely on server response to refresh, it's acceptable to just save the new one locally.
     const locallyMerged = mergeArticles([article], readStoredArticles());
     persistStoredArticles(locallyMerged);
 
@@ -69,13 +71,14 @@ export const saveArticle = async (article: Article, apiKey: string): Promise<{ a
 
     try {
         // Post to the PHP script
+        const payload = { ...article, originalId };
         const response = await fetch('/save_article.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-API-KEY': apiKey
             },
-            body: JSON.stringify(article),
+            body: JSON.stringify(payload),
         });
 
         if (response.ok) {

@@ -119,12 +119,18 @@ if (isset($newArticle['delete']) && $newArticle['delete'] === true) {
 } else {
     // Handle Save (Update or Create)
     $id = $newArticle['id'];
+    $originalId = isset($newArticle['originalId']) ? $newArticle['originalId'] : null;
     $exists = false;
     
     foreach ($articles as $key => $article) {
-        if ($article['id'] === $id) {
+        // If originalId is provided, look for that. Otherwise look for the new id (standard update)
+        if (($originalId && $article['id'] === $originalId) || (!$originalId && $article['id'] === $id)) {
             // Update existing
             $articles[$key] = $newArticle;
+            // Remove originalId from the saved data as it's a temporary field
+            if (isset($articles[$key]['originalId'])) {
+                unset($articles[$key]['originalId']);
+            }
             $exists = true;
             break;
         }
@@ -132,6 +138,10 @@ if (isset($newArticle['delete']) && $newArticle['delete'] === true) {
     
     if (!$exists) {
         // Create new (prepend)
+        // Ensure originalId is not saved
+        if (isset($newArticle['originalId'])) {
+            unset($newArticle['originalId']);
+        }
         array_unshift($articles, $newArticle);
     }
 }

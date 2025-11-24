@@ -18,6 +18,7 @@ export const MediaAdmin: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const [title, setTitle] = useState('');
+    const [slug, setSlug] = useState(''); // New slug state
     // Subtitle removed
     const [category, setCategory] = useState<Article['category']>('INSIGHT');
     const [image, setImage] = useState('');
@@ -151,6 +152,7 @@ export const MediaAdmin: React.FC = () => {
     const handleEdit = (article: Article) => {
         setEditingId(article.id);
         setTitle(article.title);
+        setSlug(article.id); // Set slug from ID
         setCategory(article.category);
         setImage(article.image);
         setContent(article.content);
@@ -196,8 +198,11 @@ export const MediaAdmin: React.FC = () => {
         const plainText = content.replace(/<[^>]+>/g, '');
         const excerpt = plainText.substring(0, 120) + '...';
 
+        // Use custom slug or generate ID
+        const finalId = slug.trim() ? slug.trim() : (editingId || Date.now().toString());
+
         const newArticle: Article = {
-            id: editingId || Date.now().toString(),
+            id: finalId,
             title,
             subtitle: '', // Deprecated but kept for type compatibility if needed, or just empty
             date: editingId ? (articles.find(a => a.id === editingId)?.date || new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')) : new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
@@ -214,7 +219,8 @@ export const MediaAdmin: React.FC = () => {
             } : undefined
         };
 
-        const { savedToServer } = await saveArticle(newArticle, apiKey);
+        // Pass editingId as originalId if we are editing
+        const { savedToServer } = await saveArticle(newArticle, apiKey, editingId || undefined);
 
         setEditingId(null);
         setMessage(savedToServer ? (editingId ? '記事を更新しました！' : '記事を投稿しました！') : 'ローカル保存のみ完了しました（APIキーを確認してください）');
@@ -225,6 +231,7 @@ export const MediaAdmin: React.FC = () => {
 
     const resetForm = () => {
         setTitle('');
+        setSlug('');
         // setSubtitle('');
         setCategory('INSIGHT');
         setImage('');
@@ -284,6 +291,19 @@ export const MediaAdmin: React.FC = () => {
                                     required
                                     placeholder="記事のタイトルを入力"
                                 />
+                            </div>
+
+                            {/* 2. Slug */}
+                            <div>
+                                <label className="block text-sm font-bold mb-2">スラッグ (URL ID)</label>
+                                <input
+                                    type="text"
+                                    value={slug}
+                                    onChange={(e) => setSlug(e.target.value)}
+                                    className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors font-mono text-sm"
+                                    placeholder="例: llmo-marketing (半角英数字とハイフン推奨)"
+                                />
+                                <p className="text-xs text-gray-500 mt-2">※ 空欄の場合は自動生成されます。URLの一部になります: /media/[slug]</p>
                             </div>
 
                             {/* 2. Image */}
