@@ -51,7 +51,98 @@ export const MediaAdmin: React.FC = () => {
         setArticles(data);
     };
 
-    // ... (Handlers: handleApiKeyChange, handleImageUpload, generateEyecatch remain same)
+    const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newKey = e.target.value;
+        setApiKey(newKey);
+        localStorage.setItem('aima_api_key', newKey);
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 500 * 1024) { // 500KB limit
+                alert('画像サイズが大きすぎます（500KB以下にしてください）。ローカルストレージの容量制限のためです。');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setter(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const generateEyecatch = () => {
+        if (!title) {
+            alert('タイトルを入力してください。');
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Set dimensions (OGP standard)
+        canvas.width = 1200;
+        canvas.height = 630;
+
+        // Background: White
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Decoration: Simple Pattern (Diagonal Stripes)
+        ctx.strokeStyle = '#F5F5F5'; // Very light gray
+        ctx.lineWidth = 10;
+        const step = 60;
+        for (let x = -canvas.height; x < canvas.width; x += step) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x + canvas.height, canvas.height);
+            ctx.stroke();
+        }
+
+        // Decoration: Inner Border
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+        // Title Text Wrapping
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 60px "Times New Roman", Times, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const maxWidth = 900;
+        const lineHeight = 100;
+        const words = title.split(''); // Split by character for Japanese wrapping
+        let line = '';
+        const lines = [];
+
+        for (let i = 0; i < words.length; i++) {
+            const testLine = line + words[i];
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && i > 0) {
+                lines.push(line);
+                line = words[i];
+            } else {
+                line = testLine;
+            }
+        }
+        lines.push(line);
+
+        // Draw Title
+        const totalHeight = lines.length * lineHeight;
+        const startY = (canvas.height - totalHeight) / 2 + 20; // Slightly adjusted for visual balance
+
+        lines.forEach((line, index) => {
+            ctx.fillText(line, canvas.width / 2, startY + (index * lineHeight));
+        });
+
+        // Convert to Data URL
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        setImage(dataUrl);
+    };
 
     const handleCancelEdit = () => {
         setEditingId(null);
