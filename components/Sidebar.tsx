@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Article } from '../types';
+import { loadArticles } from '../utils/articleStorage';
 
 const categories = [
     'STRATEGY', 'TECHNOLOGY', 'MARKETING', 'GOVERNANCE', 'SKILL', 'TREND', 'CASE STUDY', 'EDUCATION'
@@ -14,29 +15,24 @@ export const Sidebar: React.FC = () => {
     useEffect(() => {
         const fetchArticles = async () => {
             try {
-                const response = await fetch('/articles.json');
-                if (response.ok) {
-                    const data = await response.json();
-                    setArticles(data);
-                }
+                const allArticles = await loadArticles();
+
+                // Filter for Editor's Picks (FEATURED)
+                const featured = allArticles.filter(a => a.displayType === 'FEATURED').slice(0, 3);
+                setFeaturedArticles(featured);
+
+                // Sort by views for Popular (Mock logic: just take first 5 for now, or random)
+                // In a real app, we would sort by views. Here we just take the latest 5 excluding featured if needed.
+                const popular = [...allArticles].slice(0, 5);
+                setPopularArticles(popular);
+
             } catch (error) {
-                console.error('Failed to fetch articles:', error);
+                console.error('Failed to load sidebar articles:', error);
             }
         };
+
         fetchArticles();
     }, []);
-
-    useEffect(() => {
-        if (articles.length === 0) return;
-
-        // Editor's Picks (Featured)
-        const featured = articles.filter(a => a.displayType === 'FEATURED').slice(0, 3);
-        setFeaturedArticles(featured);
-
-        // Popular (Sorted by views)
-        const popular = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
-        setPopularArticles(popular);
-    }, [articles]);
 
     return (
         <aside className="w-full space-y-16">

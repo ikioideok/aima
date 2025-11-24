@@ -5,48 +5,66 @@ import { Footer } from '../components/Footer';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
+import { loadArticles } from '../utils/articleStorage';
 
 export const MediaArticle: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [article, setArticle] = useState<Article | null>(null);
     const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
-    const [articles, setArticles] = useState<Article[]>([]);
     const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
     const [processedContent, setProcessedContent] = useState<{ intro: string; body: string } | null>(null);
     const [isTocOpen, setIsTocOpen] = useState(true);
     const [hasLoaded, setHasLoaded] = useState(false);
 
     useEffect(() => {
-        const fetchArticles = async () => {
+        let isMounted = true;
+
+        const fetchArticleData = async () => {
+            setHasLoaded(false);
             try {
-                const response = await fetch('/articles.json');
-                if (response.ok) {
-                    const data = await response.json();
-                    setArticles(data);
-                    setHasLoaded(true);
+                const allArticles = await loadArticles();
+                if (!isMounted) return;
+
+                const found = allArticles.find((a) => a.id === id);
+
+                if (found) {
+                    setArticle(found);
+                    processContent(found.content);
+                    const related = allArticles
+                        .filter((a) => a.category === found.category && a.id !== found.id)
+                        .slice(0, 3);
+                    setRelatedArticles(related);
+                } else {
+                    setArticle(null);
+                    setProcessedContent(null);
+                    setRelatedArticles([]);
                 }
             } catch (error) {
-                console.error('Failed to fetch articles:', error);
-                setHasLoaded(true);
+                console.error('Failed to load article:', error);
+                if (!isMounted) return;
+                setArticle(null);
+                setProcessedContent(null);
+                setRelatedArticles([]);
+            } finally {
+                if (isMounted) {
+                    setHasLoaded(true);
+                }
             }
         };
-        fetchArticles();
-    }, []);
 
-    useEffect(() => {
-        if (!id || articles.length === 0) return;
-
-        const found = articles.find(a => a.id === id);
-        if (found) {
-            setArticle(found);
-            processContent(found.content);
-            fetchRelatedArticles(found, articles);
+        if (id) {
+            fetchArticleData();
         } else {
             setArticle(null);
             setProcessedContent(null);
             setRelatedArticles([]);
+            setHasLoaded(true);
         }
-    }, [id, articles]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [id]);
 
     const processContent = (content: any) => {
         if (typeof content !== 'string') {
@@ -54,29 +72,25 @@ export const MediaArticle: React.FC = () => {
             return;
         }
 
-        // Simple regex to find H2 and H3
         const headings: { id: string; text: string; level: number }[] = [];
-        let modifiedContent = content;
 
-        // 1. Add IDs to H2 and H3
         const div = document.createElement('div');
         div.innerHTML = content;
 
         const elements = div.querySelectorAll('h2, h3');
         elements.forEach((el, index) => {
-            const id = `heading-${index}`;
-            el.id = id;
+            const headingId = `heading-${index}`;
+            el.id = headingId;
             headings.push({
-                id,
+                id: headingId,
                 text: el.textContent || '',
                 level: el.tagName === 'H2' ? 2 : 3
             });
         });
 
-        modifiedContent = div.innerHTML;
         setToc(headings);
+        const modifiedContent = div.innerHTML;
 
-        // 2. Split content at the first H2
         const firstH2Index = modifiedContent.indexOf('<h2');
         if (firstH2Index !== -1) {
             setProcessedContent({
@@ -89,15 +103,6 @@ export const MediaArticle: React.FC = () => {
                 body: ''
             });
         }
-    };
-
-    const fetchRelatedArticles = (currentArticle: Article, allArticles: Article[]) => {
-        // Filter: Same category, exclude current
-        const related = allArticles
-            .filter(a => a.category === currentArticle.category && a.id !== currentArticle.id)
-            .slice(0, 3); // Take top 3
-
-        setRelatedArticles(related);
     };
 
     if (!article) {
@@ -216,18 +221,18 @@ export const MediaArticle: React.FC = () => {
                                     <h2 className="text-sm font-eng font-bold tracking-widest m-0 !border-0 !p-0">RELATED ARTICLES</h2>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    {relatedArticles.map((article) => (
-                                        <a key={article.id} href={`/media/${article.id}`} className="group block">
+                                    {relatedArticles.map((item) => (
+                                        <a key={item.id} href={`/media/${item.id}`} className="group block">
                                             <div className="aspect-video overflow-hidden mb-4 bg-gray-100">
                                                 <img
-                                                    src={article.image}
-                                                    alt={article.title}
+                                                    src={item.image}
+                                                    alt={item.title}
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
                                             </div>
-                                            <div className="text-xs font-bold text-gray-500 mb-2">{article.date}</div>
+                                            <div className="text-xs font-bold text-gray-500 mb-2">{item.date}</div>
                                             <h3 className="text-sm font-bold leading-relaxed group-hover:text-gray-600 transition-colors m-0 !border-0 !p-0">
-                                                {article.title}
+                                                {item.title}
                                             </h3>
                                         </a>
                                     ))}

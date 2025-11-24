@@ -5,25 +5,27 @@ import { FadeIn } from '../components/FadeIn';
 import { Sidebar } from '../components/Sidebar';
 import { SEO } from '../components/SEO';
 import { Article } from '../types';
+import { loadArticles } from '../utils/articleStorage';
 
 export const MediaTop: React.FC = () => {
     const [articles, setArticles] = useState<Article[]>([]);
     const [featureArticle, setFeatureArticle] = useState<Article | null>(null);
     const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
     const [latestArticles, setLatestArticles] = useState<Article[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchArticles = async () => {
             try {
-                const response = await fetch('/articles.json');
-                if (response.ok) {
-                    const data = await response.json();
-                    setArticles(data);
-                }
+                const data = await loadArticles();
+                setArticles(data);
             } catch (error) {
-                console.error('Failed to fetch articles:', error);
+                console.error('Failed to load articles:', error);
+            } finally {
+                setLoading(false);
             }
         };
+
         fetchArticles();
     }, []);
 
