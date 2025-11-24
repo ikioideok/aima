@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { SEO } from '../components/SEO';
@@ -30,6 +30,43 @@ export const MediaAdmin: React.FC = () => {
     const [supervisorRole, setSupervisorRole] = useState(defaultSupervisor.role);
     const [supervisorImage, setSupervisorImage] = useState(defaultSupervisor.image);
     const [supervisorComment, setSupervisorComment] = useState(defaultSupervisor.comment);
+
+    const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Load articles on mount
+    useEffect(() => {
+        loadArticles().then(data => {
+            // Sort by date desc
+            data.sort((a, b) => new Date(b.date.replace(/\./g, '/')).getTime() - new Date(a.date.replace(/\./g, '/')).getTime());
+            setArticles(data);
+        });
+    }, []);
+
+    const handleContentImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                alert('画像サイズが大きすぎます（5MB以下にしてください）。');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result as string;
+                const imgTag = `<img src="${base64}" alt="Image" />`;
+
+                const textarea = contentTextareaRef.current;
+                if (textarea) {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const newContent = content.substring(0, start) + imgTag + content.substring(end);
+                    setContent(newContent);
+                } else {
+                    setContent(prev => prev + imgTag);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const [apiKey, setApiKey] = useState('');
     const [message, setMessage] = useState('');
@@ -486,8 +523,26 @@ export const MediaAdmin: React.FC = () => {
 
                                 {/* 5. Content */}
                                 <div>
-                                    <label className="block text-sm font-bold mb-2">本文 (HTML可)</label>
+                                    <div className="flex justify-between items-end mb-2">
+                                        <label className="block text-sm font-bold">本文 (HTML可)</label>
+                                        <div>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                id="content-image-upload"
+                                                className="hidden"
+                                                onChange={handleContentImageUpload}
+                                            />
+                                            <label
+                                                htmlFor="content-image-upload"
+                                                className="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold py-1 px-3 rounded transition-colors"
+                                            >
+                                                + 画像を挿入
+                                            </label>
+                                        </div>
+                                    </div>
                                     <textarea
+                                        ref={contentTextareaRef}
                                         value={content}
                                         onChange={(e) => setContent(e.target.value)}
                                         className="w-full border border-gray-300 p-3 rounded h-96 focus:outline-none focus:border-black transition-colors font-mono text-sm leading-relaxed"
