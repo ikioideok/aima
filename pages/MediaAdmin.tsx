@@ -421,12 +421,14 @@ export const MediaAdmin: React.FC = () => {
                                         <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0 shrink-0">
                                             <button
                                                 onClick={() => handleEdit(article)}
+                                                type="button"
                                                 className="flex-1 md:flex-none bg-white border border-gray-300 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-50 transition-colors"
                                             >
                                                 編集
                                             </button>
                                             <button
                                                 onClick={(e) => handleDelete(e, article.id)}
+                                                type="button"
                                                 className="flex-1 md:flex-none bg-white border border-red-200 text-red-600 px-4 py-2 rounded text-sm font-bold hover:bg-red-50 transition-colors"
                                             >
                                                 削除
