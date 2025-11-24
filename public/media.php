@@ -68,15 +68,16 @@ $html = preg_replace('/<title>.*?<\/title>/i', "<title>{$title}</title>", $html)
 // We inject the content into a hidden div or noscript so crawlers can see it immediately.
 // React will ignore this or we can place it outside #root.
 if ($article) {
-    // Use noscript for SEO content. This ensures crawlers see it even if they don't execute JS,
-    // and it doesn't interfere with the React app's visual layout for users with JS enabled.
-    $seoContent = '<noscript>';
+    // Inject content directly into #root.
+    // Crawlers will see this immediately.
+    // React will wipe this content when it mounts (client-side rendering), which is exactly what we want.
+    $seoContent = '<div id="root">';
     $seoContent .= '<h1>' . htmlspecialchars($article['title']) . '</h1>';
     $seoContent .= '<div>' . $article['content'] . '</div>'; 
-    $seoContent .= '</noscript>';
+    $seoContent .= '</div>';
     
-    // Insert before </body>
-    $html = str_replace('</body>', $seoContent . '</body>', $html);
+    // Replace empty <div id="root"></div> with populated one
+    $html = str_replace('<div id="root"></div>', $seoContent, $html);
 }
 
 echo $html;
