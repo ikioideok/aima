@@ -33,19 +33,38 @@ export const MediaTop: React.FC = () => {
         if (articles.length === 0) return;
 
         // Sort by date descending
-        const sorted = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const sorted = [...articles].sort((a, b) => new Date(b.date.replace(/\./g, '/')).getTime() - new Date(a.date.replace(/\./g, '/')).getTime());
 
-        // 1. Special Feature (Top 1 with displayType 'SPECIAL' or just latest)
-        const special = sorted.find(a => a.displayType === 'SPECIAL');
-        setFeatureArticle(special || sorted[0] || null);
+        // 1. Special Feature (Top 1)
+        // Priority:
+        // 1. Explicitly set to 'SPECIAL'
+        // 2. Fallback: Latest article that is NOT 'FEATURED' (to avoid stealing from Featured grid)
+        // 3. Fallback: Just the latest article (if everything is FEATURED)
+        let special = sorted.find(a => a.displayType === 'SPECIAL');
+
+        if (!special) {
+            // Try to find a LATEST article to promote to Special
+            special = sorted.find(a => a.displayType === 'LATEST' || !a.displayType);
+        }
+
+        if (!special) {
+            // Last resort: just take the first one
+            special = sorted[0];
+        }
+
+        setFeatureArticle(special || null);
 
         // 2. Featured (Next 4 with displayType 'FEATURED')
-        const featured = sorted.filter(a => a.displayType === 'FEATURED' && a.id !== (special?.id || sorted[0]?.id)).slice(0, 4);
+        // Exclude the one chosen as Special
+        const featured = sorted
+            .filter(a => a.displayType === 'FEATURED' && a.id !== special?.id)
+            .slice(0, 4);
         setFeaturedArticles(featured);
 
         // 3. Latest (Rest)
+        // Exclude Special and Featured
         const latest = sorted.filter(a =>
-            a.id !== (special?.id || sorted[0]?.id) &&
+            a.id !== special?.id &&
             !featured.find(f => f.id === a.id)
         );
         setLatestArticles(latest);
