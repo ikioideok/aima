@@ -5,7 +5,9 @@
 // CORS headers
 $allowedOrigins = [
     'https://ai-and-marketing.jp',
-    'https://www.ai-and-marketing.jp'
+    'https://www.ai-and-marketing.jp',
+    'http://localhost:5173', // Vite default
+    'http://localhost:3000'  // Common React port
 ];
 
 if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
