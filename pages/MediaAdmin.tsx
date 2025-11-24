@@ -29,7 +29,24 @@ export const MediaAdmin: React.FC = () => {
     const [supervisorImage, setSupervisorImage] = useState(defaultSupervisor.image);
     const [supervisorComment, setSupervisorComment] = useState(defaultSupervisor.comment);
 
+    const [apiKey, setApiKey] = useState('');
     const [message, setMessage] = useState('');
+
+    useEffect(() => {
+        const storedKey = localStorage.getItem('aima_api_key');
+        if (storedKey) {
+            setApiKey(storedKey);
+        } else {
+            // Default convenience for the owner
+            setApiKey('aima-secret-key-2024');
+        }
+    }, []);
+
+    const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newKey = e.target.value;
+        setApiKey(newKey);
+        localStorage.setItem('aima_api_key', newKey);
+    };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
         const file = e.target.files?.[0];
@@ -153,10 +170,10 @@ export const MediaAdmin: React.FC = () => {
             } : undefined
         };
 
-        const { savedToServer } = await saveArticle(newArticle);
+        const { savedToServer } = await saveArticle(newArticle, apiKey);
 
         setEditingId(null);
-        setMessage(savedToServer ? '記事を投稿しました！' : '記事を投稿しました！（ローカル保存）');
+        setMessage(savedToServer ? '記事を投稿しました！' : '記事を投稿しました！（ローカル保存のみ - APIキーを確認してください）');
         resetForm();
         setTimeout(() => setMessage(''), 3000);
     };
@@ -193,8 +210,19 @@ export const MediaAdmin: React.FC = () => {
 
                         <h1 className="text-3xl font-bold mb-12">{editingId ? '記事編集' : '記事投稿'}</h1>
 
+                        <div className="mb-8 p-4 bg-gray-50 border border-gray-200 rounded">
+                            <label className="block text-xs font-bold mb-2 text-gray-500">API KEY (Server Password)</label>
+                            <input
+                                type="password"
+                                value={apiKey}
+                                onChange={handleApiKeyChange}
+                                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black transition-colors text-sm"
+                                placeholder="Enter API Key"
+                            />
+                        </div>
+
                         {message && (
-                            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-8">
+                            <div className={`px-4 py-3 rounded mb-8 ${message.includes('ローカル保存のみ') ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
                                 {message}
                             </div>
                         )}

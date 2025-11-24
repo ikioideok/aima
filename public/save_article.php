@@ -18,13 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Basic Authentication (Optional: Add a simple password check here)
-// $headers = getallheaders();
-// if (!isset($headers['X-Admin-Key']) || $headers['X-Admin-Key'] !== 'YOUR_SECRET_KEY') {
-//     http_response_code(403);
-//     echo json_encode(['error' => 'Forbidden']);
-//     exit;
-// }
+// Basic Authentication
+$headers = getallheaders();
+$apiKey = isset($headers['X-Api-Key']) ? $headers['X-Api-Key'] : (isset($headers['X-API-KEY']) ? $headers['X-API-KEY'] : null);
+
+// HARDCODED SECRET KEY (Change this!)
+$validKey = 'aima-secret-key-2024';
+
+if ($apiKey !== $validKey) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Forbidden: Invalid API Key']);
+    exit;
+}
 
 $input = file_get_contents('php://input');
 $newArticle = json_decode($input, true);

@@ -61,7 +61,7 @@ export const loadArticles = async (): Promise<Article[]> => {
     return merged;
 };
 
-export const saveArticle = async (article: Article): Promise<{ articles: Article[]; savedToServer: boolean }> => {
+export const saveArticle = async (article: Article, apiKey: string): Promise<{ articles: Article[]; savedToServer: boolean }> => {
     // Save locally first for instant reflection
     const locallyMerged = mergeArticles([article], readStoredArticles(), staticArticles);
     persistStoredArticles(locallyMerged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
@@ -75,6 +75,7 @@ export const saveArticle = async (article: Article): Promise<{ articles: Article
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-API-KEY': apiKey
             },
             body: JSON.stringify(article),
         });
