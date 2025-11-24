@@ -13,7 +13,7 @@ export const MediaArticle: React.FC = () => {
     const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
     const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
     const [processedContent, setProcessedContent] = useState<{ intro: string; body: string } | null>(null);
-    const [isTocOpen, setIsTocOpen] = useState(true);
+    const [isTocOpen, setIsTocOpen] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
 
     useEffect(() => {
@@ -135,13 +135,7 @@ export const MediaArticle: React.FC = () => {
                             <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-12">
                                 {article.title}
                             </h1>
-                            <div className="w-full aspect-video overflow-hidden">
-                                <img
-                                    src={article.heroImage || article.image}
-                                    alt={article.title}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
+                            {/* Eyecatch image removed as per request */}
                         </div>
 
                         <div className="prose prose-lg max-w-none font-medium leading-loose text-justify mb-32">
