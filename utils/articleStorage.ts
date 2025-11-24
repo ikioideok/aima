@@ -1,8 +1,6 @@
 import { Article } from '../types';
-import { articles as staticArticlesData } from '../data/articles';
 
 const STORAGE_KEY = 'aima-media-articles';
-const staticArticles = staticArticlesData as Article[];
 
 const hasWindow = typeof window !== 'undefined';
 
@@ -53,18 +51,18 @@ const fetchServerArticles = async (): Promise<Article[] | null> => {
 export const loadArticles = async (): Promise<Article[]> => {
     const stored = readStoredArticles();
     const serverArticles = await fetchServerArticles();
-    // Order: locally stored (drafts) > server > static seed
-    const merged = mergeArticles(stored, serverArticles || [], staticArticles);
+    // Order: locally stored (drafts) > server
+    const merged = mergeArticles(stored, serverArticles || []);
 
     // Keep cache in localStorage to survive reloads/offline
-    persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+    persistStoredArticles(merged);
     return merged;
 };
 
 export const saveArticle = async (article: Article, apiKey: string): Promise<{ articles: Article[]; savedToServer: boolean }> => {
     // Save locally first for instant reflection
-    const locallyMerged = mergeArticles([article], readStoredArticles(), staticArticles);
-    persistStoredArticles(locallyMerged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+    const locallyMerged = mergeArticles([article], readStoredArticles());
+    persistStoredArticles(locallyMerged);
 
     let savedToServer = false;
     let latestArticles = locallyMerged;
@@ -83,8 +81,8 @@ export const saveArticle = async (article: Article, apiKey: string): Promise<{ a
         if (response.ok) {
             const serverArticles = (await response.json()) as Article[];
             // Update local storage with the authoritative server list
-            const merged = mergeArticles(serverArticles, readStoredArticles(), staticArticles);
-            persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+            const merged = mergeArticles(serverArticles, readStoredArticles());
+            persistStoredArticles(merged);
             latestArticles = merged;
             savedToServer = true;
         } else {
@@ -104,7 +102,7 @@ export const deleteArticle = async (id: string, apiKey: string): Promise<{ artic
     persistStoredArticles(filtered);
 
     let success = false;
-    let latestArticles = mergeArticles(filtered, staticArticles);
+    let latestArticles = mergeArticles(filtered);
 
     try {
         const response = await fetch('/save_article.php', {
@@ -118,8 +116,8 @@ export const deleteArticle = async (id: string, apiKey: string): Promise<{ artic
 
         if (response.ok) {
             const serverArticles = (await response.json()) as Article[];
-            const merged = mergeArticles(serverArticles, filtered, staticArticles);
-            persistStoredArticles(merged.filter((a) => !staticArticles.find((s) => s.id === a.id)));
+            const merged = mergeArticles(serverArticles, filtered);
+            persistStoredArticles(merged);
             latestArticles = merged;
             success = true;
         }
