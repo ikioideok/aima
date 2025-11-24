@@ -32,8 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Basic Authentication
-$headers = getallheaders();
-$apiKey = isset($headers['X-Api-Key']) ? $headers['X-Api-Key'] : (isset($headers['X-API-KEY']) ? $headers['X-API-KEY'] : null);
+$apiKey = null;
+if (isset($_SERVER['HTTP_X_API_KEY'])) {
+    $apiKey = $_SERVER['HTTP_X_API_KEY'];
+} elseif (function_exists('getallheaders')) {
+    $headers = getallheaders();
+    $apiKey = isset($headers['X-Api-Key']) ? $headers['X-Api-Key'] : (isset($headers['X-API-KEY']) ? $headers['X-API-KEY'] : null);
+}
 
 // HARDCODED SECRET KEY (Change this!)
 $validKey = 'aima-secret-key-2024';
