@@ -17,7 +17,7 @@ export const MediaAdmin: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const [title, setTitle] = useState('');
-    const [subtitle, setSubtitle] = useState('');
+    // Subtitle removed
     const [category, setCategory] = useState<Article['category']>('INSIGHT');
     const [image, setImage] = useState('');
     const [content, setContent] = useState('');
@@ -144,20 +144,24 @@ export const MediaAdmin: React.FC = () => {
     const handlePostArticle = async (event?: React.FormEvent) => {
         event?.preventDefault();
 
-        if (!title.trim() || !subtitle.trim() || !content.trim()) {
-            alert('タイトル、サブタイトル、本文は必須です。');
+        if (!title.trim() || !content.trim()) {
+            alert('タイトルと本文は必須です。');
             return;
         }
+
+        // Generate excerpt from content (strip HTML tags)
+        const plainText = content.replace(/<[^>]+>/g, '');
+        const excerpt = plainText.substring(0, 120) + '...';
 
         const newArticle: Article = {
             id: editingId || Date.now().toString(),
             title,
-            subtitle,
+            subtitle: '', // Deprecated but kept for type compatibility if needed, or just empty
             date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.'),
             category,
             image,
             content,
-            excerpt: subtitle,
+            excerpt,
             displayType,
             supervisor: supervisorName || supervisorRole || supervisorImage || supervisorComment ? {
                 name: supervisorName,
@@ -177,7 +181,7 @@ export const MediaAdmin: React.FC = () => {
 
     const resetForm = () => {
         setTitle('');
-        setSubtitle('');
+        // setSubtitle('');
         setCategory('INSIGHT');
         setImage('');
         setContent('');
@@ -224,29 +228,57 @@ export const MediaAdmin: React.FC = () => {
                             </div>
                         )}
 
-                        <form className="space-y-8 mb-24" onSubmit={handlePostArticle}>
+                        <form className="space-y-12 mb-24" onSubmit={handlePostArticle}>
+                            {/* 1. Title */}
                             <div>
                                 <label className="block text-sm font-bold mb-2">タイトル</label>
                                 <input
                                     type="text"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                    className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors text-lg font-bold"
                                     required
+                                    placeholder="記事のタイトルを入力"
                                 />
                             </div>
 
+                            {/* 2. Image */}
                             <div>
-                                <label className="block text-sm font-bold mb-2">サブタイトル / 抜粋</label>
-                                <input
-                                    type="text"
-                                    value={subtitle}
-                                    onChange={(e) => setSubtitle(e.target.value)}
-                                    className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                    required
-                                />
+                                <label className="block text-sm font-bold mb-2">アイキャッチ画像</label>
+                                <div className="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50">
+                                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                        <button
+                                            type="button"
+                                            onClick={generateEyecatch}
+                                            className="bg-black text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-800 transition-colors whitespace-nowrap"
+                                        >
+                                            タイトルから自動生成
+                                        </button>
+                                        <span className="text-xs text-gray-500">または</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleImageUpload(e, setImage)}
+                                            className="text-sm"
+                                        />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={image}
+                                        onChange={(e) => setImage(e.target.value)}
+                                        placeholder="画像URLを直接入力 (https://...)"
+                                        className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
+                                    />
+                                    {image && (
+                                        <div className="mt-4">
+                                            <p className="text-xs text-gray-500 mb-2">プレビュー:</p>
+                                            <img src={image} alt="Preview" className="h-40 object-cover rounded border border-gray-200" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
+                            {/* 3. Category & Display */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
                                     <label className="block text-sm font-bold mb-2">カテゴリー</label>
@@ -281,138 +313,89 @@ export const MediaAdmin: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200">
-                                <button
-                                    type="button"
-                                    onClick={resetForm}
-                                    className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                >
-                                    リセット
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-8 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center space-x-2"
-                                >
-                                    <span>記事を投稿する</span>
-                                </button>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2">メイン画像</label>
-                                <div className="space-y-4">
-                                    <div className="flex gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={generateEyecatch}
-                                            className="bg-black text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-800 transition-colors"
-                                        >
-                                            タイトルから画像を自動生成
-                                        </button>
-                                    </div>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleImageUpload(e, setImage)}
-                                        className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                    />
-                                    <div className="text-center text-sm text-gray-500">- OR -</div>
-                                    <input
-                                        type="text"
-                                        value={image}
-                                        onChange={(e) => setImage(e.target.value)}
-                                        placeholder="画像URLを直接入力 (https://...)"
-                                        className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                    />
-                                </div>
-                                {image && (
-                                    <div className="mt-4">
-                                        <p className="text-xs text-gray-500 mb-2">プレビュー:</p>
-                                        <img src={image} alt="Preview" className="h-40 object-cover rounded border border-gray-200" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Supervisor Section */}
-                            <div className="border-t border-b border-gray-200 py-8 my-8">
-                                <h3 className="text-xl font-bold mb-6">監修者情報 (任意)</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                                    <div>
-                                        <label className="block text-sm font-bold mb-2">監修者名</label>
-                                        <input
-                                            type="text"
-                                            value={supervisorName}
-                                            onChange={(e) => setSupervisorName(e.target.value)}
-                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold mb-2">役職 / 肩書き</label>
-                                        <input
-                                            type="text"
-                                            value={supervisorRole}
-                                            onChange={(e) => setSupervisorRole(e.target.value)}
-                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="mb-6">
-                                    <label className="block text-sm font-bold mb-2">監修者画像</label>
-                                    <div className="space-y-4">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => handleImageUpload(e, setSupervisorImage)}
-                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={supervisorImage}
-                                            onChange={(e) => setSupervisorImage(e.target.value)}
-                                            placeholder="画像URL"
-                                            className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:border-black transition-colors"
-                                        />
-                                    </div>
-                                    {supervisorImage && (
-                                        <div className="mt-4">
-                                            <img src={supervisorImage} alt="Supervisor" className="h-20 w-20 object-cover rounded-full border border-gray-200" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">監修者コメント</label>
-                                    <textarea
-                                        value={supervisorComment}
-                                        onChange={(e) => setSupervisorComment(e.target.value)}
-                                        className="w-full border border-gray-300 p-3 rounded h-24 focus:outline-none focus:border-black transition-colors"
-                                    />
-                                </div>
-                            </div>
-
+                            {/* 4. Content */}
                             <div>
                                 <label className="block text-sm font-bold mb-2">本文 (HTML可)</label>
                                 <textarea
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
-                                    className="w-full border border-gray-300 p-3 rounded h-64 focus:outline-none focus:border-black transition-colors font-mono text-sm"
+                                    className="w-full border border-gray-300 p-3 rounded h-96 focus:outline-none focus:border-black transition-colors font-mono text-sm leading-relaxed"
                                     required
+                                    placeholder="<p>ここに本文を入力...</p>"
                                 />
                                 <p className="text-xs text-gray-500 mt-2">※ &lt;p&gt;, &lt;h2&gt;, &lt;ul&gt; などのHTMLタグが使用できます。</p>
                             </div>
 
-                            <div className="pt-8 flex gap-4">
+                            {/* 5. Supervisor Section */}
+                            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                                <h3 className="text-lg font-bold mb-6">監修者情報 (任意)</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label className="block text-xs font-bold mb-2">監修者名</label>
+                                        <input
+                                            type="text"
+                                            value={supervisorName}
+                                            onChange={(e) => setSupervisorName(e.target.value)}
+                                            className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-2">役職 / 肩書き</label>
+                                        <input
+                                            type="text"
+                                            value={supervisorRole}
+                                            onChange={(e) => setSupervisorRole(e.target.value)}
+                                            className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mb-6">
+                                    <label className="block text-xs font-bold mb-2">監修者画像</label>
+                                    <div className="flex gap-4 items-center">
+                                        {supervisorImage && (
+                                            <img src={supervisorImage} alt="Supervisor" className="h-12 w-12 object-cover rounded-full border border-gray-200" />
+                                        )}
+                                        <input
+                                            type="text"
+                                            value={supervisorImage}
+                                            onChange={(e) => setSupervisorImage(e.target.value)}
+                                            placeholder="画像URL"
+                                            className="flex-grow border border-gray-300 p-2 rounded focus:outline-none focus:border-black transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold mb-2">監修者コメント</label>
+                                    <textarea
+                                        value={supervisorComment}
+                                        onChange={(e) => setSupervisorComment(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded h-20 focus:outline-none focus:border-black transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Action Buttons (Bottom) */}
+                            <div className="pt-8 flex gap-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="px-6 py-4 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-bold"
+                                >
+                                    リセット
+                                </button>
                                 <button
                                     type="submit"
-                                    className="bg-black text-white px-12 py-4 font-bold tracking-widest hover:bg-gray-800 transition-colors flex-grow md:flex-grow-0"
+                                    className="flex-grow bg-black text-white px-8 py-4 font-bold tracking-widest hover:bg-gray-800 transition-colors rounded-lg text-lg shadow-lg"
                                 >
-                                    {editingId ? 'UPDATE ARTICLE' : 'POST ARTICLE'}
+                                    {editingId ? '記事を更新する' : '記事を投稿する'}
                                 </button>
                                 {editingId && (
                                     <button
                                         type="button"
                                         onClick={handleCancelEdit}
-                                        className="border border-black text-black px-8 py-4 font-bold tracking-widest hover:bg-gray-100 transition-colors"
+                                        className="border border-black text-black px-8 py-4 font-bold tracking-widest hover:bg-gray-100 transition-colors rounded-lg"
                                     >
-                                        CANCEL
+                                        キャンセル
                                     </button>
                                 )}
                             </div>
