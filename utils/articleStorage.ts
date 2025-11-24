@@ -121,8 +121,10 @@ export const deleteArticle = async (id: string, apiKey: string): Promise<{ artic
         if (response.ok) {
             const serverArticles = (await response.json()) as Article[];
             const merged = mergeArticles(serverArticles, filtered);
-            persistStoredArticles(merged);
-            latestArticles = merged;
+            // Ensure the deleted ID is definitely gone, just in case server returned it
+            const finalMerged = merged.filter(a => a.id !== id);
+            persistStoredArticles(finalMerged);
+            latestArticles = finalMerged;
             success = true;
         }
     } catch (error) {

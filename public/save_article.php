@@ -112,7 +112,7 @@ if (file_exists($file)) {
 if (isset($newArticle['delete']) && $newArticle['delete'] === true) {
     $idToDelete = $newArticle['id'];
     $articles = array_filter($articles, function($a) use ($idToDelete) {
-        return $a['id'] !== $idToDelete;
+        return $a['id'] != $idToDelete;
     });
     // Re-index array
     $articles = array_values($articles);
