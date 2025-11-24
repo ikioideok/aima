@@ -58,6 +58,45 @@ if (!$newArticle) {
     exit;
 }
 
+// Helper to save Base64 image
+function saveBase64Image($base64String, $prefix) {
+    if (preg_match('/^data:image\/(\w+);base64,/', $base64String, $type)) {
+        $data = substr($base64String, strpos($base64String, ',') + 1);
+        $type = strtolower($type[1]); // jpg, png, etc.
+        
+        if (!in_array($type, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+            return $base64String; // Invalid type, return original
+        }
+
+        $data = base64_decode($data);
+        if ($data === false) {
+            return $base64String; // Decode failed
+        }
+
+        $uploadDir = 'uploads/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $filename = $prefix . '_' . uniqid() . '.' . $type;
+        file_put_contents($uploadDir . $filename, $data);
+        
+        return '/' . $uploadDir . $filename;
+    }
+    return $base64String; // Not a base64 string
+}
+
+// Process images
+if (isset($newArticle['image'])) {
+    $newArticle['image'] = saveBase64Image($newArticle['image'], 'article');
+}
+if (isset($newArticle['heroImage'])) {
+    $newArticle['heroImage'] = saveBase64Image($newArticle['heroImage'], 'hero');
+}
+if (isset($newArticle['supervisor']['image'])) {
+    $newArticle['supervisor']['image'] = saveBase64Image($newArticle['supervisor']['image'], 'supervisor');
+}
+
 $file = 'articles.json';
 $articles = [];
 
