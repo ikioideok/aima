@@ -17,6 +17,10 @@ export const MediaAdmin: React.FC = () => {
     const [articles, setArticles] = useState<Article[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    // Delete Modal State
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState(''); // New slug state
     // Subtitle removed
@@ -232,18 +236,25 @@ export const MediaAdmin: React.FC = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
+    const handleDelete = (e: React.MouseEvent, id: string) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!window.confirm('本当に削除しますか？この操作は取り消せません。')) return;
+        setDeleteTargetId(id);
+        setDeleteModalOpen(true);
+    };
 
-        const { success } = await deleteArticle(id, apiKey);
+    const executeDelete = async () => {
+        if (!deleteTargetId) return;
+
+        const { success } = await deleteArticle(deleteTargetId, apiKey);
         if (success) {
             setMessage('記事を削除しました。');
             fetchArticles();
         } else {
             setMessage('削除に失敗しました。（APIキーを確認してください）');
         }
+        setDeleteModalOpen(false);
+        setDeleteTargetId(null);
         setTimeout(() => setMessage(''), 3000);
     };
 
@@ -658,6 +669,33 @@ export const MediaAdmin: React.FC = () => {
             </main>
 
             <Footer />
+
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4">記事の削除</h3>
+                        <p className="text-gray-600 mb-8">
+                            本当にこの記事を削除しますか？<br />
+                            この操作は取り消せません。
+                        </p>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => { setDeleteModalOpen(false); setDeleteTargetId(null); }}
+                                className="flex-1 py-3 border border-gray-300 rounded font-bold hover:bg-gray-50 transition-colors"
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                onClick={executeDelete}
+                                className="flex-1 py-3 bg-red-600 text-white rounded font-bold hover:bg-red-700 transition-colors"
+                            >
+                                削除する
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
