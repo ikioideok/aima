@@ -232,7 +232,9 @@ export const MediaAdmin: React.FC = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (!window.confirm('本当に削除しますか？この操作は取り消せません。')) return;
 
         const { success } = await deleteArticle(id, apiKey);
@@ -424,7 +426,7 @@ export const MediaAdmin: React.FC = () => {
                                                 編集
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(article.id)}
+                                                onClick={(e) => handleDelete(e, article.id)}
                                                 className="flex-1 md:flex-none bg-white border border-red-200 text-red-600 px-4 py-2 rounded text-sm font-bold hover:bg-red-50 transition-colors"
                                             >
                                                 削除
