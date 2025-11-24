@@ -78,6 +78,36 @@ if ($article) {
     
     // Replace empty <div id="root"></div> with populated one
     $html = str_replace('<div id="root"></div>', $seoContent, $html);
+
+    // Canonical URL
+    $articleUrl = 'https://ai-and-marketing.jp/media/' . $articleId;
+    $html = str_replace('<link rel="canonical" href="https://ai-and-marketing.jp/" />', '<link rel="canonical" href="' . $articleUrl . '" />', $html);
+    
+    // OG Image (Use article image or default)
+    $ogImage = !empty($article['image']) ? $article['image'] : 'https://ai-and-marketing.jp/ogp.png';
+    // If image path is relative, make it absolute
+    if (strpos($ogImage, 'http') !== 0) {
+        $ogImage = 'https://ai-and-marketing.jp' . $ogImage;
+    }
+
+    // Structured Data (Article)
+    $structuredData = [
+        "@context" => "https://schema.org",
+        "@type" => "Article",
+        "headline" => $article['title'],
+        "image" => $ogImage,
+        "author" => [
+            "@type" => "Organization",
+            "name" => "株式会社AIMA"
+        ],
+        "datePublished" => str_replace('.', '-', $article['date']), // Convert YYYY.MM.DD to YYYY-MM-DD if needed, or keep as is if valid
+        "dateModified" => str_replace('.', '-', $article['date']),
+        "description" => $article['excerpt']
+    ];
+    
+    // Inject Structured Data before </head>
+    $jsonLd = '<script type="application/ld+json">' . json_encode($structuredData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+    $html = str_replace('</head>', $jsonLd . '</head>', $html);
 }
 
 echo $html;

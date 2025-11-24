@@ -1,76 +1,36 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AIMA Inc.｜AIマーケティングとLLM活用コンサルティング</title>
-    <meta
-      name="description"
-      content="AIMA Inc.は大阪拠点のAIコンサルティングファーム。AIマーケティング、LLM活用（RAG構築・ナレッジ活用）、データ分析で意思決定を支援します。"
-    />
-    <link rel="canonical" href="https://ai-and-marketing.jp/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="AIMA Inc." />
-    <meta
-      property="og:title"
-      content="AIMA Inc.｜AIマーケティングとLLM活用コンサルティング"
-    />
-    <meta
-      property="og:description"
-      content="AIマーケティング・LLM活用・データ分析で意思決定を支援するAIMA Inc.（大阪）。人とAIの合間で価値を創出します。"
-    />
-    <meta property="og:url" content="https://ai-and-marketing.jp/" />
-    <meta property="og:image" content="https://ai-and-marketing.jp/ogp.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AIMA Inc.｜AIマーケティングとLLM活用コンサルティング" />
-    <meta
-      name="twitter:description"
-      content="AIマーケティング・LLM活用・データ分析で意思決定を支援するAIMA Inc.（大阪）"
-    />
-    <meta name="twitter:image" content="https://ai-and-marketing.jp/ogp.png" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500&family=Shippori+Mincho:wght@400;600;900&family=Zen+Old+Mincho:wght@400;700;900&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              serif: ['Shippori Mincho', 'Zen Old Mincho', 'serif'],
-              eng: ['Inter', 'sans-serif'],
-            },
-            transitionTimingFunction: {
-              'ink': 'cubic-bezier(0.16, 1, 0.3, 1)',
-            },
-            keyframes: {
-              float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-15px)' },
-              }
-            },
-            animation: {
-              'float-slow': 'float 7s ease-in-out infinite',
-              'float-medium': 'float 5s ease-in-out infinite',
-              'float-fast': 'float 4s ease-in-out infinite',
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      body {
-        -webkit-font-smoothing: antialiased;
-        background-color: #ffffff;
-      }
-      /* Utility for vertical writing which Tailwind arbitrary values handle but this is cleaner for global usage if needed */
-      .writing-vertical {
-        writing-mode: vertical-rl;
-        text-orientation: mixed;
-      }
-    </style>
-    <script type="application/ld+json">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIMA Inc.｜AIマーケティングとLLM活用コンサルティング</title>
+  <meta name="description" content="AIMA Inc.は大阪拠点のAIコンサルティングファーム。AIマーケティング、LLM活用（RAG構築・ナレッジ活用）、データ分析で意思決定を支援します。" />
+  <link rel="canonical" href="https://ai-and-marketing.jp/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="AIMA Inc." />
+  <meta property="og:title" content="AIMA Inc.｜AIマーケティングとLLM活用コンサルティング" />
+  <meta property="og:description" content="AIマーケティング・LLM活用・データ分析で意思決定を支援するAIMA Inc.（大阪）。人とAIの合間で価値を創出します。" />
+  <meta property="og:url" content="https://ai-and-marketing.jp/" />
+  <meta property="og:image" content="https://ai-and-marketing.jp/ogp.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AIMA Inc.｜AIマーケティングとLLM活用コンサルティング" />
+  <meta name="twitter:description" content="AIマーケティング・LLM活用・データ分析で意思決定を支援するAIMA Inc.（大阪）" />
+  <meta name="twitter:image" content="https://ai-and-marketing.jp/ogp.png" />
+
+  <style>
+    body {
+      -webkit-font-smoothing: antialiased;
+      background-color: #ffffff;
+    }
+
+    /* Utility for vertical writing which Tailwind arbitrary values handle but this is cleaner for global usage if needed */
+    .writing-vertical {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+    }
+  </style>
+  <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "Organization",
@@ -96,10 +56,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
