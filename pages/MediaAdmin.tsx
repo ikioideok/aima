@@ -24,7 +24,7 @@ export const MediaAdmin: React.FC = () => {
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState(''); // New slug state
     // Subtitle removed
-    const [category, setCategory] = useState<Article['category']>('INSIGHT');
+    const [category, setCategory] = useState<Article['category']>('LLMO');
     const [image, setImage] = useState('');
     const [content, setContent] = useState('');
     const [displayType, setDisplayType] = useState<Article['displayType']>('LATEST');
@@ -325,7 +325,7 @@ export const MediaAdmin: React.FC = () => {
     const resetForm = () => {
         setTitle('');
         setSlug('');
-        setCategory('INSIGHT');
+        setCategory('LLMO');
         setImage('');
         setContent('');
         setDisplayType('LATEST');
@@ -402,6 +402,25 @@ export const MediaAdmin: React.FC = () => {
                                         className="text-xs font-bold border border-gray-300 px-3 py-1 rounded hover:bg-gray-100"
                                     >
                                         更新
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm('既存の記事（llmo, llmo_geo, how_to_llmo）のカテゴリを修正しますか？')) return;
+                                            const targetIds = ['llmo', 'llmo_geo', 'how_to_llmo'];
+                                            let count = 0;
+                                            for (const article of articles) {
+                                                if (targetIds.includes(article.id)) {
+                                                    const updated = { ...article, category: 'LLMO' as const };
+                                                    await saveArticle(updated, apiKey);
+                                                    count++;
+                                                }
+                                            }
+                                            alert(`${count}件の記事を修正しました。`);
+                                            fetchArticles();
+                                        }}
+                                        className="text-xs font-bold border border-blue-300 text-blue-600 bg-blue-50 px-3 py-1 rounded hover:bg-blue-100 ml-2"
+                                    >
+                                        カテゴリ修正
                                     </button>
                                 </div>
 
