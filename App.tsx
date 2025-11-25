@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { MediaTop } from './pages/MediaTop';
 import { MediaArticle } from './pages/MediaArticle';
+import { MediaCategory } from './pages/MediaCategory';
 import { MediaAdmin } from './pages/MediaAdmin';
 import { ServiceSeoLlmo } from './pages/ServiceSeoLlmo';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
@@ -15,8 +16,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/media" element={<MediaTop />} />
-          <Route path="/media/admin" element={<MediaAdmin />} />
           <Route path="/media/:id" element={<MediaArticle />} />
+          <Route path="/media/category/:category" element={<MediaCategory />} />
+          <Route path="/media/admin" element={<MediaAdmin />} />
           <Route path="/service/seo-llmo" element={<ServiceSeoLlmo />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
         </Routes>
