@@ -9,10 +9,13 @@ import { MediaAdmin } from './pages/MediaAdmin';
 import { ServiceSeoLlmo } from './pages/ServiceSeoLlmo';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
+import { ScrollToTop } from './components/ScrollToTop';
+
 function App() {
   return (
     <HelmetProvider>
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/media" element={<MediaTop />} />

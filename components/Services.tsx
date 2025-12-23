@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FadeIn } from './FadeIn';
+import { ServiceModal } from './ServiceModal';
 import './Services.css';
 
 interface ServiceData {
@@ -39,6 +40,7 @@ const servicesData: ServiceData[] = [
 
 export const Services: React.FC = () => {
   const [activeId, setActiveId] = useState<string>('01');
+  const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
   const navigate = useNavigate();
 
   return (
@@ -88,7 +90,7 @@ export const Services: React.FC = () => {
                     {service.longDescription}
                   </p>
                   <button
-                    onClick={() => service.link && navigate(service.link)}
+                    onClick={() => setSelectedService(service)}
                     className="group flex items-center space-x-2 text-sm font-bold tracking-widest uppercase border-b border-black pb-1 w-fit hover:text-gray-600 transition-colors"
                   >
                     <span>View Details</span>
@@ -101,6 +103,12 @@ export const Services: React.FC = () => {
         </div>
 
       </div>
+
+      <ServiceModal
+        isOpen={!!selectedService}
+        onClose={() => setSelectedService(null)}
+        service={selectedService}
+      />
     </section>
   );
 };
