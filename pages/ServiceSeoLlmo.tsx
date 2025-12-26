@@ -2,10 +2,16 @@ import React from 'react';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { FadeIn } from '../components/FadeIn';
+import { SEO } from '../components/SEO';
 
 export const ServiceSeoLlmo: React.FC = () => {
     return (
         <div className="font-serif text-black bg-white w-full overflow-x-hidden min-h-screen">
+            <SEO
+                title="SEO・LLMO内製化"
+                description="検索×AI時代に対応した社内コンテンツ制作チームの立ち上げ支援プログラム。"
+                path="/service/seo-llmo"
+            />
             <Navigation />
 
             <main className="pt-32 pb-20">

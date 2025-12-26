@@ -1,10 +1,12 @@
 import React from 'react';
 import { Layout } from '../components/Layout';
 import '../styles/home-legacy.css';
+import { SEO } from '../components/SEO';
 
 export const PrivacyPolicy: React.FC = () => {
     return (
         <Layout>
+            <SEO title="Privacy Policy" path="/privacy" />
             <div className="grid-cell span-4" style={{ paddingTop: '120px', paddingBottom: '60px' }}>
                 <h2 style={{ fontSize: '2.5rem', marginTop: '20px' }}>Privacy Policy</h2>
             </div>

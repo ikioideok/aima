@@ -5,6 +5,7 @@ import { Layout } from '../components/Layout';
 import characterWalk from '../character_walk.png';
 import profilePhoto from '../profile.png';
 import { ServiceModal } from '../components/ServiceModal';
+import { SEO } from '../components/SEO';
 
 export const Home: React.FC = () => {
     const [selectedService, setSelectedService] = useState<{
@@ -33,6 +34,7 @@ export const Home: React.FC = () => {
 
     return (
         <Layout>
+            <SEO path="/" />
             <div className="grid-cell span-4 hero-section" style={{ position: 'relative', overflow: 'visible' }}>
                 <div style={{ position: 'relative', zIndex: 1, paddingTop: '0px' }}>
                     <div className="hero-title-en">
